@@ -1,6 +1,6 @@
-name: x2_gen2.deployment
+name: vehicle_beta2_01.deployment
 
-architecture: X2Gen2.architecture
+architecture: TypeBeta2.architecture
 
 # vehicle specific parameters, such as sensor calibration, vehicle dimensions
 vehicle_parameters:

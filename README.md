@@ -17,7 +17,7 @@ colcon build
 * build log
 overall build log: `log/latest/autoware_perception_deployment/stdout.log`
 each deployment `build/autoware_perception_deployment/*.deployment.log`
-ex. `build/autoware_perception_deployment/build_x2_gen2.deployment.log`
+ex. `build/autoware_perception_deployment/build_vehicle_beta2_01.deployment.log`
 
 ## visualize
 
@@ -39,5 +39,7 @@ sudo mv plantuml.jar /usr/share/plantuml/plantuml.jar
 ```
 2. 
 ```sh
-java -Xmx16384m -DPLANTUML_LIMIT_SIZE=65536 -jar /usr/share/plantuml/plantuml.jar -verbose -Playout=smetana -tpng 'install/autoware_perception_deployment/share/autoware_perception_deployment/visualization/x2_gen2.deployment_sequence_graph.puml'
+java -Xmx16384m -DPLANTUML_LIMIT_SIZE=65536 -jar /usr/share/plantuml/plantuml.jar -verbose -Playout=smetana -tpng 'install/autoware_perception_deployment/share/autoware_perception_deployment/visualization/vehicle_beta2_01.deployment_node_graph.puml'
+java -Xmx16384m -DPLANTUML_LIMIT_SIZE=65536 -jar /usr/share/plantuml/plantuml.jar -verbose -Playout=smetana -tpng 'install/autoware_perception_deployment/share/autoware_perception_deployment/visualization/vehicle_beta2_01.deployment_logic_graph.puml'
+java -Xmx16384m -DPLANTUML_LIMIT_SIZE=65536 -jar /usr/share/plantuml/plantuml.jar -verbose -Playout=smetana -tpng 'install/autoware_perception_deployment/share/autoware_perception_deployment/visualization/vehicle_beta2_01.deployment_sequence_graph.puml'
 ```
