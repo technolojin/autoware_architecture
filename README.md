@@ -20,7 +20,7 @@ generated files: install/autoware_perception_deployment/share/autoware_perceptio
 * install vscode PlantUML plugin: https://marketplace.visualstudio.com/items?itemName=jebbs.plantuml
   - press `alt + D` for preview
 
-* manual install
+* manual install and launch
 1. 
 ```sh
 sudo apt install plantuml
