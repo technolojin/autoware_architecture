@@ -7,11 +7,17 @@
 git clone git@github.com:technolojin/autoware_architecture.git autoware_architecture/src
 cd autoware_architecture
 vcs import src < build_depends.repos 
+```
 
 # build
+```sh
 colcon build
 ```
 
+* build log
+overall build log: `log/latest/autoware_perception_deployment/stdout.log`
+each deployment `build/autoware_perception_deployment/*.deployment.log`
+ex. `build/autoware_perception_deployment/build_x2_gen2.deployment.log`
 
 ## visualize
 
