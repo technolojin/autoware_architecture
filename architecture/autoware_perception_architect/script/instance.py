@@ -669,10 +669,10 @@ class Deployment:
         # define the traverse_instance function
 
         # load the template file
-        script_dir = os.path.dirname(__file__)
-        node_template_path = os.path.join(script_dir, "node_diagram.puml.jinja2")
-        logic_template_path = os.path.join(script_dir, "logic_diagram.puml.jinja2")
-        sequence_template_path = os.path.join(script_dir, "sequence_diagram.puml.jinja2")
+        template_dir = os.path.join(os.path.dirname(__file__), "../template")
+        node_template_path = os.path.join(template_dir, "node_diagram.puml.jinja2")
+        logic_template_path = os.path.join(template_dir, "logic_diagram.puml.jinja2")
+        sequence_template_path = os.path.join(template_dir, "sequence_diagram.puml.jinja2")
 
         # Collect data from the architecture instance
         data = self.architecture_instance.collect_instance_data()
@@ -701,7 +701,30 @@ class Deployment:
             f.write(plantuml_output)
 
     def generate_system_monitor(self):
-        # 2. generate system monitor configuration
+        # load the template file
+        template_dir = os.path.join(os.path.dirname(__file__), "../template")
+        topics_template_path = os.path.join(template_dir, "sys_monitor_topics.yaml.jinja2")
+
+        # Collect data from the architecture instance
+        data = self.architecture_instance.collect_instance_data()
+
+        # load the template file
+        with open(topics_template_path, "r") as f:
+            plantuml_template = f.read()
+
+        # Render the Jinja2 template with the collected data
+        template = jinja2.Template(plantuml_template)
+        output = template.render(data)
+        # write the plantuml file
+        file_dir = os.path.join(self.system_monitor_dir, "component_state_monitor")
+        file_path = os.path.join(file_dir, "topics.yaml")
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        if not os.path.exists(file_dir):
+            os.makedirs(file_dir, exist_ok=True)
+        with open(file_path, "w") as f:
+            f.write(output)
+
         pass
 
     def generate_launcher(self):
