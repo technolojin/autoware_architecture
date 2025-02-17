@@ -664,6 +664,24 @@ class Deployment:
             self.visualize()
             raise ValueError(f"Error in setting architecture: {e}")
 
+    def generate_by_template(self, data, template_path, output_dir, output_filename):
+        # load the template file
+        with open(template_path, "r") as f:
+            template_file = f.read()
+
+        # Render the Jinja2 template with the collected data
+        template = jinja2.Template(template_file)
+        output = template.render(data)
+
+        # write the plantuml file
+        output_path = os.path.join(output_dir, output_filename)
+        if os.path.exists(output_path):
+            os.remove(output_path)
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir, exist_ok=True)
+        with open(output_path, "w") as f:
+            f.write(output)
+
     def visualize(self):
         # 4. visualize the deployment diagram via plantuml
         # define the traverse_instance function
@@ -678,27 +696,9 @@ class Deployment:
         data = self.architecture_instance.collect_instance_data()
 
         # draw node diagram
-        self.generate_plantuml(data, node_template_path, self.name + "_node_graph")
-        self.generate_plantuml(data, logic_template_path, self.name + "_logic_graph")
-        self.generate_plantuml(data, sequence_template_path, self.name + "_sequence_graph")
-
-    def generate_plantuml(self, data, template_path, prefix):
-        # load the template file
-        with open(template_path, "r") as f:
-            plantuml_template = f.read()
-
-        # Render the Jinja2 template with the collected data
-        template = jinja2.Template(plantuml_template)
-        plantuml_output = template.render(data)
-
-        # write the plantuml file
-        plantuml_file = os.path.join(self.visualization_dir, prefix + ".puml")
-        if os.path.exists(plantuml_file):
-            os.remove(plantuml_file)
-        if not os.path.exists(self.visualization_dir):
-            os.makedirs(self.visualization_dir, exist_ok=True)
-        with open(plantuml_file, "w") as f:
-            f.write(plantuml_output)
+        self.generate_by_template(data, node_template_path, self.visualization_dir, self.name + "_node_graph.puml")
+        self.generate_by_template(data, logic_template_path, self.visualization_dir, self.name + "_logic_graph.puml")
+        self.generate_by_template(data, sequence_template_path, self.visualization_dir, self.name + "_sequence_graph.puml")
 
     def generate_system_monitor(self):
         # load the template file
@@ -708,24 +708,9 @@ class Deployment:
         # Collect data from the architecture instance
         data = self.architecture_instance.collect_instance_data()
 
-        # load the template file
-        with open(topics_template_path, "r") as f:
-            plantuml_template = f.read()
+        file_out_dir = os.path.join(self.system_monitor_dir, "component_state_monitor")
+        self.generate_by_template(data, topics_template_path, file_out_dir, "topics.yaml")
 
-        # Render the Jinja2 template with the collected data
-        template = jinja2.Template(plantuml_template)
-        output = template.render(data)
-        # write the plantuml file
-        file_dir = os.path.join(self.system_monitor_dir, "component_state_monitor")
-        file_path = os.path.join(file_dir, "topics.yaml")
-        if os.path.exists(file_path):
-            os.remove(file_path)
-        if not os.path.exists(file_dir):
-            os.makedirs(file_dir, exist_ok=True)
-        with open(file_path, "w") as f:
-            f.write(output)
-
-        pass
 
     def generate_launcher(self):
         # 3. build the launcher
