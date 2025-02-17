@@ -616,9 +616,9 @@ class Deployment:
 
         # output paths
         self.output_root_dir = output_root_dir
-        self.launcher_dir = os.path.join(self.output_root_dir, "launcher/")
-        self.system_monitor_dir = os.path.join(self.output_root_dir, "system_monitor/")
-        self.visualization_dir = os.path.join(self.output_root_dir, "visualization/")
+        self.launcher_dir = os.path.join(self.output_root_dir, "exports", self.name, "launcher/")
+        self.system_monitor_dir = os.path.join(self.output_root_dir, "exports", self.name, "system_monitor/")
+        self.visualization_dir = os.path.join(self.output_root_dir, "exports", self.name,"visualization/")
 
         # build the deployment
         self.build()
