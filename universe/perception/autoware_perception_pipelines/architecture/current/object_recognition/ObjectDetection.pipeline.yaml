@@ -153,10 +153,9 @@ connections:
     to: roi_detected_object_fusion.input.camera_info6
   - from: input.camera_info7
     to: roi_detected_object_fusion.input.camera_info7
-  - from: roi_detected_object_fusion.output.fused_objects
-    to: centerpoint.input.roi_fused_objects
+
   # merger
-  - from: centerpoint.output.validated_objects
+  - from: roi_detected_object_fusion.output.fused_objects
     to: object_association_merger_alpha.input.object0
   - from: clustering.output.detected_objects
     to: object_association_merger_alpha.input.object1

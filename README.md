@@ -39,7 +39,7 @@ sudo mv plantuml.jar /usr/share/plantuml/plantuml.jar
 ```
 2. 
 ```sh
-java -Xmx16384m -DPLANTUML_LIMIT_SIZE=65536 -jar /usr/share/plantuml/plantuml.jar -verbose -Playout=smetana -tpng 'install/autoware_perception_deployment/share/autoware_perception_deployment/visualization/vehicle_beta2_01.deployment_node_graph.puml'
-java -Xmx16384m -DPLANTUML_LIMIT_SIZE=65536 -jar /usr/share/plantuml/plantuml.jar -verbose -Playout=smetana -tpng 'install/autoware_perception_deployment/share/autoware_perception_deployment/visualization/vehicle_beta2_01.deployment_logic_graph.puml'
-java -Xmx16384m -DPLANTUML_LIMIT_SIZE=65536 -jar /usr/share/plantuml/plantuml.jar -verbose -Playout=smetana -tpng 'install/autoware_perception_deployment/share/autoware_perception_deployment/visualization/vehicle_beta2_01.deployment_sequence_graph.puml'
+java -Xmx16384m -DPLANTUML_LIMIT_SIZE=65536 -jar /usr/share/plantuml/plantuml.jar -verbose -Playout=smetana -tpng 'install/autoware_perception_deployment/share/autoware_perception_deployment/exports/vehicle_beta2_01.deployment/visualization/vehicle_beta2_01.deployment_node_graph.puml'
+java -Xmx16384m -DPLANTUML_LIMIT_SIZE=65536 -jar /usr/share/plantuml/plantuml.jar -verbose -Playout=smetana -tpng 'install/autoware_perception_deployment/share/autoware_perception_deployment/exports/vehicle_beta2_01.deployment/visualization/vehicle_beta2_01.deployment_logic_graph.puml'
+java -Xmx16384m -DPLANTUML_LIMIT_SIZE=65536 -jar /usr/share/plantuml/plantuml.jar -verbose -Playout=smetana -tpng 'install/autoware_perception_deployment/share/autoware_perception_deployment/exports/vehicle_beta2_01.deployment/visualization/vehicle_beta2_01.deployment_sequence_graph.puml'
 ```
