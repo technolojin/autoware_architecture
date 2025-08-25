@@ -1,4 +1,9 @@
 
+## requirements
+
+```sh
+pip install catkin_pkg
+```
 
 
 ## install
