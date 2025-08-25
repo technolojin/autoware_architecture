@@ -21,6 +21,7 @@ from typing import Union, List, Optional
 from ..models.elements import ElementList
 from ..parsers.yaml_parser import yaml_parser
 from ..generators.launcher_generator import launcher_generator
+from ..generators.visualization_generator import visualization_generator
 from ..config import config
 from ..exceptions import DeploymentError, ValidationError
 
@@ -152,6 +153,34 @@ class DeploymentBuilder:
             
         except Exception as exc:
             raise DeploymentError(f"Failed to build deployment: {exc}")
+    
+    def build_deployment(self, deployment_file: Union[str, Path], 
+                        architecture_yaml_list_file: Union[str, Path], 
+                        output_root_dir: Union[str, Path]) -> 'Deployment':
+        """Build deployment using the provided files (backward compatibility method).
+        
+        Args:
+            deployment_file: Path to deployment configuration YAML file
+            architecture_yaml_list_file: Path to file containing list of architecture YAML directories
+            output_root_dir: Root directory for generated output files
+            
+        Returns:
+            Deployment instance
+            
+        Raises:
+            DeploymentError: If build fails
+        """
+        try:
+            # Configure the builder with provided parameters
+            self.with_deployment_config(deployment_file)
+            self.with_element_list_file(architecture_yaml_list_file)
+            self.with_output_dir(output_root_dir)
+            
+            # Build and return the deployment
+            return self.build()
+            
+        except Exception as exc:
+            raise DeploymentError(f"Failed to build deployment: {exc}")
 
 
 class Deployment:
@@ -170,8 +199,9 @@ class Deployment:
         self.output_dir = output_dir
         self.name = config.get("name", "unknown")
         
-        # Setup logging
-        self.logger = config.setup_logging()
+        # Setup logging using the global config object
+        from ..config import config as global_config
+        self.logger = global_config.setup_logging()
         
         logger.info(f"Created deployment: {self.name}")
     
@@ -209,12 +239,27 @@ class Deployment:
         """Generate system visualization.
         
         Returns:
-            Path to generated visualization file, or None if not implemented
+            Path to generated visualization directory, or None if failed
         """
         logger.info("Generating system visualization...")
-        # TODO: Implement visualization generation
-        logger.warning("Visualization generation not yet implemented")
-        return None
+        try:
+            generated_files = visualization_generator.generate_deployment_visualizations(
+                deployment_name=self.name,
+                element_list=self.element_list,
+                output_dir=self.output_dir
+            )
+            
+            if generated_files:
+                logger.info(f"Generated {len(generated_files)} visualization files")
+                # Return the directory containing the generated files
+                return generated_files[0].parent
+            else:
+                logger.warning("No visualization files were generated")
+                return None
+                
+        except Exception as exc:
+            logger.error(f"Failed to generate visualization: {exc}")
+            return None
     
     def generate_system_monitor(self) -> Optional[Path]:
         """Generate system monitor configuration.
@@ -246,3 +291,12 @@ class Deployment:
         
         logger.info("Deployment build completed")
         return artifacts
+
+    # Backward compatibility methods for build.py
+    def visualize(self) -> Optional[Path]:
+        """Generate visualization (alias for generate_visualization)."""
+        return self.generate_visualization()
+    
+    def generate_launcher(self, executable_name: str = "default_executable") -> List[Path]:
+        """Generate launcher files (alias for generate_launchers)."""
+        return self.generate_launchers(executable_name)

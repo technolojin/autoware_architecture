@@ -15,5 +15,6 @@
 """Generators package."""
 
 from .launcher_generator import LauncherGenerator
+from .visualization_generator import VisualizationGenerator
 
-__all__ = ["LauncherGenerator"]
+__all__ = ["LauncherGenerator", "VisualizationGenerator"]

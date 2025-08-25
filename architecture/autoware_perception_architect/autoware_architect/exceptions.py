@@ -43,3 +43,8 @@ class DeploymentError(ArchitectureError):
 class ValidationError(ArchitectureError):
     """Exception raised for validation errors."""
     pass
+
+
+class VisualizationError(ArchitectureError):
+    """Exception raised for visualization generation errors."""
+    pass

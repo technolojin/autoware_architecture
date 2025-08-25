@@ -110,10 +110,17 @@ def validate_pipeline_config(config: Dict[str, Any]) -> bool:
     
     # Validate external interfaces
     external_interfaces = config.get("external_interfaces", {})
-    required_interface_fields = ["input", "output", "parameter"]
+    required_interface_fields = ["input", "output"]
+    optional_interface_fields = ["parameter"]
+    
+    # Check required fields
     for field in required_interface_fields:
         if field not in external_interfaces:
             raise PipelineConfigurationError(f"Required external interface field '{field}' missing")
+    
+    # Validate that if parameter field exists, it's a list
+    if "parameter" in external_interfaces and not isinstance(external_interfaces["parameter"], list):
+        raise PipelineConfigurationError("External interface 'parameter' field must be a list")
     
     # Validate connections are lists
     if not isinstance(config.get("connections", []), list):
