@@ -12,19 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import sys
 
-from classes import ElementList
+from elements import ElementList
 from instance import Deployment
 
-# global variables
-debug_mode = True
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("__name__")
 
 
 # build the deployment
 # search and connect the connections between the modules
 def build(deployment_file: str, architecture_yaml_list_file: str, output_root_dir: str):
-    print("autoware architect: Building deployment...")
+    logger.info("autoware architect: Building deployment...")
 
     # Inputs:
     #   deployment_file: a yaml file that contains the deployment configuration
