@@ -13,7 +13,7 @@
 # limitations under the License.
 
 macro(autoware_architect_build_deploy project_name deployment_file)
-  set(BUILD_PY_SCRIPT "${CMAKE_BINARY_DIR}/../autoware_perception_architect/script/build.py")
+  set(BUILD_PY_SCRIPT "${CMAKE_BINARY_DIR}/../autoware_perception_architect/script/deployment_process.py")
   set(DEPLOYMENT_FILE "${CMAKE_SOURCE_DIR}/deployment/${deployment_file}.yaml")
   set(ARCHITECTURE_YAML_LIST "${CMAKE_BINARY_DIR}/../autoware_perception_architect/autoware_architect_yaml_filelist.txt")
   set(OUTPUT_ROOT_DIR "${CMAKE_INSTALL_PREFIX}/share/${CMAKE_PROJECT_NAME}/")

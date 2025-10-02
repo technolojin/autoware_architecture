@@ -13,7 +13,7 @@
 # limitations under the License.
 
 macro(autoware_architect_generate_launcher module_yaml_file_name executable_name)
-  set(GENERATE_LAUNCHER_PY_SCRIPT "${CMAKE_BINARY_DIR}/../autoware_perception_architect/script/generate_launcher.py")
+  set(GENERATE_LAUNCHER_PY_SCRIPT "${CMAKE_BINARY_DIR}/../autoware_perception_architect/script/component_process.py")
   set(MODULE_YAML_FILE "${CMAKE_SOURCE_DIR}/architecture/${module_yaml_file_name}.yaml")
   set(LAUNCHER_FILE_DIR "${CMAKE_INSTALL_PREFIX}/share/${CMAKE_PROJECT_NAME}/launcher/")
   get_filename_component(WORKSPACE_ROOT "${CMAKE_BINARY_DIR}/../.." ABSOLUTE)
