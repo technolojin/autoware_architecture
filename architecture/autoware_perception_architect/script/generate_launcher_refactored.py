@@ -20,10 +20,7 @@ import argparse
 import logging
 from pathlib import Path
 
-# Add the autoware_architect package to the Python path
-script_dir = Path(__file__).parent
-sys.path.insert(0, str(script_dir))
-
+# Import from the installed autoware_architect package
 from autoware_architect.config import config
 from autoware_architect.models.elements import ElementFactory
 from autoware_architect.generators.launcher_generator import launcher_generator
