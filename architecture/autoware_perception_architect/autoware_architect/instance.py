@@ -16,6 +16,7 @@
 import os
 from typing import List
 
+from .config import ArchitectureConfig
 from .models import classes as awa_cls
 from .models.classes import element_name_decode
 from .models.classes import load_config_yaml
@@ -587,12 +588,16 @@ class ArchitectureInstance(Instance):
 
 
 class Deployment:
-    def __init__(
-        self, config_yaml_dir: str, architecture_yaml_list: List[str], output_root_dir: str
-    ):
+    def __init__(self, architecture_config: ArchitectureConfig ):
+
+        # parse the architecture yaml configuration list
+        # the list is a text file that contains directories of the yaml files
+        with open(architecture_config.architecture_yaml_list_file, "r") as file:
+            architecture_yaml_list = file.read().splitlines()
+
         # load yaml file
-        self.config_yaml_dir = config_yaml_dir
-        self.config_yaml = load_config_yaml(config_yaml_dir)
+        self.config_yaml_dir = architecture_config.deployment_file
+        self.config_yaml = load_config_yaml(self.config_yaml_dir)
         self.name = self.config_yaml.get("name")
 
         # element lists
@@ -619,7 +624,7 @@ class Deployment:
         self.map_yaml = None
 
         # output paths
-        self.output_root_dir = output_root_dir
+        self.output_root_dir = architecture_config.output_root_dir
         self.launcher_dir = os.path.join(self.output_root_dir, "exports", self.name, "launcher/")
         self.system_monitor_dir = os.path.join(self.output_root_dir, "exports", self.name, "system_monitor/")
         self.visualization_dir = os.path.join(self.output_root_dir, "exports", self.name,"visualization/")

@@ -21,5 +21,7 @@ __all__ = [
     "builders",
     "parsers",
     "exceptions",
+    "models",
+    "instance",
     "utils"
 ]

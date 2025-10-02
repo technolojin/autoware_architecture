@@ -19,12 +19,7 @@ import sys
 import yaml
 import logging
 
-
-def pascal_to_snake(name: str) -> str:
-    """Convert PascalCase to snake_case."""
-    s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
-    return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
-
+from autoware_architect.utils import pascal_to_snake
 
 def check_module_configuration(module_yaml) -> bool:
     #

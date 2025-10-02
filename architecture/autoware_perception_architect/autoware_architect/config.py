@@ -29,6 +29,11 @@ class ArchitectureConfig:
     cache_enabled: bool = False
     max_cache_size: int = 128
 
+    # paths
+    deployment_file: str = ""
+    architecture_yaml_list_file: str = ""
+    output_root_dir: str = "build"
+
     @classmethod
     def from_env(cls) -> 'ArchitectureConfig':
         """Create configuration from environment variables."""
