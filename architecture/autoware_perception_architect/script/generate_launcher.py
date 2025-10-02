@@ -17,6 +17,7 @@ import re
 import sys
 
 import yaml
+import logging
 
 
 def pascal_to_snake(name: str) -> str:
@@ -145,23 +146,29 @@ def create_module_launcher_xml(module_yaml, executable_name: str) -> str:
 
 
 def generate_launcher(module_yaml_dir, executable_name, launch_file_dir) -> None:
+
+    logger = logging.getLogger(__name__)
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
     # parse the architecture yaml configuration
     with open(module_yaml_dir, "r") as stream:
         try:
             module_yaml = yaml.safe_load(stream)
         except yaml.YAMLError as exc:
-            print(exc)
+            logger.error(f"Error parsing YAML file {module_yaml_dir}: {exc}")
             return
     if "name" not in module_yaml:
-        ValueError(f"Field 'name' is required in module configuration., {module_yaml_dir}")
+        logger.error(f"Field 'name' is required in module configuration., {module_yaml_dir}")
         return
     module_name = module_yaml.get("name")
 
     # check the module configuration
     # if the configuration is not correct, warn the user
     if not check_module_configuration(module_yaml):
-        print(f"Invalid module configuration: {launch_file_dir}")
+        logger.warning(f"Invalid module configuration: {launch_file_dir}")
         return
+
+    logger.info(f"Generating launcher for module: {module_name}")
 
     # generate xml launcher file
     launcher_xml = create_module_launcher_xml(module_yaml, executable_name)
@@ -169,6 +176,8 @@ def generate_launcher(module_yaml_dir, executable_name, launch_file_dir) -> None
     # generate the launch file
     launch_file = f"{module_name}.launch.xml"
     launch_file_path = os.path.join(launch_file_dir, launch_file)
+
+    logger.info(f"Saving launcher to: {launch_file_path}")
 
     # if the directory does not exist, create the directory
     os.makedirs(os.path.dirname(launch_file_path), exist_ok=True)
