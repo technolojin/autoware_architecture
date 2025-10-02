@@ -19,6 +19,13 @@ overall build log: `log/latest/autoware_perception_deployment/stdout.log`
 each deployment `build/autoware_perception_deployment/*.deployment.log`
 ex. `build/autoware_perception_deployment/build_vehicle_beta2_01.deployment.log`
 
+
+
+clean build
+```sh
+rm build -r || rm install || colcon build
+```
+
 ## visualize
 
 generated files: install/autoware_perception_deployment/share/autoware_perception_deployment/visualization/*.puml

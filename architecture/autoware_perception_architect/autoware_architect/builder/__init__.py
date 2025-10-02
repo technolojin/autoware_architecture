@@ -12,14 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Autoware Architecture Package."""
+"""Builders module."""
 
-__version__ = "1.0.0"
-
-__all__ = [
-    "config",
-    "builders",
-    "parsers",
-    "exceptions",
-    "utils"
-]

@@ -23,8 +23,7 @@ autoware_architect/
 ├── builders/              # Build orchestration
 │   └── deployment_builder.py  # Deployment builder
 └── utils/                 # Utilities
-    ├── naming.py          # Naming conventions (PascalCase ↔ snake_case)
-    └── validation.py      # Configuration validation
+    └── naming.py          # Naming conventions (PascalCase ↔ snake_case)
 ```
 
 ## 🚀 Key Improvements

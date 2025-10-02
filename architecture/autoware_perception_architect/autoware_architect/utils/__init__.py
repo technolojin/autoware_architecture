@@ -12,14 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Autoware Architecture Package."""
+"""Utilities."""
 
-__version__ = "1.0.0"
+from .naming import pascal_to_snake, snake_to_pascal
 
 __all__ = [
-    "config",
-    "builders",
-    "parsers",
-    "exceptions",
-    "utils"
+    "pascal_to_snake",
+    "snake_to_pascal"
 ]
