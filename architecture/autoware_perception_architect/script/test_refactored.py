@@ -22,7 +22,8 @@ from pathlib import Path
 
 # Add the autoware_architect package to the Python path
 script_dir = Path(__file__).parent
-sys.path.insert(0, str(script_dir))
+package_dir = script_dir.parent  # Go up one level to find autoware_architect
+sys.path.insert(0, str(package_dir))
 
 # Import from the refactored package
 try:

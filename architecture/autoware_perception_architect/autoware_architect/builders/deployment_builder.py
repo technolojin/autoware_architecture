@@ -21,7 +21,7 @@ from typing import Union, List, Optional
 from ..models.elements import ElementList
 from ..parsers.yaml_parser import yaml_parser
 from ..generators.launcher_generator import launcher_generator
-from ..config import config
+from ..config import config as global_config
 from ..exceptions import DeploymentError, ValidationError
 
 logger = logging.getLogger(__name__)
@@ -171,7 +171,7 @@ class Deployment:
         self.name = config.get("name", "unknown")
         
         # Setup logging
-        self.logger = config.setup_logging()
+        self.logger = global_config.setup_logging()
         
         logger.info(f"Created deployment: {self.name}")
     
