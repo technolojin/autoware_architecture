@@ -19,6 +19,7 @@ from typing import List
 from . import classes as awa_cls
 from .classes import element_name_decode
 from .classes import load_config_yaml
+from .classes import ElementList
 import jinja2
 
 debug_mode = True
@@ -587,12 +588,15 @@ class ArchitectureInstance(Instance):
 
 class Deployment:
     def __init__(
-        self, config_yaml_dir: str, element_list: awa_cls.ElementList, output_root_dir: str
+        self, config_yaml_dir: str, architecture_yaml_list: List[str], output_root_dir: str
     ):
         # load yaml file
         self.config_yaml_dir = config_yaml_dir
         self.config_yaml = load_config_yaml(config_yaml_dir)
         self.name = self.config_yaml.get("name")
+
+        # element lists
+        element_list = ElementList(architecture_yaml_list)
 
         self.module_list: awa_cls.ModuleList = awa_cls.ModuleList(element_list.get_module_list())
         self.pipeline_list: awa_cls.PipelineList = awa_cls.PipelineList(

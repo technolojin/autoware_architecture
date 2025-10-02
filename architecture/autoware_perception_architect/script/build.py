@@ -14,7 +14,6 @@
 
 import sys
 
-from autoware_architect.classes import ElementList
 from autoware_architect.instance import Deployment
 
 # global variables
@@ -35,11 +34,8 @@ def build(deployment_file: str, architecture_yaml_list_file: str, output_root_di
     with open(architecture_yaml_list_file, "r") as file:
         architecture_yaml_list = file.read().splitlines()
 
-    # load the architecture yaml files
-    element_list = ElementList(architecture_yaml_list)
-
     # load and build the deployment yaml file
-    deployment = Deployment(deployment_file, element_list, output_root_dir)
+    deployment = Deployment(deployment_file, architecture_yaml_list, output_root_dir)
 
     # generate the system visualization
     deployment.visualize()
