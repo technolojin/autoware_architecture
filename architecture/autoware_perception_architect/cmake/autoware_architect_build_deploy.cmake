@@ -17,11 +17,13 @@ macro(autoware_architect_build_deploy project_name deployment_file)
   set(ARCHITECTURE_YAML_LIST "${CMAKE_BINARY_DIR}/../autoware_perception_architect/autoware_architect_yaml_filelist.txt")
   set(DEPLOYMENT_FILE "${CMAKE_SOURCE_DIR}/deployment/${deployment_file}.yaml")
   set(OUTPUT_ROOT_DIR "${CMAKE_INSTALL_PREFIX}/share/${CMAKE_PROJECT_NAME}/")
-  set(LOG_FILE "${CMAKE_BINARY_DIR}/build_${deployment_file}.log")
+  # Use CMAKE_BINARY_DIR to get to workspace root, then navigate to log directory
+  get_filename_component(WORKSPACE_ROOT "${CMAKE_BINARY_DIR}/../.." ABSOLUTE)
+  set(LOG_FILE "${WORKSPACE_ROOT}/log/latest_build/${CMAKE_PROJECT_NAME}/build_${deployment_file}.log")
 
   # run build.py script, without target
   add_custom_target(run_build_py_${deployment_file} ALL
-    COMMAND ${CMAKE_COMMAND} -E env python3 ${BUILD_PY_SCRIPT} ${DEPLOYMENT_FILE} ${ARCHITECTURE_YAML_LIST} ${OUTPUT_ROOT_DIR} > ${LOG_FILE} 2>&1
+    COMMAND ${CMAKE_COMMAND} -E env python3 -u ${BUILD_PY_SCRIPT} ${DEPLOYMENT_FILE} ${ARCHITECTURE_YAML_LIST} ${OUTPUT_ROOT_DIR} > ${LOG_FILE} 2>&1
     COMMENT "Running build.py script from autoware_perception_architect package. Check the log file at ${LOG_FILE} for details."
   )
 

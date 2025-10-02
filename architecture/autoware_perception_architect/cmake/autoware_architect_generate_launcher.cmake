@@ -16,11 +16,15 @@ macro(autoware_architect_generate_launcher module_yaml_file_name executable_name
   set(GENERATE_LAUNCHER_PY_SCRIPT "${CMAKE_BINARY_DIR}/../autoware_perception_architect/script/generate_launcher_refactored.py")
   set(MODULE_YAML_FILE "${CMAKE_SOURCE_DIR}/architecture/${module_yaml_file_name}.yaml")
   set(LAUNCHER_FILE_DIR "${CMAKE_INSTALL_PREFIX}/share/${CMAKE_PROJECT_NAME}/launcher/")
+  
+  # Use CMAKE_BINARY_DIR to get to workspace root, then navigate to log directory
+  get_filename_component(WORKSPACE_ROOT "${CMAKE_BINARY_DIR}/../.." ABSOLUTE)
+  set(LOG_FILE "${WORKSPACE_ROOT}/log/latest_build/${CMAKE_PROJECT_NAME}/launcher.log")
 
-  # run build.py script
+  # run generate_launcher.py script with log path
   add_custom_target(${executable_name}_generate_launcher ALL
-    COMMAND ${CMAKE_COMMAND} -E env python3 ${GENERATE_LAUNCHER_PY_SCRIPT} ${MODULE_YAML_FILE} ${executable_name} ${LAUNCHER_FILE_DIR}
-    COMMENT "Running generate_launcher.py script to generate ${module_yaml_file_name}"
+    COMMAND ${CMAKE_COMMAND} -E env python3 -u ${GENERATE_LAUNCHER_PY_SCRIPT} ${MODULE_YAML_FILE} ${executable_name} ${LAUNCHER_FILE_DIR} >> ${LOG_FILE} 2>&1
+    COMMENT "Running generate_launcher.py script to generate ${module_yaml_file_name}. Check the log file at ${LOG_FILE} for details."
   )
 
   # # add dependencies to trigger the build.py script when building the project
