@@ -14,14 +14,15 @@
 
 macro(autoware_architect_build_deploy project_name deployment_file)
   set(BUILD_PY_SCRIPT "${CMAKE_BINARY_DIR}/../autoware_perception_architect/script/build.py")
-  set(ARCHITECTURE_YAML_LIST "${CMAKE_BINARY_DIR}/../autoware_perception_architect/autoware_architect_yaml_filelist.txt")
   set(DEPLOYMENT_FILE "${CMAKE_SOURCE_DIR}/deployment/${deployment_file}.yaml")
+  set(ARCHITECTURE_YAML_LIST "${CMAKE_BINARY_DIR}/../autoware_perception_architect/autoware_architect_yaml_filelist.txt")
   set(OUTPUT_ROOT_DIR "${CMAKE_INSTALL_PREFIX}/share/${CMAKE_PROJECT_NAME}/")
   set(LOG_FILE "${CMAKE_BINARY_DIR}/build_${deployment_file}.log")
+  set(ARCHITECT_SOURCE_DIR "${CMAKE_SOURCE_DIR}/../architecture/autoware_perception_architect")
 
   # run build.py script, without target
   add_custom_target(run_build_py_${deployment_file} ALL
-    COMMAND ${CMAKE_COMMAND} -E env python3 ${BUILD_PY_SCRIPT} ${DEPLOYMENT_FILE} ${ARCHITECTURE_YAML_LIST} ${OUTPUT_ROOT_DIR} > ${LOG_FILE} 2>&1
+    COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${ARCHITECT_SOURCE_DIR}:$ENV{PYTHONPATH} python3 ${BUILD_PY_SCRIPT} ${DEPLOYMENT_FILE} ${ARCHITECTURE_YAML_LIST} ${OUTPUT_ROOT_DIR} > ${LOG_FILE} 2>&1
     COMMENT "Running build.py script from autoware_perception_architect package. Check the log file at ${LOG_FILE} for details."
   )
 

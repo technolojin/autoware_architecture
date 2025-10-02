@@ -16,9 +16,9 @@
 import os
 from typing import List
 
-import classes as awa_cls
-from classes import element_name_decode
-from classes import load_config_yaml
+from . import classes as awa_cls
+from .classes import element_name_decode
+from .classes import load_config_yaml
 import jinja2
 
 debug_mode = True

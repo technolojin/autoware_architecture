@@ -14,8 +14,8 @@
 
 import sys
 
-from classes import ElementList
-from instance import Deployment
+from autoware_architect.classes import ElementList
+from autoware_architect.instance import Deployment
 
 # global variables
 debug_mode = True
