@@ -23,7 +23,7 @@ ex. `build/autoware_perception_deployment/build_vehicle_beta2_01.deployment.log`
 
 clean build
 ```sh
-rm build -r || rm install || colcon build
+rm build -r ; rm install -r ; colcon build
 ```
 
 ## visualize

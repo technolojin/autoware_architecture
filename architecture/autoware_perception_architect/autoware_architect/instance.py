@@ -16,10 +16,10 @@
 import os
 from typing import List
 
-from . import classes as awa_cls
-from .classes import element_name_decode
-from .classes import load_config_yaml
-from .classes import ElementList
+from .models import classes as awa_cls
+from .models.classes import element_name_decode
+from .models.classes import load_config_yaml
+from .models.classes import ElementList
 import jinja2
 
 debug_mode = True
