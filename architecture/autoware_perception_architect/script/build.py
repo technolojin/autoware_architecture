@@ -106,6 +106,45 @@ def validate_input_files(args: argparse.Namespace) -> None:
     
     if not args.architecture_yaml_list_file.is_file():
         raise DeploymentError(f"Architecture YAML list file is not a regular file: {args.architecture_yaml_list_file}")
+    
+    # Check if architecture yaml list file has content
+    try:
+        with open(args.architecture_yaml_list_file, 'r') as f:
+            content = f.read().strip()
+            if not content:
+                raise DeploymentError(f"Architecture YAML list file is empty: {args.architecture_yaml_list_file}")
+            
+            # Validate that listed files exist
+            lines = content.split('\n')
+            missing_files = []
+            for line in lines:
+                line = line.strip()
+                if line and not Path(line).exists():
+                    missing_files.append(line)
+            
+            if missing_files:
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Some YAML files listed in {args.architecture_yaml_list_file} do not exist:")
+                for missing_file in missing_files[:5]:  # Show only first 5 missing files
+                    logger.warning(f"  - {missing_file}")
+                if len(missing_files) > 5:
+                    logger.warning(f"  ... and {len(missing_files) - 5} more files")
+                
+    except Exception as e:
+        raise DeploymentError(f"Error reading architecture YAML list file: {e}")
+
+
+def validate_python_environment() -> None:
+    """Validate that the Python environment has required packages."""
+    logger = logging.getLogger(__name__)
+    
+    try:
+        # Check for required modules
+        import yaml
+        import pathlib
+        logger.debug("Python environment validation passed")
+    except ImportError as e:
+        raise DeploymentError(f"Required Python package not found: {e}")
 
 
 def build(deployment_file: Path, architecture_yaml_list_file: Path, output_root_dir: Path, 
@@ -124,6 +163,9 @@ def build(deployment_file: Path, architecture_yaml_list_file: Path, output_root_
     logger.info("Starting autoware architect deployment build...")
     
     try:
+        # Validate Python environment
+        validate_python_environment()
+        
         # Create output directory if it doesn't exist
         output_root_dir.mkdir(parents=True, exist_ok=True)
         
@@ -164,6 +206,11 @@ def build(deployment_file: Path, architecture_yaml_list_file: Path, output_root_
 
 def main() -> int:
     """Main entry point."""
+    # Check Python version
+    if sys.version_info < (3, 6):
+        print("ERROR: Python 3.6 or higher is required", file=sys.stderr)
+        return 3
+    
     parser = setup_argument_parser()
     
     # Handle legacy command line format for backward compatibility
@@ -184,7 +231,18 @@ def main() -> int:
     setup_logging(args.debug)
     logger = logging.getLogger(__name__)
     
+    logger.info(f"Python version: {sys.version}")
+    logger.info(f"Build script path: {Path(__file__).resolve()}")
+    logger.info(f"Working directory: {Path.cwd()}")
+    
     try:
+        # Show input parameters for debugging
+        logger.debug(f"Deployment file: {args.deployment_file}")
+        logger.debug(f"Architecture YAML list file: {args.architecture_yaml_list_file}")
+        logger.debug(f"Output root directory: {args.output_root_dir}")
+        logger.debug(f"Executable: {args.executable}")
+        logger.debug(f"Validate only: {args.validate_only}")
+        
         # Validate input files
         validate_input_files(args)
         
@@ -197,13 +255,19 @@ def main() -> int:
             validate_only=args.validate_only
         )
         
+        logger.info("Build process completed successfully")
         return 0
         
     except DeploymentError as e:
         logger.error(f"Deployment error: {e}")
+        logger.error("Please check your deployment configuration and try again")
         return 1
+    except KeyboardInterrupt:
+        logger.warning("Build process was interrupted by user")
+        return 130
     except Exception as e:
         logger.error(f"Unexpected error: {e}")
+        logger.error("This may be a bug in the build system")
         if logger.getEffectiveLevel() == logging.DEBUG:
             logger.exception("Detailed error information:")
         return 2
