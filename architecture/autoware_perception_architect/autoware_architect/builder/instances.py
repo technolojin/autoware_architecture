@@ -15,7 +15,19 @@
 
 from typing import List
 
-from ..models import classes as awa_cls
+from ..models.classes import ModuleElement
+from ..models.classes import PipelineElement
+from ..models.classes import ArchitectureElement
+
+from ..models.classes import ParameterList
+
+from ..models.ports import InPort, OutPort
+
+from ..models.classes import Link
+from ..models.classes import Connection
+
+from ..models.events import Event, Process
+
 from ..models.classes import element_name_decode
 
 debug_mode = True
@@ -41,9 +53,9 @@ class Instance:
 
         # element
         self.element: [
-            awa_cls.ModuleElement,
-            awa_cls.PipelineElement,
-            awa_cls.ArchitectureElement,
+            ModuleElement,
+            PipelineElement,
+            ArchitectureElement,
         ] = None
         self.element_type: str = None
         self.parent: Instance = None
@@ -51,16 +63,16 @@ class Instance:
         self.parent_pipeline_list: List[str] = []
 
         # interface
-        self.in_ports: List[awa_cls.InPort] = []
-        self.out_ports: List[awa_cls.OutPort] = []
-        self.links: List[awa_cls.Link] = []
+        self.in_ports: List[InPort] = []
+        self.out_ports: List[OutPort] = []
+        self.links: List[Link] = []
 
         # processes
-        self.processes: List[awa_cls.Process] = []
-        self.event_list: List[awa_cls.Event] = []
+        self.processes: List[Process] = []
+        self.event_list: List[Event] = []
 
         # parameters
-        self.parameters: awa_cls.ParameterList = awa_cls.ParameterList()
+        self.parameters: ParameterList = ParameterList()
 
         # status
         self.is_initialized = False
@@ -126,9 +138,9 @@ class Instance:
         if len(connection_list_yaml) == 0:
             raise ValueError("No connections found in the pipeline configuration")
 
-        connection_list: List[awa_cls.Connection] = []
+        connection_list: List[Connection] = []
         for connection in connection_list_yaml:
-            connection_instance = awa_cls.Connection(connection)
+            connection_instance = Connection(connection)
             connection_list.append(connection_instance)
 
         # establish links
@@ -143,17 +155,17 @@ class Instance:
                 # if the port name is wildcard, find available port from the to_instance
                 if connection.to_port_name == "*":
                     for port in port_list:
-                        from_port = awa_cls.InPort(port.name, port.msg_type, self.namespace)
-                        link = awa_cls.Link(port.msg_type, from_port, port, self.namespace)
+                        from_port = InPort(port.name, port.msg_type, self.namespace)
+                        link = Link(port.msg_type, from_port, port, self.namespace)
                         self.links.append(link)
                 else:
                     # match the port name
                     to_port = to_instance.get_in_port(connection.to_port_name)
                     # create a link
-                    from_port = awa_cls.InPort(
+                    from_port = InPort(
                         connection.from_port_name, to_port.msg_type, self.namespace
                     )
-                    link = awa_cls.Link(to_port.msg_type, from_port, to_port, self.namespace)
+                    link = Link(to_port.msg_type, from_port, to_port, self.namespace)
                     self.links.append(link)
 
             # case 2. from internal output to internal input
@@ -165,7 +177,7 @@ class Instance:
                 from_port = from_instance.get_out_port(connection.from_port_name)
                 to_port = to_instance.get_in_port(connection.to_port_name)
                 # create link
-                link = awa_cls.Link(from_port.msg_type, from_port, to_port, self.namespace)
+                link = Link(from_port.msg_type, from_port, to_port, self.namespace)
                 self.links.append(link)
 
             # case 3. from internal output to external output
@@ -178,17 +190,17 @@ class Instance:
                 # if the port name is wildcard, find available port from the from_instance
                 if connection.from_port_name == "*":
                     for port in port_list:
-                        to_port = awa_cls.OutPort(port.name, port.msg_type, self.namespace)
-                        link = awa_cls.Link(port.msg_type, port, to_port, self.namespace)
+                        to_port = OutPort(port.name, port.msg_type, self.namespace)
+                        link = Link(port.msg_type, port, to_port, self.namespace)
                         self.links.append(link)
                 else:
                     # match the port name
                     from_port = from_instance.get_out_port(connection.from_port_name)
                     # create link
-                    to_port = awa_cls.OutPort(
+                    to_port = OutPort(
                         connection.to_port_name, from_port.msg_type, self.namespace
                     )
-                    link = awa_cls.Link(from_port.msg_type, from_port, to_port, self.namespace)
+                    link = Link(from_port.msg_type, from_port, to_port, self.namespace)
                     self.links.append(link)
 
         # create external ports
@@ -214,7 +226,7 @@ class Instance:
         for in_port in self.element.config_yaml.get("inputs"):
             in_port_name = in_port.get("name")
             in_port_msg_type = in_port.get("message_type")
-            in_port_instance = awa_cls.InPort(in_port_name, in_port_msg_type, self.namespace)
+            in_port_instance = InPort(in_port_name, in_port_msg_type, self.namespace)
             if "global" in in_port:
                 in_port_instance.is_global = True
                 topic = in_port.get("global")
@@ -227,7 +239,7 @@ class Instance:
         for out_port in self.element.config_yaml.get("outputs"):
             out_port_name = out_port.get("name")
             out_port_msg_type = out_port.get("message_type")
-            out_port_instance = awa_cls.OutPort(out_port_name, out_port_msg_type, self.namespace)
+            out_port_instance = OutPort(out_port_name, out_port_msg_type, self.namespace)
             if "global" in out_port:
                 out_port_instance.is_global = True
                 topic = out_port.get("global")
@@ -249,7 +261,7 @@ class Instance:
         # parse processes and get trigger conditions and output conditions
         for process_config in self.element.config_yaml.get("processes"):
             name = process_config.get("name")
-            self.processes.append(awa_cls.Process(name, self.namespace, process_config))
+            self.processes.append(Process(name, self.namespace, process_config))
 
         # set the process events
         process_event_list = [process.event for process in self.processes]
@@ -284,7 +296,7 @@ class Instance:
                 return out_port
         raise ValueError(f"Out port not found: out-port name '{name}', instance of '{self.name}'")
 
-    def set_in_port(self, in_port: awa_cls.InPort):
+    def set_in_port(self, in_port: InPort):
         # check the external input is defined
         external_input_list = self.element.config_yaml.get("external_interfaces").get("input")
         external_input_list = [ext_input.get("name") for ext_input in external_input_list]
@@ -307,7 +319,7 @@ class Instance:
         # same port name is not found, add the port
         self.in_ports.append(in_port)
 
-    def set_out_port(self, out_port: awa_cls.OutPort):
+    def set_out_port(self, out_port: OutPort):
         # check the external output is defined
         external_output_list = self.element.config_yaml.get("external_interfaces").get("output")
         external_output_list = [ext_output.get("name") for ext_output in external_output_list]
@@ -515,7 +527,7 @@ class DeploymentInstance(Instance):
 
     def set_architecture(
         self,
-        architecture: awa_cls.ArchitectureElement,
+        architecture: ArchitectureElement,
         module_list,
         pipeline_list,
         parameter_set_list,
@@ -537,13 +549,13 @@ class DeploymentInstance(Instance):
         if len(connection_list_yaml) == 0:
             raise ValueError("No connections found in the pipeline configuration")
 
-        connection_list: List[awa_cls.Connection] = []
+        connection_list: List[Connection] = []
         for connection in connection_list_yaml:
-            connection_instance = awa_cls.Connection(connection)
+            connection_instance = Connection(connection)
             connection_list.append(connection_instance)
 
         # establish links. topics will be defined in this step
-        link_list: List[awa_cls.Link] = []
+        link_list: List[Link] = []
         for connection in connection_list:
             # find the from_instance and to_instance from children
             from_instance = self.get_child(connection.from_instance)
@@ -552,12 +564,12 @@ class DeploymentInstance(Instance):
             from_port = from_instance.get_out_port(connection.from_port_name)
             to_port = to_instance.get_in_port(connection.to_port_name)
             # check if the port type
-            if not isinstance(from_port, awa_cls.OutPort):
+            if not isinstance(from_port, OutPort):
                 raise ValueError(f"Invalid port type: {from_port.full_name}")
-            if not isinstance(to_port, awa_cls.InPort):
+            if not isinstance(to_port, InPort):
                 raise ValueError(f"Invalid port type: {to_port.full_name}")
             # create link
-            link = awa_cls.Link(from_port.msg_type, from_port, to_port, self.namespace)
+            link = Link(from_port.msg_type, from_port, to_port, self.namespace)
             link_list.append(link)
 
         for link in link_list:

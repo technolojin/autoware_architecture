@@ -14,7 +14,7 @@
 
 import sys
 
-from autoware_architect.instance import Deployment
+from autoware_architect.deployment import Deployment
 from autoware_architect.config import ArchitectureConfig
 
 # build the deployment

@@ -14,7 +14,6 @@
 
 
 import os
-from typing import List
 
 from .config import ArchitectureConfig
 from .models import classes as awa_cls
@@ -55,7 +54,7 @@ class Deployment:
         self._check_config()
 
         # member variables
-        self.deploy_instance: Instance = None
+        self.deploy_instance: DeploymentInstance = None
         self.vehicle_parameters_yaml = None
         self.sensor_calibration_yaml = None
         self.map_yaml = None
