@@ -15,20 +15,17 @@
 
 from typing import List
 
-from ..models.classes import ModuleElement
-from ..models.classes import PipelineElement
-from ..models.classes import ArchitectureElement
+from ..models.elements import ModuleElement
+from ..models.elements import PipelineElement
+from ..models.elements import ArchitectureElement
 
-from ..models.classes import ParameterList
+from ..models.parameters import ParameterList
 
 from ..models.ports import InPort, OutPort
-
-from ..models.classes import Link
-from ..models.classes import Connection
-
+from ..models.links import Link, Connection
 from ..models.events import Event, Process
 
-from ..models.classes import element_name_decode
+from ..models.elements import element_name_decode
 
 debug_mode = True
 

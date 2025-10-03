@@ -16,9 +16,9 @@
 import os
 
 from .config import ArchitectureConfig
-from .models import classes as awa_cls
-from .models.classes import load_config_yaml
-from .models.classes import ElementList
+# from .models import elements as awa_cls
+from .models.elements import load_config_yaml
+from .models.elements import ModuleList, ElementList, PipelineList, ParameterSetList, ArchitectureList
 from .builder.instances import DeploymentInstance
 import jinja2
 
@@ -39,14 +39,14 @@ class Deployment:
         # element lists
         element_list = ElementList(architecture_yaml_list)
 
-        self.module_list: awa_cls.ModuleList = awa_cls.ModuleList(element_list.get_module_list())
-        self.pipeline_list: awa_cls.PipelineList = awa_cls.PipelineList(
+        self.module_list: ModuleList = ModuleList(element_list.get_module_list())
+        self.pipeline_list: PipelineList = PipelineList(
             element_list.get_pipeline_list()
         )
-        self.parameter_set_list: awa_cls.ParameterSetList = awa_cls.ParameterSetList(
+        self.parameter_set_list: ParameterSetList = ParameterSetList(
             element_list.get_parameter_set_list()
         )
-        self.architecture_list: awa_cls.ArchitectureList = awa_cls.ArchitectureList(
+        self.architecture_list: ArchitectureList = ArchitectureList(
             element_list.get_architecture_list()
         )
 
