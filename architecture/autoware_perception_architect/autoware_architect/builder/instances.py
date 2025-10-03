@@ -15,9 +15,7 @@
 
 from typing import List
 
-from ..models.elements import ModuleElement
-from ..models.elements import PipelineElement
-from ..models.elements import ArchitectureElement
+from ..models.elements import ModuleElement, PipelineElement, ArchitectureElement
 
 from ..models.parameters import ParameterList
 

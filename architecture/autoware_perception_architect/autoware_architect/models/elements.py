@@ -73,6 +73,115 @@ class Element:
     def check_config(self) -> bool:
         return True
 
+class ModuleElement(Element):
+    def check_config(self) -> bool:
+        # Check the name is [name].module
+        if self.type != "module":
+            raise ValueError(
+                f"Invalid element name: '{self.full_name}'. File {self.config_yaml_dir}"
+            )
+            return False
+
+        # Check the required field
+        required_field = [
+            "name",
+            "launch",
+            "inputs",
+            "outputs",
+            "parameters",
+            "configurations",
+            "processes",
+        ]
+        for field in required_field:
+            if field not in self.config_yaml:
+                raise ValueError(
+                    f"Field '{field}' is required in module configuration. Please check file {self.config_yaml_dir}"
+                )
+                return False
+
+        # All checks passed
+        return True
+    
+class PipelineElement(Element):
+    def check_config(self) -> bool:
+        # Check the name is [name].pipeline
+        if self.type != "pipeline":
+            raise ValueError(
+                f"Invalid element name: '{self.full_name}'. File {self.config_yaml_dir}"
+            )
+            return False
+
+        # Check the required field
+        required_field = [
+            "name",
+            "depends",
+            "nodes",
+            "external_interfaces",
+            "connections",
+            "parameters",
+            "configurations",
+        ]
+
+        for field in required_field:
+            if field not in self.config_yaml:
+                raise ValueError(
+                    f"Field '{field}' is required in pipeline configuration. Please check file {self.config_yaml_dir}"
+                )
+                return False
+
+        # All checks passed
+        return True
+
+class ParameterSetElement(Element):
+    def check_config(self) -> bool:
+        # Check the name is [name].parameter_set
+        if self.type != "parameter_set":
+            raise ValueError(
+                f"Invalid element name: '{self.full_name}'. File {self.config_yaml_dir}"
+            )
+            return False
+
+        # Check the required fields
+        required_field = [
+            "name",
+            "parameters",
+        ]
+
+        for field in required_field:
+            if field not in self.config_yaml:
+                raise ValueError(
+                    f"Field '{field}' is required in parameter_set configuration. Please check file {self.config_yaml_dir}"
+                )
+                return False
+
+        # All checks passed
+        return True
+
+class ArchitectureElement(Element):
+    def check_config(self) -> bool:
+        if self.type != "architecture":
+            raise ValueError(
+                f"Invalid element name: '{self.full_name}'. File {self.config_yaml_dir}"
+            )
+            return False
+
+        # Check the required field
+        required_field = [
+            "name",
+            "components",
+            "connections",
+        ]
+
+        for field in required_field:
+            if field not in self.config_yaml:
+                raise ValueError(
+                    f"Field '{field}' is required in architecture configuration. Please check file {self.config_yaml_dir}"
+                )
+                return False
+
+        # All checks passed
+        return True
+
 
 class ElementList:
     def __init__(self, config_yaml_file_dirs: List[str]):
@@ -114,36 +223,6 @@ class ElementList:
         ]
 
 
-class ModuleElement(Element):
-    def check_config(self) -> bool:
-        # Check the name is [name].module
-        if self.type != "module":
-            raise ValueError(
-                f"Invalid element name: '{self.full_name}'. File {self.config_yaml_dir}"
-            )
-            return False
-
-        # Check the required field
-        required_field = [
-            "name",
-            "launch",
-            "inputs",
-            "outputs",
-            "parameters",
-            "configurations",
-            "processes",
-        ]
-        for field in required_field:
-            if field not in self.config_yaml:
-                raise ValueError(
-                    f"Field '{field}' is required in module configuration. Please check file {self.config_yaml_dir}"
-                )
-                return False
-
-        # All checks passed
-        return True
-
-
 class ModuleList:
     def __init__(self, module_list: List[Element]):
         self.list: List[ModuleElement] = []
@@ -155,37 +234,6 @@ class ModuleList:
             if module.name == module_name:
                 return module
         raise ValueError(f"ModuleList: Module not found: {module_name}")
-
-
-class PipelineElement(Element):
-    def check_config(self) -> bool:
-        # Check the name is [name].pipeline
-        if self.type != "pipeline":
-            raise ValueError(
-                f"Invalid element name: '{self.full_name}'. File {self.config_yaml_dir}"
-            )
-            return False
-
-        # Check the required field
-        required_field = [
-            "name",
-            "depends",
-            "nodes",
-            "external_interfaces",
-            "connections",
-            "parameters",
-            "configurations",
-        ]
-
-        for field in required_field:
-            if field not in self.config_yaml:
-                raise ValueError(
-                    f"Field '{field}' is required in pipeline configuration. Please check file {self.config_yaml_dir}"
-                )
-                return False
-
-        # All checks passed
-        return True
 
 
 class PipelineList:
@@ -207,32 +255,6 @@ class PipelineList:
         )
 
 
-class ParameterSetElement(Element):
-    def check_config(self) -> bool:
-        # Check the name is [name].parameter_set
-        if self.type != "parameter_set":
-            raise ValueError(
-                f"Invalid element name: '{self.full_name}'. File {self.config_yaml_dir}"
-            )
-            return False
-
-        # Check the required fields
-        required_field = [
-            "name",
-            "parameters",
-        ]
-
-        for field in required_field:
-            if field not in self.config_yaml:
-                raise ValueError(
-                    f"Field '{field}' is required in parameter_set configuration. Please check file {self.config_yaml_dir}"
-                )
-                return False
-
-        # All checks passed
-        return True
-
-
 class ParameterSetList:
     def __init__(self, parameter_set_list: List[Element]):
         self.list: List[ParameterSetElement] = []
@@ -250,32 +272,6 @@ class ParameterSetList:
         raise ValueError(
             f"ParameterSetList: Parameter set not found: {parameter_set_name}, available parameter sets are:\n{list_text}"
         )
-
-
-class ArchitectureElement(Element):
-    def check_config(self) -> bool:
-        if self.type != "architecture":
-            raise ValueError(
-                f"Invalid element name: '{self.full_name}'. File {self.config_yaml_dir}"
-            )
-            return False
-
-        # Check the required field
-        required_field = [
-            "name",
-            "components",
-            "connections",
-        ]
-
-        for field in required_field:
-            if field not in self.config_yaml:
-                raise ValueError(
-                    f"Field '{field}' is required in architecture configuration. Please check file {self.config_yaml_dir}"
-                )
-                return False
-
-        # All checks passed
-        return True
 
 
 class ArchitectureList:
