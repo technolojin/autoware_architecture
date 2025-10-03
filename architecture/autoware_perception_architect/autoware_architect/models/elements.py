@@ -23,8 +23,6 @@ logger = logging.getLogger(__name__)
 
 debug_mode = True
 
-ELEMENT_TYPES = ["module", "pipeline", "parameter_set", "architecture"]
-
 class ElementType:
     """Constants for element types."""
     MODULE = "module"
@@ -32,6 +30,10 @@ class ElementType:
     PARAMETER_SET = "parameter_set"
     ARCHITECTURE = "architecture"
 
+    @classmethod
+    def get_all_types(cls) -> List[str]:
+        """Get all valid element types."""
+        return [cls.MODULE, cls.PIPELINE, cls.PARAMETER_SET, cls.ARCHITECTURE]
 
 def element_name_decode(element_name: str) -> Tuple[str, str]:
     """Decode element name into name and type components.
@@ -69,8 +71,8 @@ def element_name_decode(element_name: str) -> Tuple[str, str]:
         raise ValidationError(f"Element type cannot be empty in: '{element_name}'")
 
     # Check the element type
-    if element_type not in ELEMENT_TYPES:
-        raise ValidationError(f"Invalid element type: '{element_type}'. Valid types: {ELEMENT_TYPES}")
+    if element_type not in ElementType.get_all_types():
+        raise ValidationError(f"Invalid element type: '{element_type}'. Valid types: {ElementType.get_all_types()}")
 
     return name.strip(), element_type.strip()
 
@@ -173,7 +175,7 @@ class Element:
         self.name, self.type = element_name_decode(self.full_name)
         
         # Validate element type
-        if self.type not in ELEMENT_TYPES:
+        if self.type not in ElementType.get_all_types():
             raise ValidationError(f"Invalid element type: '{self.type}'. File: {self.config_yaml_dir}")
         
         # Run complete validation using ConfigValidator
