@@ -16,13 +16,13 @@
 import os
 
 from .config import ArchitectureConfig
-# from .models import elements as awa_cls
-from .models.elements import load_config_yaml
 from .models.elements import ModuleList, ElementList, PipelineList, ParameterSetList, ArchitectureList
 from .builder.instances import DeploymentInstance
+from .parsers.yaml_parser import yaml_parser
 import jinja2
 
 debug_mode = True
+
 class Deployment:
     def __init__(self, architecture_config: ArchitectureConfig ):
 
@@ -33,7 +33,7 @@ class Deployment:
 
         # load yaml file
         self.config_yaml_dir = architecture_config.deployment_file
-        self.config_yaml = load_config_yaml(self.config_yaml_dir)
+        self.config_yaml = yaml_parser.load_config(self.config_yaml_dir)
         self.name = self.config_yaml.get("name")
 
         # element lists
