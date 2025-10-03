@@ -8,6 +8,7 @@ The refactored system follows modern software engineering principles:
 
 ```
 autoware_architect/
+├── deployment.py          # Main process
 ├── config.py              # Configuration management
 ├── exceptions.py           # Custom exception classes
 ├── models/                 # Data models

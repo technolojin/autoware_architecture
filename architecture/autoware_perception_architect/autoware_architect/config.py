@@ -45,7 +45,7 @@ class ArchitectureConfig:
             max_cache_size=int(os.getenv('AUTOWARE_ARCHITECT_MAX_CACHE_SIZE', '128'))
         )
     
-    def setup_logging(self) -> logging.Logger:
+    def set_logging(self) -> logging.Logger:
         """Setup logging based on configuration."""
         logger = logging.getLogger('autoware_architect')
         

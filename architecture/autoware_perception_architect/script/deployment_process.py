@@ -34,7 +34,7 @@ def build(deployment_file: str, architecture_yaml_list_file: str, output_root_di
     architecture_config.architecture_yaml_list_file = architecture_yaml_list_file
     architecture_config.output_root_dir = output_root_dir
 
-    logger = architecture_config.setup_logging()
+    logger = architecture_config.set_logging()
 
     # load and build the deployment
     logger.info("autoware architect: Building deployment...")

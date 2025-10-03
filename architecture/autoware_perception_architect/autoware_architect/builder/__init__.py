@@ -14,3 +14,6 @@
 
 """Builders module."""
 
+from .instances import DeploymentInstance
+
+__all__ = ["DeploymentInstance"]
