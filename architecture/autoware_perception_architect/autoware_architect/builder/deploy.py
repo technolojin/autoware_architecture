@@ -39,20 +39,16 @@ class DeploymentInstance(Instance):
         self.element_type = "architecture"
 
         # 1. set component instances
+        logger.info(f"Instance '{self.name}': setting component instances")
         self.set_instances(architecture.full_name, module_list, pipeline_list, parameter_set_list)
 
         # 2. set connections
-        self.build_edges()
-
-        # 3. build logical topology
-        self.build_logical_topology()
-
-    def build_edges(self):
+        logger.info(f"Instance '{self.name}': setting connections")
         self.set_links()
         self.check_ports()
 
-    def build_logical_topology(self):
+        # 3. build logical topology
         logger.info(f"Instance '{self.name}': building logical topology")
-        # build logical topology
-        for child in self.children:
-            child.set_event_tree()
+        # self.build_logical_topology()
+        self.set_event_tree()
+

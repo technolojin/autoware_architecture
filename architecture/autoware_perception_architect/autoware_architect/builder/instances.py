@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import logging
-from typing import List
+from typing import List, Dict
 
 from ..models.data_class import ModuleData, PipelineData, ParameterSetData, ArchitectureData
 from ..models.parameters import ParameterList
@@ -47,12 +47,12 @@ class Instance:
         self.element: ModuleData | PipelineData | ParameterSetData | ArchitectureData | None = None
         self.element_type: str = None
         self.parent: Instance = None
-        self.children: List[Instance] = []
+        self.children: Dict[str, Instance] = {}
         self.parent_pipeline_list: List[str] = []
 
         # interface
-        self.in_ports: List[InPort] = []
-        self.out_ports: List[OutPort] = []
+        self.in_ports: Dict[str, InPort] = {}
+        self.out_ports: Dict[str, OutPort] = {}
         self.links: List[Link] = []
 
         # processes
@@ -89,15 +89,15 @@ class Instance:
                 try:
                     instance.set_instances(element_id, module_list, pipeline_list, parameter_set_list)
                 except Exception as e:
-                    # add the instance to the children list for debugging
-                    self.children.append(instance)
+                    # add the instance to the children dict for debugging
+                    self.children[instance_name] = instance
                     raise ValueError(f"Error in setting component instance '{instance_name}' : {e}")
 
                 if param_list_yaml is not None:
                     for param in param_list_yaml:
                         instance.set_parameter(param)
 
-                self.children.append(instance)
+                self.children[instance_name] = instance
             # all children are initialized
             self.is_initialized = True
 
@@ -123,10 +123,10 @@ class Instance:
                 try:
                     instance.set_instances(node.get("element"), module_list, pipeline_list, parameter_set_list)
                 except Exception as e:
-                    # add the instance to the children list for debugging
-                    self.children.append(instance)
+                    # add the instance to the children dict for debugging
+                    self.children[instance.name] = instance
                     raise ValueError(f"Error in setting child instance {instance.name} : {e}")
-                self.children.append(instance)
+                self.children[instance.name] = instance
 
             # run the pipeline configuration
             self._run_pipeline_configuration()
@@ -160,7 +160,7 @@ class Instance:
             if connection.type == ConnectionType.EXTERNAL_TO_INTERNAL:
                 # find the to_instance from children
                 to_instance = self.get_child(connection.to_instance)
-                port_list = list(to_instance.in_ports)
+                port_list = list(to_instance.in_ports.values())
                 if len(port_list) == 0:
                     raise ValueError(f"No available port found in {to_instance.name}")
                 # if the port name is wildcard, find available port from the to_instance
@@ -195,7 +195,7 @@ class Instance:
             if connection.type == ConnectionType.INTERNAL_TO_EXTERNAL:
                 # find the from_instance from children
                 from_instance = self.get_child(connection.from_instance)
-                port_list = list(from_instance.out_ports)
+                port_list = list(from_instance.out_ports.values())
                 if len(port_list) == 0:
                     raise ValueError(f"No available port found in {from_instance.name}")
                 # if the port name is wildcard, find available port from the from_instance
@@ -234,9 +234,9 @@ class Instance:
         for link in self.links:
             logger.debug(f"  Link: {link.from_port.full_name} -> {link.to_port.full_name}")
         # new ports
-        for in_port in self.in_ports:
+        for in_port in self.in_ports.values():
             logger.debug(f"  New in port: {in_port.full_name}")
-        for out_port in self.out_ports:
+        for out_port in self.out_ports.values():
             logger.debug(f"  New out port: {out_port.full_name}")
 
     def _run_module_configuration(self):
@@ -254,7 +254,7 @@ class Instance:
                 if topic[0] == "/":
                     topic = topic[1:]
                 in_port_instance.topic = topic.split("/")
-            self.in_ports.append(in_port_instance)
+            self.in_ports[in_port_name] = in_port_instance
 
         # set out_ports
         for out_port in self.element.outputs:
@@ -267,7 +267,7 @@ class Instance:
                 if topic[0] == "/":
                     topic = topic[1:]
                 out_port_instance.topic = topic.split("/")
-            self.out_ports.append(out_port_instance)
+            self.out_ports[out_port_name] = out_port_instance
 
         # set parameters
         for param in self.element.parameters:
@@ -276,8 +276,8 @@ class Instance:
             self.parameters.set_parameter(param_name, param_value)
 
         # connect port events and the process events
-        on_input_events = [in_port.event for in_port in self.in_ports]
-        to_output_events = [out_port.event for out_port in self.out_ports]
+        on_input_events = [in_port.event for in_port in self.in_ports.values()]
+        to_output_events = [out_port.event for out_port in self.out_ports.values()]
 
         # parse processes and get trigger conditions and output conditions
         for process_config in self.element.processes:
@@ -300,21 +300,18 @@ class Instance:
         self.event_list = process_event_list
 
     def get_child(self, name: str):
-        for child in self.children:
-            if child.name == name:
-                return child
+        if name in self.children:
+            return self.children[name]
         raise ValueError(f"Child not found: child name '{name}', instance of '{self.name}'")
 
     def get_in_port(self, name: str):
-        for in_port in self.in_ports:
-            if in_port.name == name:
-                return in_port
+        if name in self.in_ports:
+            return self.in_ports[name]
         raise ValueError(f"In port not found: in-port name '{name}', instance of '{self.name}'")
 
     def get_out_port(self, name: str):
-        for out_port in self.out_ports:
-            if out_port.name == name:
-                return out_port
+        if name in self.out_ports:
+            return self.out_ports[name]
         raise ValueError(f"Out port not found: out-port name '{name}', instance of '{self.name}'")
 
     def set_in_port(self, in_port: InPort):
@@ -327,18 +324,18 @@ class Instance:
             )
 
         # check if there is a port with the same name
-        for port in self.in_ports:
-            if port.name == in_port.name:
-                # check if the message type is the same
-                if port.msg_type != in_port.msg_type:
-                    raise ValueError(
-                        f"Message type mismatch: '{port.full_name}' {port.msg_type} != {in_port.msg_type}"
-                    )
-                # same port name is found, update reference
-                port.set_references(in_port.reference)
-                return
+        if in_port.name in self.in_ports:
+            port = self.in_ports[in_port.name]
+            # check if the message type is the same
+            if port.msg_type != in_port.msg_type:
+                raise ValueError(
+                    f"Message type mismatch: '{port.full_name}' {port.msg_type} != {in_port.msg_type}"
+                )
+            # same port name is found, update reference
+            port.set_references(in_port.reference)
+            return
         # same port name is not found, add the port
-        self.in_ports.append(in_port)
+        self.in_ports[in_port.name] = in_port
 
     def set_out_port(self, out_port: OutPort):
         # check the external output is defined
@@ -350,18 +347,18 @@ class Instance:
             )
 
         # check if there is a port with the same name
-        for port in self.out_ports:
-            if port.name == out_port.name:
-                # check if the message type is the same
-                if port.msg_type != out_port.msg_type:
-                    raise ValueError(
-                        f"Message type mismatch: '{port.full_name}' {port.msg_type} != {out_port.msg_type}"
-                    )
-                # same port name is found, update reference
-                port.set_references(out_port.reference)
-                return
+        if out_port.name in self.out_ports:
+            port = self.out_ports[out_port.name]
+            # check if the message type is the same
+            if port.msg_type != out_port.msg_type:
+                raise ValueError(
+                    f"Message type mismatch: '{port.full_name}' {port.msg_type} != {out_port.msg_type}"
+                )
+            # same port name is found, update reference
+            port.set_references(out_port.reference)
+            return
         # same port name is not found, add the port
-        self.out_ports.append(out_port)
+        self.out_ports[out_port.name] = out_port
 
     def _create_external_ports(self, link_list):
         # create in ports based on the link_list
@@ -376,7 +373,7 @@ class Instance:
 
     def check_ports(self):
         # recursive call for children
-        for child in self.children:
+        for child in self.children.values():
             child.check_ports()
 
         # check ports only for module. in case of pipeline, the check is done
@@ -384,7 +381,7 @@ class Instance:
             return
 
         # check ports
-        for in_port in self.in_ports:
+        for in_port in self.in_ports.values():
             logger.debug(f"  In port: {in_port.full_name}")
             logger.debug(f"    Subscribing topic: {in_port.topic}")
             server_port_list = in_port.servers
@@ -394,7 +391,7 @@ class Instance:
             for server_port in server_port_list:
                 logger.debug(f"    server: {server_port.full_name}, topic: {server_port.topic}")
 
-        for out_port in self.out_ports:
+        for out_port in self.out_ports.values():
             logger.debug(f"  Out port: {out_port.full_name}")
             user_port_list = out_port.users
             if user_port_list == []:
@@ -465,7 +462,7 @@ class Instance:
             event.set_frequency_tree()
         # recursive call for children
         # in case of module, children is empty
-        for child in self.children:
+        for child in self.children.values():
             child.set_event_tree()
 
     def collect_instance_data(self):
@@ -475,10 +472,10 @@ class Instance:
             "element_type": self.element_type,
             "namespace": self.namespace,
             "compute_unit": self.compute_unit,
-            "in_ports": (self.in_ports),
-            "out_ports": (self.out_ports),
+            "in_ports": list(self.in_ports.values()),
+            "out_ports": list(self.out_ports.values()),
             "children": (
-                [child.collect_instance_data() for child in self.children]
+                [child.collect_instance_data() for child in self.children.values()]
                 if hasattr(self, "children")
                 else []
             ),
