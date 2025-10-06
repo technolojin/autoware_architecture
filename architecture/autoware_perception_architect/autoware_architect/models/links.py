@@ -16,6 +16,14 @@ from typing import List
 
 from .ports import Port, InPort, OutPort
 
+from enum import Enum
+
+class ConnectionType(int, Enum):
+    UNDEFINED = 0
+    EXTERNAL_TO_INTERNAL = 1
+    INTERNAL_TO_INTERNAL = 2
+    INTERNAL_TO_EXTERNAL = 3
+
 class Link:
     # Link is a connection between two ports
     def __init__(self, msg_type: str, from_port: Port, to_port: Port, namespace: List[str] = []):
@@ -94,11 +102,7 @@ class Connection:
     def __init__(self, connection_dict: dict):
 
         # connection type
-        #   0: undefined
-        #   1: external input to internal input
-        #   2: internal output to internal input
-        #   3: internal output to external output
-        self.type = 0
+        self.type: ConnectionType = ConnectionType.UNDEFINED
 
         connection_from = connection_dict.get("from")
         if connection_from is None:
@@ -113,11 +117,11 @@ class Connection:
         if from_instance == "" and to_instance == "":
             raise ValueError(f"Invalid connection: {connection_dict}")
         elif from_instance == "" and to_instance != "":
-            self.type = 1
+            self.type = ConnectionType.EXTERNAL_TO_INTERNAL
         elif from_instance != "" and to_instance == "":
-            self.type = 3
+            self.type = ConnectionType.INTERNAL_TO_EXTERNAL
         elif from_instance != "" and to_instance != "":
-            self.type = 2
+            self.type = ConnectionType.INTERNAL_TO_INTERNAL
 
         self.from_instance: str = from_instance
         self.from_port_name: str = from_port_name

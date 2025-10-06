@@ -18,9 +18,8 @@ from typing import List
 from ..models.data_class import ElementData, ModuleData, PipelineData, ParameterSetData, ArchitectureData
 
 from ..models.parameters import ParameterList
-
 from ..models.ports import InPort, OutPort
-from ..models.links import Link, Connection
+from ..models.links import Link, Connection, ConnectionType
 from ..models.events import Event, Process
 
 from ..parsers.data_parser import element_name_decode
@@ -142,7 +141,7 @@ class Instance:
         # establish links
         for connection in connection_list:
             # case 1. from external input to internal input
-            if connection.type == 1:
+            if connection.type == ConnectionType.EXTERNAL_TO_INTERNAL:
                 # find the to_instance from children
                 to_instance = self.get_child(connection.to_instance)
                 port_list = list(to_instance.in_ports)
@@ -165,7 +164,7 @@ class Instance:
                     self.links.append(link)
 
             # case 2. from internal output to internal input
-            if connection.type == 2:
+            if connection.type == ConnectionType.INTERNAL_TO_INTERNAL:
                 # find the from_instance and to_instance from children
                 from_instance = self.get_child(connection.from_instance)
                 to_instance = self.get_child(connection.to_instance)
@@ -177,7 +176,7 @@ class Instance:
                 self.links.append(link)
 
             # case 3. from internal output to external output
-            if connection.type == 3:
+            if connection.type == ConnectionType.INTERNAL_TO_EXTERNAL:
                 # find the from_instance from children
                 from_instance = self.get_child(connection.from_instance)
                 port_list = list(from_instance.out_ports)
