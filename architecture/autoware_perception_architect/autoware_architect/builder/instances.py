@@ -12,19 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+import logging
 from typing import List
 
 from ..models.data_class import ModuleData, PipelineData, ParameterSetData, ArchitectureData
-
 from ..models.parameters import ParameterList
 from ..models.ports import InPort, OutPort
 from ..models.links import Link, Connection, ConnectionType
 from ..models.events import Event, Process
-
 from ..parsers.data_parser import element_name_decode
+from ..config import config
 
-debug_mode = True
+logger = logging.getLogger(__name__)
 
 class Instance:
     # Common attributes for node hierarch instance
@@ -41,17 +40,11 @@ class Instance:
 
         self.compute_unit: str = compute_unit
         self.layer: int = layer
-        LAYER_LIMIT = 50
-        if self.layer > LAYER_LIMIT:
-            raise ValueError("Instance layer is too deep")
+        if self.layer > config.layer_limit:
+            raise ValueError(f"Instance layer is too deep (limit: {config.layer_limit})")
 
         # element
-        self.element: [
-            ModuleData,
-            PipelineData,
-            ParameterSetData,
-            ArchitectureData,
-        ] = None
+        self.element: ModuleData | PipelineData | ParameterSetData | ArchitectureData | None = None
         self.element_type: str = None
         self.parent: Instance = None
         self.children: List[Instance] = []
@@ -76,8 +69,7 @@ class Instance:
         element_name, element_type = element_name_decode(element_id)
 
         if element_type == "pipeline":
-            if debug_mode:
-                print(f"Instance set_element: Setting {element_id} instance {self.namespace_str}")
+            logger.debug(f"Setting pipeline element {element_id} for instance {self.namespace_str}")
             self.element = pipeline_list.get(element_name)
             self.element_type = element_type
 
@@ -110,8 +102,7 @@ class Instance:
             self.is_initialized = True
 
         elif element_type == "module":
-            if debug_mode:
-                print(f"Instance set_element: Setting {element_id} instance {self.namespace_str}")
+            logger.debug(f"Setting module element {element_id} for instance {self.namespace_str}")
             self.element = module_list.get(element_name)
             self.element_type = element_type
 
@@ -200,17 +191,16 @@ class Instance:
         # create external ports
         self._create_external_ports(self.links)
 
-        if debug_mode:
-            print(
-                f"Instance '{self.name}' run_pipeline_configuration: {len(self.links)} links are established"
-            )
-            for link in self.links:
-                print(f"  Link: {link.from_port.full_name} -> {link.to_port.full_name}")
-            # new ports
-            for in_port in self.in_ports:
-                print(f"  New in port: {in_port.full_name}")
-            for out_port in self.out_ports:
-                print(f"  New out port: {out_port.full_name}")
+        logger.debug(
+            f"Instance '{self.name}' pipeline configuration: {len(self.links)} links established"
+        )
+        for link in self.links:
+            logger.debug(f"  Link: {link.from_port.full_name} -> {link.to_port.full_name}")
+        # new ports
+        for in_port in self.in_ports:
+            logger.debug(f"  New in port: {in_port.full_name}")
+        for out_port in self.out_ports:
+            logger.debug(f"  New out port: {out_port.full_name}")
 
     def _run_module_configuration(self):
         if self.element_type != "module":
@@ -358,25 +348,23 @@ class Instance:
 
         # check ports
         for in_port in self.in_ports:
-            print(f"  In port: {in_port.full_name}")
-            print(f"    Subscribing topic: {in_port.topic}")
+            logger.info(f"  In port: {in_port.full_name}")
+            logger.info(f"    Subscribing topic: {in_port.topic}")
             server_port_list = in_port.servers
             if server_port_list == []:
-                print("    Server port not found")
+                logger.info("    Server port not found")
                 continue
-            if debug_mode:
-                for server_port in server_port_list:
-                    print(f"    server: {server_port.full_name}, topic: {server_port.topic}")
+            for server_port in server_port_list:
+                logger.debug(f"    server: {server_port.full_name}, topic: {server_port.topic}")
 
         for out_port in self.out_ports:
-            print(f"  Out port: {out_port.full_name}")
+            logger.info(f"  Out port: {out_port.full_name}")
             user_port_list = out_port.users
             if user_port_list == []:
-                print("    User port not found")
+                logger.info("    User port not found")
                 continue
-            if debug_mode:
-                for user_port in user_port_list:
-                    print(f"    user: {user_port.full_name}")
+            for user_port in user_port_list:
+                logger.debug(f"    user: {user_port.full_name}")
 
     def set_parameter(self, param):
         # in case of pipeline, search parameter connection and call set_parameter for children
@@ -430,9 +418,8 @@ class Instance:
             for param_key in param_keys:
                 param_value = param_path.get(param_key)
                 self.parameters.set_parameter(param_key, param_value)
-        if debug_mode:
-            for param in self.parameters.list:
-                print(f"  Parameter: {param.name} = {param.value}")
+        for param in self.parameters.list:
+            logger.debug(f"  Parameter: {param.name} = {param.value}")
 
     def set_event_tree(self):
         # trigger the event tree from the current instance
@@ -472,8 +459,6 @@ class Instance:
             ),
             "events": (self.event_list),
         }
-        # debug
-        # print(data)
 
         return data
 
