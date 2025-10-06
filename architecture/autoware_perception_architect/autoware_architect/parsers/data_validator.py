@@ -21,6 +21,8 @@ from ..exceptions import ValidationError
 
 def element_name_decode(element_name: str) -> Tuple[str, str]:
     """Decode element name into name and type components."""
+    # example: 'my_module.pipeline' -> ('my_module', 'pipeline')
+
     if not element_name or not isinstance(element_name, str):
         raise ValidationError(f"Element name must be a non-empty string, got: {element_name}")
     

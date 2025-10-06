@@ -18,7 +18,7 @@ from typing import Dict
 from .config import ArchitectureConfig
 from .models.data_class import ElementData
 from .builder.data_collector import ElementCollection
-from .builder.instances import DeploymentInstance
+from .builder.deploy import DeploymentInstance
 from .parsers.data_validator import element_name_decode
 from .parsers.yaml_parser import yaml_parser
 import jinja2
