@@ -87,7 +87,7 @@ class Instance:
             self.parent_pipeline_list.append(element_id)
 
             # set children
-            node_list = self.element.config.get("nodes")
+            node_list = self.element.nodes
             for node in node_list:
                 instance = Instance(
                     node.get("node"), self.compute_unit, self.namespace, self.layer + 1
@@ -129,12 +129,11 @@ class Instance:
             raise ValueError("run_pipeline_configuration is only supported for pipeline")
 
         # set connections
-        connection_list_yaml = self.element.config.get("connections")
-        if len(connection_list_yaml) == 0:
+        if len(self.element.connections) == 0:
             raise ValueError("No connections found in the pipeline configuration")
 
         connection_list: List[Connection] = []
-        for connection in connection_list_yaml:
+        for connection in self.element.connections:
             connection_instance = Connection(connection)
             connection_list.append(connection_instance)
 
@@ -218,7 +217,7 @@ class Instance:
             raise ValueError("run_module_configuration is only supported for module")
 
         # set in_ports
-        for in_port in self.element.config.get("inputs"):
+        for in_port in self.element.inputs:
             in_port_name = in_port.get("name")
             in_port_msg_type = in_port.get("message_type")
             in_port_instance = InPort(in_port_name, in_port_msg_type, self.namespace)
@@ -231,7 +230,7 @@ class Instance:
             self.in_ports.append(in_port_instance)
 
         # set out_ports
-        for out_port in self.element.config.get("outputs"):
+        for out_port in self.element.outputs:
             out_port_name = out_port.get("name")
             out_port_msg_type = out_port.get("message_type")
             out_port_instance = OutPort(out_port_name, out_port_msg_type, self.namespace)
@@ -244,7 +243,7 @@ class Instance:
             self.out_ports.append(out_port_instance)
 
         # set parameters
-        for param in self.element.config.get("parameters"):
+        for param in self.element.parameters:
             param_name = param.get("name")
             param_value = param.get("default")
             self.parameters.set_parameter(param_name, param_value)
@@ -254,7 +253,7 @@ class Instance:
         to_output_events = [out_port.event for out_port in self.out_ports]
 
         # parse processes and get trigger conditions and output conditions
-        for process_config in self.element.config.get("processes"):
+        for process_config in self.element.processes:
             name = process_config.get("name")
             self.processes.append(Process(name, self.namespace, process_config))
 
@@ -293,7 +292,7 @@ class Instance:
 
     def set_in_port(self, in_port: InPort):
         # check the external input is defined
-        external_input_list = self.element.config.get("external_interfaces").get("input")
+        external_input_list = self.element.external_interfaces.get("input")
         external_input_list = [ext_input.get("name") for ext_input in external_input_list]
         if in_port.name not in external_input_list:
             raise ValueError(
@@ -316,7 +315,7 @@ class Instance:
 
     def set_out_port(self, out_port: OutPort):
         # check the external output is defined
-        external_output_list = self.element.config.get("external_interfaces").get("output")
+        external_output_list = self.element.external_interfaces.get("output")
         external_output_list = [ext_output.get("name") for ext_output in external_output_list]
         if out_port.name not in external_output_list:
             raise ValueError(
@@ -395,7 +394,7 @@ class Instance:
         param_name = param.get("name")
 
         # check external_interfaces/parameter
-        pipeline_parameter_list = self.element.config.get("external_interfaces").get(
+        pipeline_parameter_list = self.element.external_interfaces.get(
             "parameter"
         )
         # check if the param_list_yaml is superset of pipeline_parameter_list
@@ -404,7 +403,7 @@ class Instance:
             raise ValueError(f"Parameter not found: '{param_name}' in {pipeline_parameter_list}")
 
         # check parameters to connect parameters to the children
-        param_connection_list = self.element.config.get("parameters")
+        param_connection_list = self.element.parameters
         for connection in param_connection_list:
             param_from = connection.get("from")
             param_from_name = param_from.split(".")[1]

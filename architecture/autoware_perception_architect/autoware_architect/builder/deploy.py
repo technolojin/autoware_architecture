@@ -31,7 +31,7 @@ class DeploymentInstance(Instance):
 
     def set_component_instances(self, module_list, pipeline_list, parameter_set_list):
         # set pipeline and module instances as 'components'
-        for component in self.element.config.get("components"):
+        for component in self.element.components:
             compute_unit_name = component.get("compute_unit")
 
             instance_name = component.get("component")
@@ -86,12 +86,11 @@ class DeploymentInstance(Instance):
     def set_connections(self):
         # 2. connect instances
         # set connections
-        connection_list_yaml = self.element.config.get("connections")
-        if len(connection_list_yaml) == 0:
+        if len(self.element.connections) == 0:
             raise ValueError("No connections found in the pipeline configuration")
 
         connection_list: List[Connection] = []
-        for connection in connection_list_yaml:
+        for connection in self.element.connections:
             connection_instance = Connection(connection)
             connection_list.append(connection_instance)
 
