@@ -14,10 +14,12 @@
 
 
 import os
-
+from typing import Dict
 from .config import ArchitectureConfig
-from .models.elements import ModuleList, ElementList, PipelineList, ParameterSetList, ArchitectureList
+from .models.data_class import ElementData
+from .builder.data_collector import ElementCollection
 from .builder.instances import DeploymentInstance
+from .parsers.data_validator import element_name_decode
 from .parsers.yaml_parser import yaml_parser
 import jinja2
 
@@ -36,19 +38,12 @@ class Deployment:
         self.config_yaml = yaml_parser.load_config(self.config_yaml_dir)
         self.name = self.config_yaml.get("name")
 
-        # element lists
-        element_list = ElementList(architecture_yaml_list)
-
-        self.module_list: ModuleList = ModuleList(element_list.get_module_list())
-        self.pipeline_list: PipelineList = PipelineList(
-            element_list.get_pipeline_list()
-        )
-        self.parameter_set_list: ParameterSetList = ParameterSetList(
-            element_list.get_parameter_set_list()
-        )
-        self.architecture_list: ArchitectureList = ArchitectureList(
-            element_list.get_architecture_list()
-        )
+        # element dictionaries
+        element_collection = ElementCollection(architecture_yaml_list)
+        self.module_list: Dict[str, ElementData] = element_collection.get_modules()
+        self.pipeline_list: Dict[str, ElementData] = element_collection.get_pipelines()
+        self.parameter_set_list: Dict[str, ElementData] = element_collection.get_parameter_sets()
+        self.architecture_list: Dict[str, ElementData] = element_collection.get_architectures()
 
         # Check the configuration
         self._check_config()
@@ -89,10 +84,11 @@ class Deployment:
 
     def build(self):
         # 1. set architecture instance
-        architecture = self.architecture_list.get(self.config_yaml.get("architecture"))
+        architecture_name, _ = element_name_decode(self.config_yaml.get("architecture"))
+        architecture = self.architecture_list.get(architecture_name)
 
         if not architecture:
-            raise ValueError(f"Architecture not found: {self.config_yaml.get('architecture')}")
+            raise ValueError(f"Architecture not found: {architecture_name}")
 
         try:
             self.deploy_instance = DeploymentInstance(self.name)
