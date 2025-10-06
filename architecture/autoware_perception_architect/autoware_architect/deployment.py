@@ -96,10 +96,6 @@ class Deployment:
             self.deploy_instance.set_architecture(
                 architecture, self.module_list, self.pipeline_list, self.parameter_set_list
             )
-            # 2. set connections
-            self.deploy_instance.set_connections()
-            # 3. build the logical topology
-            self.deploy_instance.build_logical_topology()
         except Exception as e:
             # try to visualize the architecture to show error status
             self.visualize()

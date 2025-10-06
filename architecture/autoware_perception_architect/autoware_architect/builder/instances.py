@@ -65,10 +65,43 @@ class Instance:
         # status
         self.is_initialized = False
 
-    def set_element(self, element_id, module_list, pipeline_list):
+    def set_instances(self, element_id, module_list, pipeline_list, parameter_set_list):
         element_name, element_type = element_name_decode(element_id)
+        if element_type == "architecture":
+            for component in self.element.components:
+                compute_unit_name = component.get("compute_unit")
+                instance_name = component.get("component")
+                element_id = component.get("element")
+                namespace = component.get("namespace")
+                # parameter set
+                parameter_set = component.get("parameter_set")
+                param_list_yaml = None
+                if parameter_set is not None:
+                    param_set_name, element_type = element_name_decode(parameter_set)
+                    if element_type != "parameter_set":
+                        raise ValueError(f"Invalid parameter set type: {element_type}")
+                    param_set = parameter_set_list.get(param_set_name)
+                    param_list_yaml = param_set.config.get("parameters")
 
-        if element_type == "pipeline":
+                # create instance
+                instance = Instance(instance_name, compute_unit_name, [namespace])
+                instance.parent = self
+                try:
+                    instance.set_instances(element_id, module_list, pipeline_list, parameter_set_list)
+                except Exception as e:
+                    # add the instance to the children list for debugging
+                    self.children.append(instance)
+                    raise ValueError(f"Error in setting component instance '{instance_name}' : {e}")
+
+                if param_list_yaml is not None:
+                    for param in param_list_yaml:
+                        instance.set_parameter(param)
+
+                self.children.append(instance)
+            # all children are initialized
+            self.is_initialized = True
+
+        elif element_type == "pipeline":
             logger.info(f"Setting pipeline element {element_id} for instance {self.namespace_str}")
             self.element = pipeline_list.get(element_name)
             self.element_type = element_type
@@ -86,9 +119,9 @@ class Instance:
                 )
                 instance.parent = self
                 instance.parent_pipeline_list = self.parent_pipeline_list.copy()
-                # recursive call of set_element
+                # recursive call of set_instances
                 try:
-                    instance.set_element(node.get("element"), module_list, pipeline_list)
+                    instance.set_instances(node.get("element"), module_list, pipeline_list, parameter_set_list)
                 except Exception as e:
                     # add the instance to the children list for debugging
                     self.children.append(instance)
@@ -114,15 +147,8 @@ class Instance:
 
         else:
             raise ValueError(f"Invalid element type: {element_type}")
-
-    def _run_pipeline_configuration(self):
-        if self.element_type != "pipeline":
-            raise ValueError("run_pipeline_configuration is only supported for pipeline")
-
-        # set connections
-        if len(self.element.connections) == 0:
-            raise ValueError("No connections found in the pipeline configuration")
-
+        
+    def set_links(self):
         connection_list: List[Connection] = []
         for connection in self.element.connections:
             connection_instance = Connection(connection)
@@ -187,6 +213,17 @@ class Instance:
                     )
                     link = Link(from_port.msg_type, from_port, to_port, self.namespace)
                     self.links.append(link)
+
+
+    def _run_pipeline_configuration(self):
+        if self.element_type != "pipeline":
+            raise ValueError("run_pipeline_configuration is only supported for pipeline")
+
+        # set connections
+        if len(self.element.connections) == 0:
+            raise ValueError("No connections found in the pipeline configuration")
+
+        self.set_links()
 
         # create external ports
         self._create_external_ports(self.links)
