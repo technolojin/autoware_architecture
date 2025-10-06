@@ -69,7 +69,7 @@ class Instance:
         element_name, element_type = element_name_decode(element_id)
 
         if element_type == "pipeline":
-            logger.debug(f"Setting pipeline element {element_id} for instance {self.namespace_str}")
+            logger.info(f"Setting pipeline element {element_id} for instance {self.namespace_str}")
             self.element = pipeline_list.get(element_name)
             self.element_type = element_type
 
@@ -102,7 +102,7 @@ class Instance:
             self.is_initialized = True
 
         elif element_type == "module":
-            logger.debug(f"Setting module element {element_id} for instance {self.namespace_str}")
+            logger.info(f"Setting module element {element_id} for instance {self.namespace_str}")
             self.element = module_list.get(element_name)
             self.element_type = element_type
 
@@ -348,20 +348,20 @@ class Instance:
 
         # check ports
         for in_port in self.in_ports:
-            logger.info(f"  In port: {in_port.full_name}")
-            logger.info(f"    Subscribing topic: {in_port.topic}")
+            logger.debug(f"  In port: {in_port.full_name}")
+            logger.debug(f"    Subscribing topic: {in_port.topic}")
             server_port_list = in_port.servers
             if server_port_list == []:
-                logger.info("    Server port not found")
+                logger.debug("    Server port not found")
                 continue
             for server_port in server_port_list:
                 logger.debug(f"    server: {server_port.full_name}, topic: {server_port.topic}")
 
         for out_port in self.out_ports:
-            logger.info(f"  Out port: {out_port.full_name}")
+            logger.debug(f"  Out port: {out_port.full_name}")
             user_port_list = out_port.users
             if user_port_list == []:
-                logger.info("    User port not found")
+                logger.debug("    User port not found")
                 continue
             for user_port in user_port_list:
                 logger.debug(f"    user: {user_port.full_name}")

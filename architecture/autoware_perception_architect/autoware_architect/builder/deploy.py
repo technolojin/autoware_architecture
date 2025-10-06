@@ -12,18 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+import logging
 from typing import List
 
 from ..models.data_class import ElementData
-
 from ..models.ports import InPort, OutPort
 from ..models.links import Link, Connection
 from .instances import Instance
-
 from ..parsers.data_parser import element_name_decode
 
-debug_mode = False
+logger = logging.getLogger(__name__)
 
 class DeploymentInstance(Instance):
     def __init__(self, name: str):
@@ -73,10 +71,7 @@ class DeploymentInstance(Instance):
         pipeline_list:List[ElementData],
         parameter_set_list:List[ElementData],
     ):
-        if debug_mode:
-            print(
-                f"Instance set_architecture: Setting {architecture.full_name} instance {self.name}"
-            )
+        logger.info(f"Setting architecture {architecture.full_name} for instance {self.name}")
         self.element = architecture
         self.element_type = "architecture"
 
@@ -95,7 +90,6 @@ class DeploymentInstance(Instance):
             connection_list.append(connection_instance)
 
         # establish links. topics will be defined in this step
-        link_list: List[Link] = []
         for connection in connection_list:
             # find the from_instance and to_instance from children
             from_instance = self.get_child(connection.from_instance)
@@ -110,24 +104,20 @@ class DeploymentInstance(Instance):
                 raise ValueError(f"Invalid port type: {to_port.full_name}")
             # create link
             link = Link(from_port.msg_type, from_port, to_port, self.namespace)
-            link_list.append(link)
 
-        for link in link_list:
             self.links.append(link)
-            if debug_mode:
-                print(f"Connection: {link.from_port.full_name}-> {link.to_port.full_name}")
-        if debug_mode:
-            print(f"Instance {self.name} set_architecture: {len(self.links)} links are established")
-            for link in self.links:
-                print(f"  Link: {link.from_port.full_name} -> {link.to_port.full_name}")
+            logger.debug(f"Connection: {link.from_port.full_name} -> {link.to_port.full_name}")
+        
+        logger.debug(f"Instance {self.name} set_architecture: {len(self.links)} links established")
+        for link in self.links:
+            logger.debug(f"  Link: {link.from_port.full_name} -> {link.to_port.full_name}")
 
         # check ports
-        if debug_mode:
-            print(f"\n\nInstance '{self.name}': checking ports")
+        logger.debug(f"Instance '{self.name}': checking ports")
         self.check_ports()
 
     def build_logical_topology(self):
-        print(f"\nInstance '{self.name}': building logical topology")
+        logger.info(f"Instance '{self.name}': building logical topology")
         # build logical topology
         for child in self.children:
             child.set_event_tree()

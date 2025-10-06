@@ -40,7 +40,7 @@ class ElementCollection:
     def _load_elements(self, config_yaml_file_paths: List[str]) -> None:
         """Load elements from configuration files."""
         for file_path in config_yaml_file_paths:
-            logger.info(f"Loading element from: {file_path}")
+            logger.debug(f"Loading element from: {file_path}")
             
             try:
                 element_data = self.parser.parse_element_file(file_path)

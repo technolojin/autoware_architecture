@@ -72,7 +72,7 @@ class YamlParser:
                 config_data = {}
                 
             # Cache the result
-            if self.cache_enabled:
+            if self.cache_enabled and config_data is not None:
                 self._cache[path] = config_data
                 
             return config_data
