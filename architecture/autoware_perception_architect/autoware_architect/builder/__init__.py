@@ -15,5 +15,6 @@
 """Builders module."""
 
 from .instances import DeploymentInstance
+from .config_registry import ConfigRegistry
 
-__all__ = ["DeploymentInstance"]
+__all__ = ["DeploymentInstance", "ConfigRegistry"]

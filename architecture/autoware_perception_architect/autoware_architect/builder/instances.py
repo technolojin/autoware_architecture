@@ -18,6 +18,7 @@ from typing import List, Dict
 from ..models.data_class import Element, ModuleElement, PipelineElement, ParameterSetElement, ArchitectureElement
 from ..parsers.data_parser import element_name_decode
 from ..config import config
+from .config_registry import ConfigRegistry
 from .parameter_manager import ParameterManager
 from .link_manager import LinkManager
 from .event_manager import EventManager
@@ -61,19 +62,19 @@ class Instance:
         # status
         self.is_initialized = False
 
-    def set_instances(self, element_id, module_list, pipeline_list, parameter_set_list):
+    def set_instances(self, element_id, config_registry: ConfigRegistry):
         element_name, element_type = element_name_decode(element_id)
         
         if element_type == "architecture":
-            self._set_architecture_instances(module_list, pipeline_list, parameter_set_list)
+            self._set_architecture_instances(config_registry)
         elif element_type == "pipeline":
-            self._set_pipeline_instances(element_id, element_name, module_list, pipeline_list, parameter_set_list)
+            self._set_pipeline_instances(element_id, element_name, config_registry)
         elif element_type == "module":
-            self._set_module_instances(element_id, element_name, module_list)
+            self._set_module_instances(element_id, element_name, config_registry)
         else:
             raise ValueError(f"Invalid element type: {element_type}")
 
-    def _set_architecture_instances(self, module_list, pipeline_list, parameter_set_list):
+    def _set_architecture_instances(self, config_registry):
         """Set instances for architecture element type."""
         for component in self.element.components:
             compute_unit_name = component.get("compute_unit")
@@ -85,23 +86,23 @@ class Instance:
             instance = Instance(instance_name, compute_unit_name, [namespace])
             instance.parent = self
             try:
-                instance.set_instances(element_id, module_list, pipeline_list, parameter_set_list)
+                instance.set_instances(element_id, config_registry)
             except Exception as e:
                 # add the instance to the children dict for debugging
                 self.children[instance_name] = instance
                 raise ValueError(f"Error in setting component instance '{instance_name}' : {e}")
 
             # parameter set
-            self._apply_parameter_set(instance, component, parameter_set_list)
+            self._apply_parameter_set(instance, component, config_registry)
             self.children[instance_name] = instance
         
         # all children are initialized
         self.is_initialized = True
 
-    def _set_pipeline_instances(self, element_id, element_name, module_list, pipeline_list, parameter_set_list):
+    def _set_pipeline_instances(self, element_id, element_name, config_registry):
         """Set instances for pipeline element type."""
         logger.info(f"Setting pipeline element {element_id} for instance {self.namespace_str}")
-        self.element = pipeline_list.get(element_name)
+        self.element = config_registry.get_pipeline(element_name)
         self.element_type = "pipeline"
 
         # check if the pipeline is already set
@@ -110,7 +111,7 @@ class Instance:
         self.parent_pipeline_list.append(element_id)
 
         # set children
-        self._create_pipeline_children(module_list, pipeline_list, parameter_set_list)
+        self._create_pipeline_children(config_registry)
 
         # run the pipeline configuration
         self._run_pipeline_configuration()
@@ -118,10 +119,10 @@ class Instance:
         # recursive call is finished
         self.is_initialized = True
 
-    def _set_module_instances(self, element_id, element_name, module_list):
+    def _set_module_instances(self, element_id, element_name, config_registry):
         """Set instances for module element type."""
         logger.info(f"Setting module element {element_id} for instance {self.namespace_str}")
-        self.element = module_list.get(element_name)
+        self.element = config_registry.get_module(element_name)
         self.element_type = "module"
 
         # run the module configuration
@@ -130,7 +131,7 @@ class Instance:
         # recursive call is finished
         self.is_initialized = True
 
-    def _apply_parameter_set(self, instance, component, parameter_set_list):
+    def _apply_parameter_set(self, instance, component, config_registry):
         """Apply parameter set to an instance."""
         parameter_set = component.get("parameter_set")
         param_list_yaml = None
@@ -138,14 +139,14 @@ class Instance:
             param_set_name, element_type = element_name_decode(parameter_set)
             if element_type != "parameter_set":
                 raise ValueError(f"Invalid parameter set type: {element_type}")
-            param_set = parameter_set_list.get(param_set_name)
+            param_set = config_registry.get_parameter_set(param_set_name)
             param_list_yaml = param_set.config.get("parameters")
 
         if param_list_yaml is not None:
             for param in param_list_yaml:
                 instance.parameter_manager.set_parameter(param)
 
-    def _create_pipeline_children(self, module_list, pipeline_list, parameter_set_list):
+    def _create_pipeline_children(self, config_registry):
         """Create child instances for pipeline elements."""
         node_list = self.element.nodes
         for node in node_list:
@@ -156,7 +157,7 @@ class Instance:
             instance.parent_pipeline_list = self.parent_pipeline_list.copy()
             # recursive call of set_instances
             try:
-                instance.set_instances(node.get("element"), module_list, pipeline_list, parameter_set_list)
+                instance.set_instances(node.get("element"), config_registry)
             except Exception as e:
                 # add the instance to the children dict for debugging
                 self.children[instance.name] = instance
@@ -247,10 +248,8 @@ class DeploymentInstance(Instance):
 
     def set_architecture(
         self,
-        architecture:Element,
-        module_list:List[Element],
-        pipeline_list:List[Element],
-        parameter_set_list:List[Element],
+        architecture: Element,
+        config_registry,
     ):
         logger.info(f"Setting architecture {architecture.full_name} for instance {self.name}")
         self.element = architecture
@@ -258,7 +257,7 @@ class DeploymentInstance(Instance):
 
         # 1. set component instances
         logger.info(f"Instance '{self.name}': setting component instances")
-        self.set_instances(architecture.full_name, module_list, pipeline_list, parameter_set_list)
+        self.set_instances(architecture.full_name, config_registry)
 
         # 2. set connections
         logger.info(f"Instance '{self.name}': setting connections")
