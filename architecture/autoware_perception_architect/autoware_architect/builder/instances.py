@@ -15,7 +15,7 @@
 import logging
 from typing import List, Dict
 
-from ..models.data_class import ModuleElement, PipelineElement, ParameterSetElement, ArchitectureElement
+from ..models.data_class import Element, ModuleElement, PipelineElement, ParameterSetElement, ArchitectureElement
 from ..parsers.data_parser import element_name_decode
 from ..config import config
 from .parameter_manager import ParameterManager
@@ -222,4 +222,33 @@ class Instance:
         }
 
         return data
+
+class DeploymentInstance(Instance):
+    def __init__(self, name: str):
+        super().__init__(name)
+
+    def set_architecture(
+        self,
+        architecture:Element,
+        module_list:List[Element],
+        pipeline_list:List[Element],
+        parameter_set_list:List[Element],
+    ):
+        logger.info(f"Setting architecture {architecture.full_name} for instance {self.name}")
+        self.element = architecture
+        self.element_type = "architecture"
+
+        # 1. set component instances
+        logger.info(f"Instance '{self.name}': setting component instances")
+        self.set_instances(architecture.full_name, module_list, pipeline_list, parameter_set_list)
+
+        # 2. set connections
+        logger.info(f"Instance '{self.name}': setting connections")
+        self.link_manager.set_links()
+        self.check_ports()
+
+        # 3. build logical topology
+        logger.info(f"Instance '{self.name}': building logical topology")
+        # self.build_logical_topology()
+        self.set_event_tree()
 
