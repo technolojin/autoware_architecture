@@ -16,7 +16,7 @@
 import os
 from typing import Dict
 from .config import ArchitectureConfig
-from .models.data_class import Element
+from .models.config import Config
 from .builder.config_registry import ConfigRegistry
 from .builder.instances import DeploymentInstance
 from .parsers.data_validator import element_name_decode

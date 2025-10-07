@@ -15,8 +15,8 @@
 from typing import List, Dict, Optional
 import logging
 
-from ..parsers.data_parser import ElementParser
-from ..models.data_class import Element, ElementType, ModuleElement, PipelineElement, ParameterSetElement, ArchitectureElement
+from ..parsers.data_parser import ConfigParser
+from ..models.config import Config, ConfigType, ModuleConfig, PipelineConfig, ParameterSetConfig, ArchitectureConfig
 from ..exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
@@ -26,15 +26,15 @@ class ConfigRegistry:
     
     def __init__(self, config_yaml_file_paths: List[str]):
         # Replace list with dict as primary storage
-        self.elements: Dict[str, Element] = {}  # full_name → Element
-        self._type_map: Dict[str, Dict[str, Element]] = {
-            ElementType.MODULE: {},
-            ElementType.PIPELINE: {},
-            ElementType.PARAMETER_SET: {},
-            ElementType.ARCHITECTURE: {}
+        self.elements: Dict[str, Config] = {}  # full_name → Config
+        self._type_map: Dict[str, Dict[str, Config]] = {
+            ConfigType.MODULE: {},
+            ConfigType.PIPELINE: {},
+            ConfigType.PARAMETER_SET: {},
+            ConfigType.ARCHITECTURE: {}
         }
         
-        self.parser = ElementParser()
+        self.parser = ConfigParser()
         self._load_elements(config_yaml_file_paths)
     
     def _load_elements(self, config_yaml_file_paths: List[str]) -> None:
@@ -62,66 +62,52 @@ class ConfigRegistry:
                 logger.error(f"Failed to load element from {file_path}: {e}")
                 raise
     
-    # def get_element_by_name(self, name: str) -> Element:
-    #     """Get element by full name."""
-    #     if name in self.elements:
-    #         return self.elements[name]
-        
-    #     available_names = list(self.elements.keys())
-    #     raise ValidationError(f"Element '{name}' not found. Available: {available_names}")
-    
-    # def get_elements_by_type(self, element_type: str) -> List[Element]:
-    #     """Get all elements of a specific type."""
-    #     if element_type not in self._type_map:
-    #         raise ValidationError(f"Invalid element type: {element_type}")
-    #     return list(self._type_map[element_type].values())
-    
-    def get(self, name: str, default=None) -> Optional[Element]:
+    def get(self, name: str, default=None) -> Optional[Config]:
         """Get element by name with default value."""
         return self.elements.get(name, default)
     
     # Enhanced methods for type-safe element access
-    def get_module(self, name: str) -> ModuleElement:
+    def get_module(self, name: str) -> ModuleConfig:
         """Get a module element by name."""
-        element = self._type_map[ElementType.MODULE].get(name)
+        element = self._type_map[ConfigType.MODULE].get(name)
         if element is None:
-            available = list(self._type_map[ElementType.MODULE].keys())
+            available = list(self._type_map[ConfigType.MODULE].keys())
             raise ValidationError(f"Module '{name}' not found. Available modules: {available}")
         return element
     
-    def get_pipeline(self, name: str) -> PipelineElement:
+    def get_pipeline(self, name: str) -> PipelineConfig:
         """Get a pipeline element by name."""
-        element = self._type_map[ElementType.PIPELINE].get(name)
+        element = self._type_map[ConfigType.PIPELINE].get(name)
         if element is None:
-            available = list(self._type_map[ElementType.PIPELINE].keys())
+            available = list(self._type_map[ConfigType.PIPELINE].keys())
             raise ValidationError(f"Pipeline '{name}' not found. Available pipelines: {available}")
         return element
     
-    def get_parameter_set(self, name: str) -> ParameterSetElement:
+    def get_parameter_set(self, name: str) -> ParameterSetConfig:
         """Get a parameter set element by name."""
-        element = self._type_map[ElementType.PARAMETER_SET].get(name)
+        element = self._type_map[ConfigType.PARAMETER_SET].get(name)
         if element is None:
-            available = list(self._type_map[ElementType.PARAMETER_SET].keys())
+            available = list(self._type_map[ConfigType.PARAMETER_SET].keys())
             raise ValidationError(f"Parameter set '{name}' not found. Available parameter sets: {available}")
         return element
     
-    def get_architecture(self, name: str) -> ArchitectureElement:
+    def get_architecture(self, name: str) -> ArchitectureConfig:
         """Get an architecture element by name."""
-        element = self._type_map[ElementType.ARCHITECTURE].get(name)
+        element = self._type_map[ConfigType.ARCHITECTURE].get(name)
         if element is None:
-            available = list(self._type_map[ElementType.ARCHITECTURE].keys())
+            available = list(self._type_map[ConfigType.ARCHITECTURE].keys())
             raise ValidationError(f"Architecture '{name}' not found. Available architectures: {available}")
         return element
     
-    def get_element_by_type(self, name: str, element_type: str) -> Element:
+    def get_element_by_type(self, name: str, element_type: str) -> Config:
         """Get an element by name and type."""
-        if element_type == ElementType.MODULE:
+        if element_type == ConfigType.MODULE:
             return self.get_module(name)
-        elif element_type == ElementType.PIPELINE:
+        elif element_type == ConfigType.PIPELINE:
             return self.get_pipeline(name)
-        elif element_type == ElementType.PARAMETER_SET:
+        elif element_type == ConfigType.PARAMETER_SET:
             return self.get_parameter_set(name)
-        elif element_type == ElementType.ARCHITECTURE:
+        elif element_type == ConfigType.ARCHITECTURE:
             return self.get_architecture(name)
         else:
             raise ValidationError(f"Unknown element type: {element_type}")

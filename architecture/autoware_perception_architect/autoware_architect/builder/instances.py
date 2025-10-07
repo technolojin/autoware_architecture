@@ -15,7 +15,7 @@
 import logging
 from typing import List, Dict
 
-from ..models.data_class import Element, ModuleElement, PipelineElement, ParameterSetElement, ArchitectureElement
+from ..models.config import Config, ModuleConfig, PipelineConfig, ParameterSetConfig, ArchitectureConfig
 from ..parsers.data_parser import element_name_decode
 from ..config import config
 from .config_registry import ConfigRegistry
@@ -44,7 +44,7 @@ class Instance:
             raise ValueError(f"Instance layer is too deep (limit: {config.layer_limit})")
 
         # element
-        self.element: ModuleElement | PipelineElement | ParameterSetElement | ArchitectureElement | None = None
+        self.element: ModuleConfig | PipelineConfig | ParameterSetConfig | ArchitectureConfig | None = None
         self.element_type: str = None
         self.parent: Instance = None
         self.children: Dict[str, Instance] = {}
@@ -107,7 +107,7 @@ class Instance:
 
         # check if the pipeline is already set
         if element_id in self.parent_pipeline_list:
-            raise ValueError(f"Element is already set: {element_id}, avoid circular reference")
+            raise ValueError(f"Config is already set: {element_id}, avoid circular reference")
         self.parent_pipeline_list.append(element_id)
 
         # set children
@@ -248,7 +248,7 @@ class DeploymentInstance(Instance):
 
     def set_architecture(
         self,
-        architecture: Element,
+        architecture: Config,
         config_registry,
     ):
         logger.info(f"Setting architecture {architecture.full_name} for instance {self.name}")

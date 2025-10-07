@@ -60,11 +60,11 @@ autoware_architect/
 ### Basic Launcher Generation
 
 ```python
-from autoware_architect.models.elements import ElementFactory
+from autoware_architect.models.elements import ConfigFactory
 from autoware_architect.generators.launcher_generator import launcher_generator
 
 # Load module configuration
-module = ElementFactory.create_element("path/to/module.yaml")
+module = ConfigFactory.create_element("path/to/module.yaml")
 
 # Generate launcher
 launcher_path = launcher_generator.generate_module_launcher(

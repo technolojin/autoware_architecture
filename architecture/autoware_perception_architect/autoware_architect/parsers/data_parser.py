@@ -18,18 +18,18 @@ import logging
 
 from ..parsers.yaml_parser import yaml_parser
 from .data_validator import ValidatorFactory, element_name_decode
-from ..models.data_class import Element, ModuleElement, PipelineElement, ParameterSetElement, ArchitectureElement, ElementType
+from ..models.config import Config, ModuleConfig, PipelineConfig, ParameterSetConfig, ArchitectureConfig, ConfigType
 from ..exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
 
-class ElementParser:
+class ConfigParser:
     """Parser for element configuration files."""
     
     def __init__(self):
         self.validator_factory = ValidatorFactory()
     
-    def parse_element_file(self, config_yaml_path: str) -> Element:
+    def parse_element_file(self, config_yaml_path: str) -> Config:
         """Parse an element configuration file."""
         file_path = Path(config_yaml_path)
         # get element type from file name 
@@ -45,7 +45,7 @@ class ElementParser:
 
         if element_name != file_element_name:
             raise ValidationError(
-                f"Element name '{element_name}' does not match file name '{file_element_name}'. File: {file_path}"
+                f"Config name '{element_name}' does not match file name '{file_element_name}'. File: {file_path}"
             )
         
         # Validate configuration
@@ -64,7 +64,7 @@ class ElementParser:
             raise ValidationError(f"Error parsing YAML file {file_path}: {e}")
 
     def _create_element_data(self, element_name: str, full_name: str, element_type: str, 
-                           config: Dict[str, Any], file_path: Path) -> Element:
+                           config: Dict[str, Any], file_path: Path) -> Config:
         """Create appropriate data structure based on element type."""
         base_data = {
             'name': element_name,
@@ -74,8 +74,8 @@ class ElementParser:
             'file_path': file_path
         }
         
-        if element_type == ElementType.MODULE:
-            return ModuleElement(
+        if element_type == ConfigType.MODULE:
+            return ModuleConfig(
                 **base_data,
                 launch=config.get('launch'),
                 inputs=config.get('inputs'),
@@ -84,8 +84,8 @@ class ElementParser:
                 configurations=config.get('configurations'),
                 processes=config.get('processes')
             )
-        elif element_type == ElementType.PIPELINE:
-            return PipelineElement(
+        elif element_type == ConfigType.PIPELINE:
+            return PipelineConfig(
                 **base_data,
                 depends=config.get('depends'),
                 nodes=config.get('nodes'),
@@ -94,13 +94,13 @@ class ElementParser:
                 parameters=config.get('parameters'),
                 configurations=config.get('configurations')
             )
-        elif element_type == ElementType.PARAMETER_SET:
-            return ParameterSetElement(
+        elif element_type == ConfigType.PARAMETER_SET:
+            return ParameterSetConfig(
                 **base_data,
                 parameters=config.get('parameters')
             )
-        elif element_type == ElementType.ARCHITECTURE:
-            return ArchitectureElement(
+        elif element_type == ConfigType.ARCHITECTURE:
+            return ArchitectureConfig(
                 **base_data,
                 components=config.get('components'),
                 connections=config.get('connections')

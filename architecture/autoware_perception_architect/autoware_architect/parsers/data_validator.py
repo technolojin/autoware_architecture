@@ -15,7 +15,7 @@
 from typing import Dict, Any, List, Tuple
 from abc import ABC, abstractmethod
 
-from ..models.data_class import ElementType
+from ..models.config import ConfigType
 from ..exceptions import ValidationError
 
 
@@ -24,7 +24,7 @@ def element_name_decode(element_name: str) -> Tuple[str, str]:
     # example: 'my_module.pipeline' -> ('my_module', 'pipeline')
 
     if not element_name or not isinstance(element_name, str):
-        raise ValidationError(f"Element name must be a non-empty string, got: {element_name}")
+        raise ValidationError(f"Config name must be a non-empty string, got: {element_name}")
     
     if "." not in element_name:
         raise ValidationError(f"Invalid element name format: '{element_name}'. Expected format: 'name.type'")
@@ -36,13 +36,13 @@ def element_name_decode(element_name: str) -> Tuple[str, str]:
     name, element_type = parts
     
     if not name.strip():
-        raise ValidationError(f"Element name cannot be empty in: '{element_name}'")
+        raise ValidationError(f"Config name cannot be empty in: '{element_name}'")
     
     if not element_type.strip():
-        raise ValidationError(f"Element type cannot be empty in: '{element_name}'")
+        raise ValidationError(f"Config type cannot be empty in: '{element_name}'")
 
-    if element_type not in ElementType.get_all_types():
-        raise ValidationError(f"Invalid element type: '{element_type}'. Valid types: {ElementType.get_all_types()}")
+    if element_type not in ConfigType.get_all_types():
+        raise ValidationError(f"Invalid element type: '{element_type}'. Valid types: {ConfigType.get_all_types()}")
 
     return name.strip(), element_type.strip()
 
@@ -189,10 +189,10 @@ class ValidatorFactory:
     """Factory for creating validators."""
     
     _validators = {
-        ElementType.MODULE: ModuleValidator,
-        ElementType.PIPELINE: PipelineValidator,
-        ElementType.PARAMETER_SET: ParameterSetValidator,
-        ElementType.ARCHITECTURE: ArchitectureValidator,
+        ConfigType.MODULE: ModuleValidator,
+        ConfigType.PIPELINE: PipelineValidator,
+        ConfigType.PARAMETER_SET: ParameterSetValidator,
+        ConfigType.ARCHITECTURE: ArchitectureValidator,
     }
     
     @classmethod

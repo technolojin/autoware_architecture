@@ -16,7 +16,7 @@ from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 from pathlib import Path
 
-class ElementType:
+class ConfigType:
     """Constants for element types."""
     MODULE = "module"
     PIPELINE = "pipeline"
@@ -29,7 +29,7 @@ class ElementType:
         return [cls.MODULE, cls.PIPELINE, cls.PARAMETER_SET, cls.ARCHITECTURE]
 
 @dataclass
-class Element:
+class Config:
     """Pure data structure for element configuration."""
     name: str
     full_name: str
@@ -43,7 +43,7 @@ class Element:
             self.file_path = Path(self.file_path)
 
 @dataclass
-class ModuleElement(Element):
+class ModuleConfig(Config):
     """Data structure for module elements."""
     launch: Dict[str, Any] = None
     inputs: List[Dict[str, Any]] = None
@@ -53,7 +53,7 @@ class ModuleElement(Element):
     processes: List[Dict[str, Any]] = None
 
 @dataclass
-class PipelineElement(Element):
+class PipelineConfig(Config):
     """Data structure for pipeline elements."""
     depends: List[str] = None
     nodes: List[Dict[str, Any]] = None
@@ -63,12 +63,12 @@ class PipelineElement(Element):
     configurations: Any = None  # Can be dict or list
 
 @dataclass
-class ParameterSetElement(Element):
+class ParameterSetConfig(Config):
     """Data structure for parameter set elements."""
     parameters: Any = None  # Can be dict or list
 
 @dataclass
-class ArchitectureElement(Element):
+class ArchitectureConfig(Config):
     """Data structure for architecture elements."""
     components: List[Dict[str, Any]] = None
     connections: List[Dict[str, Any]] = None
