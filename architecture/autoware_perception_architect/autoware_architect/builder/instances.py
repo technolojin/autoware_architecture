@@ -79,11 +79,11 @@ class Instance:
 
     def _set_architecture_instances(self, config_registry):
         """Set instances for architecture element type."""
-        for component in self.configuration.components:
-            compute_unit_name = component.get("compute_unit")
-            instance_name = component.get("component")
-            element_id = component.get("element")
-            namespace = component.get("namespace")
+        for cfg_component in self.configuration.components:
+            compute_unit_name = cfg_component.get("compute_unit")
+            instance_name = cfg_component.get("component")
+            element_id = cfg_component.get("element")
+            namespace = cfg_component.get("namespace")
 
             # create instance
             instance = Instance(instance_name, compute_unit_name, [namespace])
@@ -96,7 +96,7 @@ class Instance:
                 raise ValueError(f"Error in setting component instance '{instance_name}' : {e}")
 
             # parameter set
-            self._apply_parameter_set(instance, component, config_registry)
+            self._apply_parameter_set(instance, cfg_component, config_registry)
             self.children[instance_name] = instance
         
         # all children are initialized
@@ -151,16 +151,16 @@ class Instance:
 
     def _create_pipeline_children(self, config_registry):
         """Create child instances for pipeline elements."""
-        node_list = self.configuration.nodes
-        for node in node_list:
+        cfg_node_list = self.configuration.nodes
+        for cfg_node in cfg_node_list:
             instance = Instance(
-                node.get("node"), self.compute_unit, self.namespace, self.layer + 1
+                cfg_node.get("node"), self.compute_unit, self.namespace, self.layer + 1
             )
             instance.parent = self
             instance.parent_pipeline_list = self.parent_pipeline_list.copy()
             # recursive call of set_instances
             try:
-                instance.set_instances(node.get("element"), config_registry)
+                instance.set_instances(cfg_node.get("element"), config_registry)
             except Exception as e:
                 # add the instance to the children dict for debugging
                 self.children[instance.name] = instance

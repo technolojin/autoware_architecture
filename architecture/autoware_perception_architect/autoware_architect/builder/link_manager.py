@@ -50,11 +50,11 @@ class LinkManager:
     def set_in_port(self, in_port: InPort):
         """Set input port after validation."""
         # check the external input is defined
-        external_input_list = self.instance.configuration.external_interfaces.get("input")
-        external_input_list = [ext_input.get("name") for ext_input in external_input_list]
-        if in_port.name not in external_input_list:
+        cfg_external_input_list = self.instance.configuration.external_interfaces.get("input")
+        cfg_external_input_list = [ext_input.get("name") for ext_input in cfg_external_input_list]
+        if in_port.name not in cfg_external_input_list:
             raise ValueError(
-                f"External input not found: '{in_port.name}' in '{external_input_list}'"
+                f"External input not found: '{in_port.name}' in '{cfg_external_input_list}'"
             )
 
         # check if there is a port with the same name
@@ -74,11 +74,11 @@ class LinkManager:
     def set_out_port(self, out_port: OutPort):
         """Set output port after validation."""
         # check the external output is defined
-        external_output_list = self.instance.configuration.external_interfaces.get("output")
-        external_output_list = [ext_output.get("name") for ext_output in external_output_list]
-        if out_port.name not in external_output_list:
+        cfg_external_output_list = self.instance.configuration.external_interfaces.get("output")
+        cfg_external_output_list = [ext_output.get("name") for ext_output in cfg_external_output_list]
+        if out_port.name not in cfg_external_output_list:
             raise ValueError(
-                f"External output not found: '{out_port.name}' in {external_output_list}"
+                f"External output not found: '{out_port.name}' in {cfg_external_output_list}"
             )
 
         # check if there is a port with the same name
@@ -98,8 +98,8 @@ class LinkManager:
     def set_links(self):
         """Set up links based on element connections."""
         connection_list: List[Connection] = []
-        for connection in self.instance.configuration.connections:
-            connection_instance = Connection(connection)
+        for cfg_connection in self.instance.configuration.connections:
+            connection_instance = Connection(cfg_connection)
             connection_list.append(connection_instance)
 
         # establish links
@@ -180,26 +180,26 @@ class LinkManager:
             return
             
         # set in_ports
-        for in_port in self.instance.configuration.inputs:
-            in_port_name = in_port.get("name")
-            in_port_msg_type = in_port.get("message_type")
+        for cfg_in_port in self.instance.configuration.inputs:
+            in_port_name = cfg_in_port.get("name")
+            in_port_msg_type = cfg_in_port.get("message_type")
             in_port_instance = InPort(in_port_name, in_port_msg_type, self.instance.namespace)
-            if "global" in in_port:
+            if "global" in cfg_in_port:
                 in_port_instance.is_global = True
-                topic = in_port.get("global")
+                topic = cfg_in_port.get("global")
                 if topic[0] == "/":
                     topic = topic[1:]
                 in_port_instance.topic = topic.split("/")
             self.in_ports[in_port_name] = in_port_instance
 
         # set out_ports
-        for out_port in self.instance.configuration.outputs:
-            out_port_name = out_port.get("name")
-            out_port_msg_type = out_port.get("message_type")
+        for cfg_out_port in self.instance.configuration.outputs:
+            out_port_name = cfg_out_port.get("name")
+            out_port_msg_type = cfg_out_port.get("message_type")
             out_port_instance = OutPort(out_port_name, out_port_msg_type, self.instance.namespace)
-            if "global" in out_port:
+            if "global" in cfg_out_port:
                 out_port_instance.is_global = True
-                topic = out_port.get("global")
+                topic = cfg_out_port.get("global")
                 if topic[0] == "/":
                     topic = topic[1:]
                 out_port_instance.topic = topic.split("/")

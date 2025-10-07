@@ -48,21 +48,21 @@ class ParameterManager:
         param_name = param.get("name")
 
         # check external_interfaces/parameter
-        pipeline_parameter_list = self.instance.configuration.external_interfaces.get("parameter")
+        cfg_pipeline_parameter_list = self.instance.configuration.external_interfaces.get("parameter")
         # check if the param_list_yaml is superset of pipeline_parameter_list
-        pipeline_parameter_list = [param.get("name") for param in pipeline_parameter_list]
-        if param_name not in pipeline_parameter_list:
-            raise ValueError(f"Parameter not found: '{param_name}' in {pipeline_parameter_list}")
+        cfg_pipeline_parameter_list = [param.get("name") for param in cfg_pipeline_parameter_list]
+        if param_name not in cfg_pipeline_parameter_list:
+            raise ValueError(f"Parameter not found: '{param_name}' in {cfg_pipeline_parameter_list}")
 
         # check parameters to connect parameters to the children
-        param_connection_list = self.instance.configuration.parameters
-        for connection in param_connection_list:
-            param_from = connection.get("from")
+        cfg_param_connection_list = self.instance.configuration.parameters
+        for cfg_connection in cfg_param_connection_list:
+            param_from = cfg_connection.get("from")
             param_from_name = param_from.split(".")[1]
             if param_from_name != param_name:
                 continue
 
-            param_to = connection.get("to")
+            param_to = cfg_connection.get("to")
             param_to_inst_name = param_to.split(".")[0]
             child_instance = self.instance.get_child(param_to_inst_name)
 
@@ -92,9 +92,9 @@ class ParameterManager:
             return
             
         # set parameters
-        for param in self.instance.configuration.parameters:
-            param_name = param.get("name")
-            param_value = param.get("default")
+        for cfg_param in self.instance.configuration.parameters:
+            param_name = cfg_param.get("name")
+            param_value = cfg_param.get("default")
             self.parameters.set_parameter(param_name, param_value)
 
     def get_parameter(self, parameter_name: str):
