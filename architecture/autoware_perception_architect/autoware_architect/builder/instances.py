@@ -16,12 +16,12 @@ import logging
 from typing import List, Dict
 
 from ..models.data_class import ModuleElement, PipelineElement, ParameterSetElement, ArchitectureElement
-from ..models.parameters import ParameterList
 from ..models.ports import InPort, OutPort
 from ..models.links import Link, Connection, ConnectionType
 from ..models.events import Event, Process
 from ..parsers.data_parser import element_name_decode
 from ..config import config
+from .parameter_manager import ParameterManager
 
 logger = logging.getLogger(__name__)
 
@@ -59,8 +59,8 @@ class Instance:
         self.processes: List[Process] = []
         self.event_list: List[Event] = []
 
-        # parameters
-        self.parameters: ParameterList = ParameterList()
+        # parameter manager
+        self.parameter_manager: ParameterManager = ParameterManager(self)
 
         # status
         self.is_initialized = False
@@ -96,7 +96,7 @@ class Instance:
 
                 if param_list_yaml is not None:
                     for param in param_list_yaml:
-                        instance.set_parameter(param)
+                        instance.parameter_manager.set_parameter(param)
 
                 self.children[instance_name] = instance
             # all children are initialized
@@ -271,10 +271,7 @@ class Instance:
             self.out_ports[out_port_name] = out_port_instance
 
         # set parameters
-        for param in self.element.parameters:
-            param_name = param.get("name")
-            param_value = param.get("default")
-            self.parameters.set_parameter(param_name, param_value)
+        self.parameter_manager.initialize_module_parameters()
 
         # connect port events and the process events
         on_input_events = [in_port.event for in_port in self.in_ports.values()]
@@ -401,61 +398,6 @@ class Instance:
             for user_port in user_port_list:
                 logger.debug(f"    user: {user_port.full_name}")
 
-    def set_parameter(self, param):
-        # in case of pipeline, search parameter connection and call set_parameter for children
-        if self.element_type == "pipeline":
-            self.set_pipeline_parameter(param)
-        # in case of module, set the parameter
-        elif self.element_type == "module":
-            self.set_module_parameter(param)
-        else:
-            raise ValueError(f"Invalid element type: {self.element_type}")
-
-    def set_pipeline_parameter(self, param):
-        if self.element_type != "pipeline":
-            raise ValueError("set_pipeline_parameter is only supported for pipeline")
-        param_name = param.get("name")
-
-        # check external_interfaces/parameter
-        pipeline_parameter_list = self.element.external_interfaces.get(
-            "parameter"
-        )
-        # check if the param_list_yaml is superset of pipeline_parameter_list
-        pipeline_parameter_list = [param.get("name") for param in pipeline_parameter_list]
-        if param_name not in pipeline_parameter_list:
-            raise ValueError(f"Parameter not found: '{param_name}' in {pipeline_parameter_list}")
-
-        # check parameters to connect parameters to the children
-        param_connection_list = self.element.parameters
-        for connection in param_connection_list:
-            param_from = connection.get("from")
-            param_from_name = param_from.split(".")[1]
-            if param_from_name != param_name:
-                continue
-
-            param_to = connection.get("to")
-            param_to_inst_name = param_to.split(".")[0]
-            child_instance = self.get_child(param_to_inst_name)
-
-            # set the parameter to the child instance
-            if child_instance.element_type == "pipeline":
-                param["name"] = param_to.split(".")[2]
-
-            child_instance.set_parameter(param)
-
-    def set_module_parameter(self, param):
-        if self.element_type != "module":
-            raise ValueError("set_module_parameter is only supported for module")
-        param_path_list = param.get("parameter_paths")
-        # get list of parameter paths, which comes in dictionary format
-        for param_path in param_path_list:
-            param_keys = param_path.keys()
-            for param_key in param_keys:
-                param_value = param_path.get(param_key)
-                self.parameters.set_parameter(param_key, param_value)
-        for param in self.parameters.list:
-            logger.debug(f"  Parameter: {param.name} = {param.value}")
-
     def set_event_tree(self):
         # trigger the event tree from the current instance
         # in case of pipeline, event_list is empty
@@ -493,6 +435,7 @@ class Instance:
                 else []
             ),
             "events": (self.event_list),
+            "parameters": self.parameter_manager.get_all_parameters(),
         }
 
         return data
