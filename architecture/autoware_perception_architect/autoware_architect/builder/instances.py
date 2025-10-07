@@ -36,6 +36,7 @@ class Instance:
         self.namespace.append(name)
         # create namespace string, FOR ERROR MESSAGE ONLY
         self.namespace_str: str = "/" + "/".join(self.namespace)
+        # create unique ID
         self.id = ("__".join(self.namespace) + "__" + name).replace("/", "__")
 
         self.compute_unit: str = compute_unit
@@ -43,8 +44,10 @@ class Instance:
         if self.layer > config.layer_limit:
             raise ValueError(f"Instance layer is too deep (limit: {config.layer_limit})")
 
-        # element
-        self.element: ModuleConfig | PipelineConfig | ParameterSetConfig | ArchitectureConfig | None = None
+        # configuration
+        self.configuration: ModuleConfig | PipelineConfig | ParameterSetConfig | ArchitectureConfig | None = None
+
+        # instance topology
         self.element_type: str = None
         self.parent: Instance = None
         self.children: Dict[str, Instance] = {}
@@ -76,7 +79,7 @@ class Instance:
 
     def _set_architecture_instances(self, config_registry):
         """Set instances for architecture element type."""
-        for component in self.element.components:
+        for component in self.configuration.components:
             compute_unit_name = component.get("compute_unit")
             instance_name = component.get("component")
             element_id = component.get("element")
@@ -102,7 +105,7 @@ class Instance:
     def _set_pipeline_instances(self, element_id, element_name, config_registry):
         """Set instances for pipeline element type."""
         logger.info(f"Setting pipeline element {element_id} for instance {self.namespace_str}")
-        self.element = config_registry.get_pipeline(element_name)
+        self.configuration = config_registry.get_pipeline(element_name)
         self.element_type = "pipeline"
 
         # check if the pipeline is already set
@@ -122,7 +125,7 @@ class Instance:
     def _set_module_instances(self, element_id, element_name, config_registry):
         """Set instances for module element type."""
         logger.info(f"Setting module element {element_id} for instance {self.namespace_str}")
-        self.element = config_registry.get_module(element_name)
+        self.configuration = config_registry.get_module(element_name)
         self.element_type = "module"
 
         # run the module configuration
@@ -148,7 +151,7 @@ class Instance:
 
     def _create_pipeline_children(self, config_registry):
         """Create child instances for pipeline elements."""
-        node_list = self.element.nodes
+        node_list = self.configuration.nodes
         for node in node_list:
             instance = Instance(
                 node.get("node"), self.compute_unit, self.namespace, self.layer + 1
@@ -169,7 +172,7 @@ class Instance:
             raise ValueError("run_pipeline_configuration is only supported for pipeline")
 
         # set connections
-        if len(self.element.connections) == 0:
+        if len(self.configuration.connections) == 0:
             raise ValueError("No connections found in the pipeline configuration")
 
         self.link_manager.set_links()
@@ -252,7 +255,7 @@ class DeploymentInstance(Instance):
         config_registry,
     ):
         logger.info(f"Setting architecture {architecture.full_name} for instance {self.name}")
-        self.element = architecture
+        self.configuration = architecture
         self.element_type = "architecture"
 
         # 1. set component instances

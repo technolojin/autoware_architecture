@@ -48,14 +48,14 @@ class ParameterManager:
         param_name = param.get("name")
 
         # check external_interfaces/parameter
-        pipeline_parameter_list = self.instance.element.external_interfaces.get("parameter")
+        pipeline_parameter_list = self.instance.configuration.external_interfaces.get("parameter")
         # check if the param_list_yaml is superset of pipeline_parameter_list
         pipeline_parameter_list = [param.get("name") for param in pipeline_parameter_list]
         if param_name not in pipeline_parameter_list:
             raise ValueError(f"Parameter not found: '{param_name}' in {pipeline_parameter_list}")
 
         # check parameters to connect parameters to the children
-        param_connection_list = self.instance.element.parameters
+        param_connection_list = self.instance.configuration.parameters
         for connection in param_connection_list:
             param_from = connection.get("from")
             param_from_name = param_from.split(".")[1]
@@ -92,7 +92,7 @@ class ParameterManager:
             return
             
         # set parameters
-        for param in self.instance.element.parameters:
+        for param in self.instance.configuration.parameters:
             param_name = param.get("name")
             param_value = param.get("default")
             self.parameters.set_parameter(param_name, param_value)
