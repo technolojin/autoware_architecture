@@ -16,7 +16,7 @@ from typing import List, Dict, Optional
 import logging
 
 from ..parsers.data_parser import ElementParser
-from ..models.data_class import ElementData, ElementType
+from ..models.data_class import Element, ElementType
 from ..exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
@@ -26,8 +26,8 @@ class ElementCollection:
     
     def __init__(self, config_yaml_file_paths: List[str]):
         # Replace list with dict as primary storage
-        self.elements: Dict[str, ElementData] = {}  # full_name → ElementData
-        self._type_map: Dict[str, Dict[str, ElementData]] = {
+        self.elements: Dict[str, Element] = {}  # full_name → Element
+        self._type_map: Dict[str, Dict[str, Element]] = {
             ElementType.MODULE: {},
             ElementType.PIPELINE: {},
             ElementType.PARAMETER_SET: {},
@@ -62,7 +62,7 @@ class ElementCollection:
                 logger.error(f"Failed to load element from {file_path}: {e}")
                 raise
     
-    def get_element_by_name(self, name: str) -> ElementData:
+    def get_element_by_name(self, name: str) -> Element:
         """Get element by full name."""
         if name in self.elements:
             return self.elements[name]
@@ -70,28 +70,28 @@ class ElementCollection:
         available_names = list(self.elements.keys())
         raise ValidationError(f"Element '{name}' not found. Available: {available_names}")
     
-    def get_elements_by_type(self, element_type: str) -> List[ElementData]:
+    def get_elements_by_type(self, element_type: str) -> List[Element]:
         """Get all elements of a specific type."""
         if element_type not in self._type_map:
             raise ValidationError(f"Invalid element type: {element_type}")
         return list(self._type_map[element_type].values())
     
-    def get(self, name: str, default=None) -> Optional[ElementData]:
+    def get(self, name: str, default=None) -> Optional[Element]:
         """Get element by name with default value."""
         return self.elements.get(name, default)
     
-    def get_architectures(self) -> Dict[str, ElementData]:
+    def get_architectures(self) -> Dict[str, Element]:
         """Get architectures as dictionary for easy lookup."""
         return self._type_map[ElementType.ARCHITECTURE].copy()
     
-    def get_modules(self) -> Dict[str, ElementData]:
+    def get_modules(self) -> Dict[str, Element]:
         """Get modules as dictionary for easy lookup."""
         return self._type_map[ElementType.MODULE].copy()
     
-    def get_pipelines(self) -> Dict[str, ElementData]:
+    def get_pipelines(self) -> Dict[str, Element]:
         """Get pipelines as dictionary for easy lookup."""
         return self._type_map[ElementType.PIPELINE].copy()
     
-    def get_parameter_sets(self) -> Dict[str, ElementData]:
+    def get_parameter_sets(self) -> Dict[str, Element]:
         """Get parameter sets as dictionary for easy lookup."""
         return self._type_map[ElementType.PARAMETER_SET].copy()

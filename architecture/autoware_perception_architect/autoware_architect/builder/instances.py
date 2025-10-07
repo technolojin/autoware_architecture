@@ -15,7 +15,7 @@
 import logging
 from typing import List, Dict
 
-from ..models.data_class import ModuleData, PipelineData, ParameterSetData, ArchitectureData
+from ..models.data_class import ModuleElement, PipelineElement, ParameterSetElement, ArchitectureElement
 from ..models.parameters import ParameterList
 from ..models.ports import InPort, OutPort
 from ..models.links import Link, Connection, ConnectionType
@@ -44,7 +44,7 @@ class Instance:
             raise ValueError(f"Instance layer is too deep (limit: {config.layer_limit})")
 
         # element
-        self.element: ModuleData | PipelineData | ParameterSetData | ArchitectureData | None = None
+        self.element: ModuleElement | PipelineElement | ParameterSetElement | ArchitectureElement | None = None
         self.element_type: str = None
         self.parent: Instance = None
         self.children: Dict[str, Instance] = {}
@@ -73,15 +73,6 @@ class Instance:
                 instance_name = component.get("component")
                 element_id = component.get("element")
                 namespace = component.get("namespace")
-                # parameter set
-                parameter_set = component.get("parameter_set")
-                param_list_yaml = None
-                if parameter_set is not None:
-                    param_set_name, element_type = element_name_decode(parameter_set)
-                    if element_type != "parameter_set":
-                        raise ValueError(f"Invalid parameter set type: {element_type}")
-                    param_set = parameter_set_list.get(param_set_name)
-                    param_list_yaml = param_set.config.get("parameters")
 
                 # create instance
                 instance = Instance(instance_name, compute_unit_name, [namespace])
@@ -92,6 +83,16 @@ class Instance:
                     # add the instance to the children dict for debugging
                     self.children[instance_name] = instance
                     raise ValueError(f"Error in setting component instance '{instance_name}' : {e}")
+
+                # parameter set
+                parameter_set = component.get("parameter_set")
+                param_list_yaml = None
+                if parameter_set is not None:
+                    param_set_name, element_type = element_name_decode(parameter_set)
+                    if element_type != "parameter_set":
+                        raise ValueError(f"Invalid parameter set type: {element_type}")
+                    param_set = parameter_set_list.get(param_set_name)
+                    param_list_yaml = param_set.config.get("parameters")
 
                 if param_list_yaml is not None:
                     for param in param_list_yaml:

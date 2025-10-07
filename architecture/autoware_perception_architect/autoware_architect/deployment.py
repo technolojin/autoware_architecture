@@ -16,7 +16,7 @@
 import os
 from typing import Dict
 from .config import ArchitectureConfig
-from .models.data_class import ElementData
+from .models.data_class import Element
 from .builder.data_collector import ElementCollection
 from .builder.deploy import DeploymentInstance
 from .parsers.data_validator import element_name_decode
@@ -40,10 +40,10 @@ class Deployment:
 
         # element dictionaries
         element_collection = ElementCollection(architecture_yaml_list)
-        self.module_list: Dict[str, ElementData] = element_collection.get_modules()
-        self.pipeline_list: Dict[str, ElementData] = element_collection.get_pipelines()
-        self.parameter_set_list: Dict[str, ElementData] = element_collection.get_parameter_sets()
-        self.architecture_list: Dict[str, ElementData] = element_collection.get_architectures()
+        self.module_list: Dict[str, Element] = element_collection.get_modules()
+        self.pipeline_list: Dict[str, Element] = element_collection.get_pipelines()
+        self.parameter_set_list: Dict[str, Element] = element_collection.get_parameter_sets()
+        self.architecture_list: Dict[str, Element] = element_collection.get_architectures()
 
         # Check the configuration
         self._check_config()

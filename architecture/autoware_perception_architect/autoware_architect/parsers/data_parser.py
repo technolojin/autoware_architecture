@@ -18,7 +18,7 @@ import logging
 
 from ..parsers.yaml_parser import yaml_parser
 from .data_validator import ValidatorFactory, element_name_decode
-from ..models.data_class import ElementData, ModuleData, PipelineData, ParameterSetData, ArchitectureData, ElementType
+from ..models.data_class import Element, ModuleElement, PipelineElement, ParameterSetElement, ArchitectureElement, ElementType
 from ..exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ class ElementParser:
     def __init__(self):
         self.validator_factory = ValidatorFactory()
     
-    def parse_element_file(self, config_yaml_path: str) -> ElementData:
+    def parse_element_file(self, config_yaml_path: str) -> Element:
         """Parse an element configuration file."""
         file_path = Path(config_yaml_path)
         # get element type from file name 
@@ -64,7 +64,7 @@ class ElementParser:
             raise ValidationError(f"Error parsing YAML file {file_path}: {e}")
 
     def _create_element_data(self, element_name: str, full_name: str, element_type: str, 
-                           config: Dict[str, Any], file_path: Path) -> ElementData:
+                           config: Dict[str, Any], file_path: Path) -> Element:
         """Create appropriate data structure based on element type."""
         base_data = {
             'name': element_name,
@@ -75,7 +75,7 @@ class ElementParser:
         }
         
         if element_type == ElementType.MODULE:
-            return ModuleData(
+            return ModuleElement(
                 **base_data,
                 launch=config.get('launch'),
                 inputs=config.get('inputs'),
@@ -85,7 +85,7 @@ class ElementParser:
                 processes=config.get('processes')
             )
         elif element_type == ElementType.PIPELINE:
-            return PipelineData(
+            return PipelineElement(
                 **base_data,
                 depends=config.get('depends'),
                 nodes=config.get('nodes'),
@@ -95,12 +95,12 @@ class ElementParser:
                 configurations=config.get('configurations')
             )
         elif element_type == ElementType.PARAMETER_SET:
-            return ParameterSetData(
+            return ParameterSetElement(
                 **base_data,
                 parameters=config.get('parameters')
             )
         elif element_type == ElementType.ARCHITECTURE:
-            return ArchitectureData(
+            return ArchitectureElement(
                 **base_data,
                 components=config.get('components'),
                 connections=config.get('connections')

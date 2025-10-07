@@ -15,7 +15,7 @@
 from typing import Dict, Any, List, Tuple
 from abc import ABC, abstractmethod
 
-from ..models.data_class import ElementType, ElementData
+from ..models.data_class import ElementType
 from ..exceptions import ValidationError
 
 

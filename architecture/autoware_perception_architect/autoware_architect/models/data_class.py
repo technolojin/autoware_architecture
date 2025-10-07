@@ -29,7 +29,7 @@ class ElementType:
         return [cls.MODULE, cls.PIPELINE, cls.PARAMETER_SET, cls.ARCHITECTURE]
 
 @dataclass
-class ElementData:
+class Element:
     """Pure data structure for element configuration."""
     name: str
     full_name: str
@@ -43,7 +43,7 @@ class ElementData:
             self.file_path = Path(self.file_path)
 
 @dataclass
-class ModuleData(ElementData):
+class ModuleElement(Element):
     """Data structure for module elements."""
     launch: Dict[str, Any] = None
     inputs: List[Dict[str, Any]] = None
@@ -53,7 +53,7 @@ class ModuleData(ElementData):
     processes: List[Dict[str, Any]] = None
 
 @dataclass
-class PipelineData(ElementData):
+class PipelineElement(Element):
     """Data structure for pipeline elements."""
     depends: List[str] = None
     nodes: List[Dict[str, Any]] = None
@@ -63,12 +63,12 @@ class PipelineData(ElementData):
     configurations: Any = None  # Can be dict or list
 
 @dataclass
-class ParameterSetData(ElementData):
+class ParameterSetElement(Element):
     """Data structure for parameter set elements."""
     parameters: Any = None  # Can be dict or list
 
 @dataclass
-class ArchitectureData(ElementData):
+class ArchitectureElement(Element):
     """Data structure for architecture elements."""
     components: List[Dict[str, Any]] = None
     connections: List[Dict[str, Any]] = None

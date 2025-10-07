@@ -15,7 +15,7 @@
 import logging
 from typing import List
 
-from ..models.data_class import ElementData
+from ..models.data_class import Element
 from ..models.ports import InPort, OutPort
 from ..models.links import Link, Connection
 from .instances import Instance
@@ -29,10 +29,10 @@ class DeploymentInstance(Instance):
 
     def set_architecture(
         self,
-        architecture:ElementData,
-        module_list:List[ElementData],
-        pipeline_list:List[ElementData],
-        parameter_set_list:List[ElementData],
+        architecture:Element,
+        module_list:List[Element],
+        pipeline_list:List[Element],
+        parameter_set_list:List[Element],
     ):
         logger.info(f"Setting architecture {architecture.full_name} for instance {self.name}")
         self.element = architecture
