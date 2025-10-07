@@ -16,11 +16,11 @@ import logging
 from typing import List, Dict
 
 from ..models.data_class import ModuleElement, PipelineElement, ParameterSetElement, ArchitectureElement
-from ..models.events import Event, Process
 from ..parsers.data_parser import element_name_decode
 from ..config import config
 from .parameter_manager import ParameterManager
 from .link_manager import LinkManager
+from .event_manager import EventManager
 
 logger = logging.getLogger(__name__)
 
@@ -52,12 +52,11 @@ class Instance:
         # interface
         self.link_manager: LinkManager = LinkManager(self)
 
-        # processes
-        self.processes: List[Process] = []
-        self.event_list: List[Event] = []
-
         # parameter manager
         self.parameter_manager: ParameterManager = ParameterManager(self)
+
+        # event manager
+        self.event_manager: EventManager = EventManager(self)
 
         # status
         self.is_initialized = False
@@ -172,40 +171,13 @@ class Instance:
         # set parameters
         self.parameter_manager.initialize_module_parameters()
 
-        # connect port events and the process events
-        on_input_events = self.link_manager.get_input_events()
-        to_output_events = self.link_manager.get_output_events()
-
-        # parse processes and get trigger conditions and output conditions
-        for process_config in self.element.processes:
-            name = process_config.get("name")
-            self.processes.append(Process(name, self.namespace, process_config))
-
-        # set the process events
-        process_event_list = [process.event for process in self.processes]
-        if len(process_event_list) == 0:
-            # process configuration is not found
-            raise ValueError(f"No process found in {self.name}")
-        for process in self.processes:
-            process.set_condition(process_event_list, on_input_events)
-            process.set_outcomes(process_event_list, to_output_events)
-
-        # set the process events
-        process_event_list = []
-        for process in self.processes:
-            process_event_list.extend(process.get_event_list())
-        self.event_list = process_event_list
+        # initialize processes and events
+        self.event_manager.initialize_module_processes()
 
     def get_child(self, name: str):
         if name in self.children:
             return self.children[name]
         raise ValueError(f"Child not found: child name '{name}', instance of '{self.name}'")
-
-    def get_in_port(self, name: str):
-        return self.link_manager.get_in_port(name)
-
-    def get_out_port(self, name: str):
-        return self.link_manager.get_out_port(name)
 
     def check_ports(self):
         # recursive call for children
@@ -216,14 +188,8 @@ class Instance:
         self.link_manager.check_ports()
 
     def set_event_tree(self):
-        # trigger the event tree from the current instance
-        # in case of pipeline, event_list is empty
-        for event in self.event_list:
-            event.set_frequency_tree()
-        # recursive call for children
-        # in case of module, children is empty
-        for child in self.children.values():
-            child.set_event_tree()
+        # delegate to event manager
+        self.event_manager.set_event_tree()
 
     def collect_instance_data(self):
         data = {
@@ -251,7 +217,7 @@ class Instance:
                 if hasattr(self.link_manager, "links")
                 else []
             ),
-            "events": (self.event_list),
+            "events": self.event_manager.get_all_events(),
             "parameters": self.parameter_manager.get_all_parameters(),
         }
 
