@@ -16,8 +16,6 @@ import logging
 from typing import List
 
 from ..models.data_class import Element
-from ..models.ports import InPort, OutPort
-from ..models.links import Link, Connection
 from .instances import Instance
 from ..parsers.data_parser import element_name_decode
 
@@ -44,7 +42,7 @@ class DeploymentInstance(Instance):
 
         # 2. set connections
         logger.info(f"Instance '{self.name}': setting connections")
-        self.set_links()
+        self.link_manager.set_links()
         self.check_ports()
 
         # 3. build logical topology
