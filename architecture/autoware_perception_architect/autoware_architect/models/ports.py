@@ -1,0 +1,85 @@
+# Copyright 2025 TIER IV, inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License. 
+
+from typing import List
+from .events import Event
+
+class Port:
+    def __init__(self, name: str, msg_type: str, namespace: List[str] = []):
+        self.name = name
+        self.msg_type = msg_type
+        self.namespace = namespace
+        self.full_name = "/" + "/".join(namespace) + "/" + name
+        self.reference: List["Port"] = []
+        self.topic: List[str] = []
+        self.event = None
+        self.is_global = False
+
+    def set_references(self, port_list: List["Port"]):
+        # check if the port is already in the reference list
+        reference_name_list = [p.full_name for p in self.reference]
+        for port in port_list:
+            if port.full_name not in reference_name_list:
+                self.reference.append(port)
+
+    def get_reference_list(self):
+        if self.reference == []:
+            return [self]
+        return self.reference
+
+    def set_topic(self, topic_namespace: List[str], topic_name: str):
+        self.topic = topic_namespace + [topic_name]
+
+
+class InPort(Port):
+    def __init__(self, name, msg_type, namespace: List[str] = []):
+        super().__init__(name, msg_type, namespace)
+        self.full_name = "/" + "/".join(namespace) + "/input/" + name
+        self.id = ("__".join(namespace) + "__input_" + name).replace("/", "__")
+        # to enable/disable connection checker
+        self.is_required = True
+        # reference port
+        self.servers: List[Port] = []
+        # trigger event
+        self.event = Event("input_" + name, namespace)
+        self.event.set_type("on_input")
+
+    def set_servers(self, port_list: List[Port]):
+        # check if the port is already in the reference list
+        server_name_list = [p.full_name for p in self.servers]
+        for port in port_list:
+            if port.full_name not in server_name_list:
+                self.servers.append(port)
+
+
+class OutPort(Port):
+    def __init__(self, name, msg_type, namespace: List[str] = []):
+        super().__init__(name, msg_type, namespace)
+        self.full_name = "/" + "/".join(namespace) + "/output/" + name
+        self.id = ("__".join(namespace) + "__output_" + name).replace("/", "__")
+        # for topic monitor
+        self.frequency = 0.0
+        self.is_monitored = False
+        # reference port
+        self.users: List[Port] = []
+        # action event
+        self.event = Event("output_" + name, namespace)
+        self.event.set_type("to_output")
+
+    def set_users(self, port_list: List[Port]):
+        # check if the port is already in the reference list
+        user_name_list = [p.full_name for p in self.users]
+        for port in port_list:
+            if port.full_name not in user_name_list:
+                self.users.append(port)

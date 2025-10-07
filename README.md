@@ -19,6 +19,13 @@ overall build log: `log/latest/autoware_perception_deployment/stdout.log`
 each deployment `build/autoware_perception_deployment/*.deployment.log`
 ex. `build/autoware_perception_deployment/build_vehicle_beta2_01.deployment.log`
 
+
+
+clean build
+```sh
+rm build -r ; rm install -r ; colcon build
+```
+
 ## visualize
 
 generated files: install/autoware_perception_deployment/share/autoware_perception_deployment/visualization/*.puml
@@ -43,3 +50,24 @@ java -Xmx16384m -DPLANTUML_LIMIT_SIZE=65536 -jar /usr/share/plantuml/plantuml.ja
 java -Xmx16384m -DPLANTUML_LIMIT_SIZE=65536 -jar /usr/share/plantuml/plantuml.jar -verbose -Playout=smetana -tpng 'install/autoware_perception_deployment/share/autoware_perception_deployment/exports/vehicle_beta2_01.deployment/visualization/vehicle_beta2_01.deployment_logic_graph.puml'
 java -Xmx16384m -DPLANTUML_LIMIT_SIZE=65536 -jar /usr/share/plantuml/plantuml.jar -verbose -Playout=smetana -tpng 'install/autoware_perception_deployment/share/autoware_perception_deployment/exports/vehicle_beta2_01.deployment/visualization/vehicle_beta2_01.deployment_sequence_graph.puml'
 ```
+
+
+
+
+# words
+
+* element
+  * architecture
+  * pipeline
+  * module
+
+* instance
+  * deployment
+  * component
+  * connection
+
+* port
+* link, connection
+* event, process
+* parameter set
+
