@@ -132,7 +132,6 @@
                 "lidar_apollo": {
                   "$ref": "#/definitions/input_channel",
                   "default": {
-                    "topic": "/perception/object_recognition/detection/apollo/objects",
                     "flags": {
                       "can_spawn_new_tracker": true,
                       "can_trust_existence_probability": true,

@@ -11,3 +11,5 @@ ament_auto_package(
 )
 
 autoware_architect_configure()
+
+autoware_architect_parameter()
