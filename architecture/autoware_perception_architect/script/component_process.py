@@ -18,9 +18,9 @@ import sys
 
 import yaml
 import logging
-from jinja2 import Environment, FileSystemLoader
 
 from autoware_architect.utils import pascal_to_snake
+from autoware_architect.template_utils import TemplateRenderer
 
 def check_module_configuration(module_yaml) -> bool:
     #
@@ -96,16 +96,11 @@ def create_module_launcher_xml(module_yaml, executable_name: str) -> str:
         ]
     }
 
-    # Get the template directory (relative to this script)
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    template_dir = os.path.join(script_dir, '..', 'template')
-    
-    # Setup Jinja2 environment
-    env = Environment(loader=FileSystemLoader(template_dir))
-    template = env.get_template('module_launcher.xml.jinja2')
+    # Initialize template renderer
+    renderer = TemplateRenderer()
     
     # Render the template
-    launcher_xml = template.render(**template_data)
+    launcher_xml = renderer.render_template('module_launcher.xml.jinja2', **template_data)
     
     return launcher_xml
 

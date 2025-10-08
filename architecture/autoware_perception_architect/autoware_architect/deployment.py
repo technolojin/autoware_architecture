@@ -22,7 +22,7 @@ from .builder.instances import DeploymentInstance
 from .parsers.data_validator import element_name_decode
 from .parsers.yaml_parser import yaml_parser
 from .exceptions import ValidationError
-import jinja2
+from .template_utils import TemplateRenderer
 
 debug_mode = True
 
@@ -99,22 +99,16 @@ class Deployment:
             raise ValidationError(f"Error in setting deploy: {e}")
 
     def generate_by_template(self, data, template_path, output_dir, output_filename):
-        # load the template file
-        with open(template_path, "r") as f:
-            template_file = f.read()
-
-        # Render the Jinja2 template with the collected data
-        template = jinja2.Template(template_file)
-        output = template.render(data)
-
-        # write the plantuml file
+        """Generate file from template using the unified template renderer."""
+        # Initialize template renderer
+        renderer = TemplateRenderer()
+        
+        # Get template name from path
+        template_name = os.path.basename(template_path)
+        
+        # Render template and save to file
         output_path = os.path.join(output_dir, output_filename)
-        if os.path.exists(output_path):
-            os.remove(output_path)
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir, exist_ok=True)
-        with open(output_path, "w") as f:
-            f.write(output)
+        renderer.render_template_to_file(template_name, output_path, **data)
 
     def visualize(self):
         # 4. visualize the deployment diagram via plantuml

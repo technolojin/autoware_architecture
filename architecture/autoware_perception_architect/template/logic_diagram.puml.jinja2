@@ -23,73 +23,81 @@ arrow{
 node {BackgroundColor #dddddd}
 </style>
 
+{% macro build_instance_graph(instance) %}
+{% if instance.element_type == "module" %}
+node {{ instance.name }} as {{ instance.unique_id }} {
+{# PORTS -#}
+{% for in_port in instance.in_ports %}
+    portin "input/{{ in_port.name }} \n #{{in_port.event.type}}\n @{{in_port.event.frequency}}" as {{ in_port.unique_id }}
+{% endfor %}
+{% for out_port in instance.out_ports %}
+    portout "output/{{ out_port.name }}" as {{ out_port.unique_id }}
+{% endfor %}
+}
+{# GLOBAL TOPIC -#}
+{% for in_port in instance.in_ports %}
+{# if subscribing global topic, cloud -#}
+{% if in_port.is_global %}
+cloud "{{ "/" + "/".join(in_port.topic) }}" as {{ in_port.unique_id }}_cloud
+{{ in_port.unique_id }}_cloud -d-> {{ in_port.unique_id }}
+{% endif %}
+{% endfor %}
+{% elif instance.element_type == "pipeline" %}
+{% for child in instance.children %}
+{{ build_instance_graph(child) }}
+{% endfor %}
+{% endif %}
+{% endmacro %}
 
-{% macro build_instance_graph(instance) -%}
-    {% if instance.element_type == "module" -%}
-    node {{ instance.name }} as {{ instance.unique_id }} {
-        {# PORTS -#}
-        {% for in_port in instance.in_ports -%}
-            portin "input/{{ in_port.name }} \n #{{in_port.event.type}}\n @{{in_port.event.frequency}}" as {{ in_port.unique_id }}
-        {% endfor -%}
-        {% for out_port in instance.out_ports -%}
-            portout "output/{{ out_port.name }}" as {{ out_port.unique_id }}
-        {% endfor -%}
-    }
-    {# GLOBAL TOPIC -#}
-    {% for in_port in instance.in_ports -%}
-        {# if subscribing global topic, cloud -#}
-        {% if in_port.is_global -%}
-            cloud "{{ "/" + "/".join(in_port.topic) }}" as {{ in_port.unique_id }}_cloud
-            {{ in_port.unique_id }}_cloud -d-> {{ in_port.unique_id }}
-        {% endif -%}
-    {% endfor -%}
-    {% elif instance.element_type == "pipeline" -%}
-        {% for child in instance.children -%}
-            {{ build_instance_graph(child) -}}
-        {% endfor -%}
-    {% endif -%}
-{% endmacro -%}
+{% macro build_logic_graph(instance) %}
+{% if instance.element_type == "module" %}
+node {{ instance.name }} as {{ instance.unique_id }} {
+{% for event in instance.events %}
+{% if event.type == "periodic" %}
+    control "{{event.name}}\n #{{event.type}}\n @{{event.frequency}}" as {{ event.unique_id }}
+{% else %}
+    process "{{event.name}}\n #{{event.type}}\n @{{event.frequency}}" as {{ event.unique_id }}
+{% endif %}
+{% for event_trigger in event.triggers %}
+    {{ event_trigger.unique_id }} -d-> {{ event.unique_id }}
+{% endfor %}
+{% endfor %}
+{% for out_port in instance.out_ports %}
+{% for output_trigger in out_port.event.triggers %}
+    {{ output_trigger.unique_id }} -d-> {{ out_port.event.unique_id }}
+{% endfor %}
+{% endfor %}
+{% for in_port in instance.in_ports %}
+{% for input_trigger in in_port.event.triggers %}
+    {{ input_trigger.unique_id }} --> {{ in_port.event.unique_id }}
+{% endfor %}
+{% endfor %}
+}
+{% elif instance.element_type == "pipeline" %}
+{% for child in instance.children %}
+{{ build_logic_graph(child) }}
+{% endfor %}
+{% endif %}
+{% endmacro %}
 
-{% macro build_logic_graph(instance) -%}
-    {% if instance.element_type == "module" -%}
-    node {{ instance.name }} as {{ instance.unique_id }} {
-        {% for event in instance.events -%}
-            {% if event.type == "periodic" -%}
-                control "{{event.name}}\n #{{event.type}}\n @{{event.frequency}}" as {{ event.unique_id }}
-            {% else -%}
-                process "{{event.name}}\n #{{event.type}}\n @{{event.frequency}}" as {{ event.unique_id }}
-            {% endif -%}
-            {% for event_trigger in event.triggers -%}
-                {{ event_trigger.unique_id }} -d-> {{ event.unique_id }}
-            {% endfor -%}
-        {% endfor -%}
-        {% for out_port in instance.out_ports -%}
-            {% for output_trigger in out_port.event.triggers -%}
-                {{ output_trigger.unique_id }} -d-> {{ out_port.event.unique_id }}
-            {% endfor -%}
-        {% endfor -%}
-        {% for in_port in instance.in_ports -%}
-            {% for input_trigger in in_port.event.triggers -%}
-                {{ input_trigger.unique_id }} --> {{ in_port.event.unique_id }}
-            {% endfor -%}
-        {% endfor -%}
-    }
-    {% elif instance.element_type == "pipeline" -%}
-        {% for child in instance.children -%}
-            {{ build_logic_graph(child) -}}
-        {% endfor -%}
-    {% endif -%}
-{% endmacro -%}
+''''''''''''''''
+''' instance '''
+'''          '''
+''''''''''''''''
 
-
-{% for child in children -%}
+{% for child in children %}
 {# instances -#}
-{{ build_instance_graph(child) -}}
-{% endfor -%}
+{{ build_instance_graph(child) }}
+{% endfor %}
 
-{% for child in children -%}
+'''''''''''''''''''
+''' logic graph '''
+'''             '''
+'''''''''''''''''''
+
+{% for child in children %}
 {# events -#}
-{{ build_logic_graph(child) -}}
-{% endfor -%}
+{{ build_logic_graph(child) }}
+{% endfor %}
 
 @enduml

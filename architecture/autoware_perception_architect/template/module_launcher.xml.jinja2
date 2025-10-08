@@ -4,64 +4,64 @@
   <arg name="node_name" default="{{ node_name }}"/>
 
   <!-- Interface -->
-  {%- for input in inputs %}
+{% for input in inputs %}
   <arg name="input/{{ input.name }}" default="{{ input.name }}"/>
-  {%- endfor %}
-  {%- for output in outputs %}
+{% endfor %}
+{% for output in outputs %}
   <arg name="output/{{ output.name }}" default="{{ output.name }}"/>
-  {%- endfor %}
+{% endfor %}
 
   <!-- Parameter file paths -->
-  {%- for param in parameters %}
+{% for param in parameters %}
   <arg name="{{ param.name }}" default="{{ param.default }}"/>
-  {%- endfor %}
+{% endfor %}
 
   <!-- Configuration -->
-  {%- for config in configurations %}
+{% for config in configurations %}
   <arg name="{{ config.name }}" default="{{ config.default_value }}"/>
-  {%- endfor %}
+{% endfor %}
 
-  {% if use_container %}
+{% if use_container %}
   <load_composable_node target="{{ container_name }}">
     <composable_node pkg="{{ package_name }}" plugin="{{ plugin_name }}" name="${node_name}">
       <!-- Remap input and output topics -->
-      {%- for input in inputs %}
+{% for input in inputs %}
       <remap from="~/input/{{ input.name }}" to="$(var input/{{ input.name }})"/>
-      {%- endfor %}
-      {%- for output in outputs %}
+{% endfor %}
+{% for output in outputs %}
       <remap from="~/output/{{ output.name }}" to="$(var output/{{ output.name }})"/>
-      {%- endfor %}
-      
+{% endfor %}
+
       <!-- Parameters -->
-      {%- for param in parameters %}
+{% for param in parameters %}
       <param from="$(var {{ param.name }})" allow_substs="{{ param.allow_substs }}"/>
-      {%- endfor %}
-      
+{% endfor %}
+
       <!-- Configurations -->
-      {%- for config in configurations %}
+{% for config in configurations %}
       <param name="{{ config.name }}" value="$(var {{ config.name }})"/>
-      {%- endfor %}
+{% endfor %}
     </composable_node>
   </load_composable_node>
-  {%- else %}
+{% else %}
   <node pkg="{{ package_name }}" exec="{{ executable_name }}" name="${node_name}" output="{{ node_output }}">
     <!-- Remap input and output topics -->
-    {%- for input in inputs %}
+{% for input in inputs %}
     <remap from="~/input/{{ input.name }}" to="$(var input/{{ input.name }})"/>
-    {%- endfor %}
-    {%- for output in outputs %}
+{% endfor %}
+{% for output in outputs %}
     <remap from="~/output/{{ output.name }}" to="$(var output/{{ output.name }})"/>
-    {%- endfor %}
-    
+{% endfor %}
+
     <!-- Parameters -->
-    {%- for param in parameters %}
+{% for param in parameters %}
     <param from="$(var {{ param.name }})" allow_substs="{{ param.allow_substs }}"/>
-    {%- endfor %}
-    
+{% endfor %}
+
     <!-- Configurations -->
-    {%- for config in configurations %}
+{% for config in configurations %}
     <param name="{{ config.name }}" value="$(var {{ config.name }})"/>
-    {%- endfor %}
+{% endfor %}
   </node>
-  {%- endif %}
+{% endif %}
 </launch>
