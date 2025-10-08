@@ -43,7 +43,7 @@ class EventManager:
         to_output_events = self.instance.link_manager.get_output_events()
 
         # parse processes and get trigger conditions and output conditions
-        for process_config in self.instance.element.processes:
+        for process_config in self.instance.configuration.processes:
             name = process_config.get("name")
             self.processes.append(Process(name, self.instance.namespace, process_config))
 

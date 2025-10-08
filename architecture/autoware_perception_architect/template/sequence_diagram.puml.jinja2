@@ -9,9 +9,9 @@ skinparam dpi 128
         {# EVENTS -#}
         {% for event in instance.events -%}
             {% if event.type == "periodic" -%}
-                control "{{'\\n/'.join(instance.namespace)}}\n\n<<{{event.name}}>>" as {{ event.id }}
+                control "{{'\\n/'.join(instance.namespace)}}\n\n<<{{event.name}}>>" as {{ event.unique_id }}
             {% else -%}
-                participant "{{'\\n/'.join(instance.namespace)}}\n\n<<{{event.name}}>>" as {{ event.id }}
+                participant "{{'\\n/'.join(instance.namespace)}}\n\n<<{{event.name}}>>" as {{ event.unique_id }}
             {% endif -%}
         {% endfor -%}
     {% elif instance.element_type == "pipeline" -%}
@@ -33,7 +33,7 @@ skinparam dpi 128
         {% endfor -%}
     {% else -%}
         {# render connection -#}
-        {{ event_target.id }} --> {{ event_origin.id }} : {{event_target.namespace[-1]}} to {{root_name}}\n {{connection_name}}
+        {{ event_target.unique_id }} --> {{ event_origin.unique_id }} : {{event_target.namespace[-1]}} to {{root_name}}\n {{connection_name}}
     {% endif -%}
 {% endmacro -%}
 

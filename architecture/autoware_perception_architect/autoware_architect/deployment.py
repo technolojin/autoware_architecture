@@ -21,6 +21,7 @@ from .builder.config_registry import ConfigRegistry
 from .builder.instances import DeploymentInstance
 from .parsers.data_validator import element_name_decode
 from .parsers.yaml_parser import yaml_parser
+from .exceptions import ValidationError
 import jinja2
 
 debug_mode = True
@@ -72,7 +73,7 @@ class Deployment:
         ]
         for field in deployment_config_fields:
             if field not in self.config_yaml:
-                raise ValueError(
+                raise ValidationError(
                     f"Field '{field}' is required in deployment configuration file {self.config_yaml_dir}"
                 )
                 return False
@@ -84,7 +85,7 @@ class Deployment:
         architecture = self.config_registry.get_architecture(architecture_name)
 
         if not architecture:
-            raise ValueError(f"Architecture not found: {architecture_name}")
+            raise ValidationError(f"Architecture not found: {architecture_name}")
 
         try:
             self.deploy_instance = DeploymentInstance(self.name)
@@ -95,7 +96,7 @@ class Deployment:
         except Exception as e:
             # try to visualize the architecture to show error status
             self.visualize()
-            raise ValueError(f"Error in setting deploy: {e}")
+            raise ValidationError(f"Error in setting deploy: {e}")
 
     def generate_by_template(self, data, template_path, output_dir, output_filename):
         # load the template file
