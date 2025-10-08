@@ -11,25 +11,38 @@ inputs:
   - name: ros_transform
     message_type: tf2_msgs/msg/TFMessage
     global: /tf
-  - name: detected_objects
+  - name: detection01/objects
     message_type: autoware_perception_msgs/msg/DetectedObjects
-  - name: lidar_centerpoint
+  - name: detection02/objects
     message_type: autoware_perception_msgs/msg/DetectedObjects
-  - name: lidar_apollo
+  - name: detection03/objects
     message_type: autoware_perception_msgs/msg/DetectedObjects
-  - name: lidar_clustering
+  - name: detection04/objects
     message_type: autoware_perception_msgs/msg/DetectedObjects
-  - name: lidar_pointpainting
+  - name: detection05/objects
     message_type: autoware_perception_msgs/msg/DetectedObjects
-  - name: camera_lidar_fusion
+  - name: detection06/objects
     message_type: autoware_perception_msgs/msg/DetectedObjects
-  - name: detection_by_tracker
+  - name: detection07/objects
     message_type: autoware_perception_msgs/msg/DetectedObjects
-  - name: radar
+  - name: detection08/objects
+    message_type: autoware_perception_msgs/msg/DetectedObjects
+  - name: detection09/objects
+    message_type: autoware_perception_msgs/msg/DetectedObjects
+  - name: detection10/objects
+    message_type: autoware_perception_msgs/msg/DetectedObjects
+  - name: detection11/objects
+    message_type: autoware_perception_msgs/msg/DetectedObjects
+  - name: detection12/objects
     message_type: autoware_perception_msgs/msg/DetectedObjects
 outputs:
   - name: objects
     message_type: autoware_perception_msgs/msg/TrackedObjects
+    qos:
+      reliability: reliable
+      durability: transient_local
+  - name: merged_objects
+    message_type: autoware_perception_msgs/msg/DetectedObjects
     qos:
       reliability: reliable
       durability: transient_local
@@ -42,23 +55,65 @@ parameters:
     default: config/input_channels.param.yaml
 
 # configurations
-configurations: []
+configurations:
+  - name: input/detection01/channel
+    type: string
+    default: none
+  - name: input/detection02/channel
+    type: string
+    default: none
+  - name: input/detection03/channel
+    type: string
+    default: none
+  - name: input/detection04/channel
+    type: string
+    default: none
+  - name: input/detection05/channel
+    type: string
+    default: none
+  - name: input/detection06/channel
+    type: string
+    default: none
+  - name: input/detection07/channel
+    type: string
+    default: none
+  - name: input/detection08/channel
+    type: string
+    default: none
+  - name: input/detection09/channel
+    type: string
+    default: none
+  - name: input/detection10/channel
+    type: string
+    default: none
+  - name: input/detection11/channel
+    type: string
+    default: none
+  - name: input/detection12/channel
+    type: string
+    default: none
+  - name: is_simulation
+    type: boolean
+    default: false
 
 # processes
 processes:
   - name: update
     trigger_conditions:
-      - on_input: detected_objects
-      - and:
-          - or:
-              - on_input: lidar_centerpoint
-              - on_input: lidar_apollo
-              - on_input: lidar_pointpainting
-          - or:
-              - on_input: lidar_clustering
-              - on_input: camera_lidar_fusion
-      - on_input: detection_by_tracker
-      - on_input: radar
+      - on_input: detection01/objects
+      - or:
+          - on_input: detection01/objects
+          - on_input: detection02/objects
+          - on_input: detection03/objects
+          - on_input: detection04/objects
+          - on_input: detection05/objects
+          - on_input: detection06/objects
+          - on_input: detection07/objects
+          - on_input: detection08/objects
+          - on_input: detection09/objects
+          - on_input: detection10/objects
+          - on_input: detection11/objects
+          - on_input: detection12/objects
     outcomes:
       - to_trigger: track
   - name: track
@@ -67,3 +122,4 @@ processes:
       - periodic: 10.0 # Hz
     outcomes:
       - to_output: objects
+      - to_output: merged_objects
