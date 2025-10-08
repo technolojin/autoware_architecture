@@ -1,0 +1,67 @@
+<?xml version="1.0"?>
+<!-- This file is auto-generated ROS2 launcher by the autoware architect -->
+<launch>
+  <arg name="node_name" default="{{ node_name }}"/>
+
+  <!-- Interface -->
+  {%- for input in inputs %}
+  <arg name="input/{{ input.name }}" default="{{ input.name }}"/>
+  {%- endfor %}
+  {%- for output in outputs %}
+  <arg name="output/{{ output.name }}" default="{{ output.name }}"/>
+  {%- endfor %}
+
+  <!-- Parameter file paths -->
+  {%- for param in parameters %}
+  <arg name="{{ param.name }}" default="{{ param.default }}"/>
+  {%- endfor %}
+
+  <!-- Configuration -->
+  {%- for config in configurations %}
+  <arg name="{{ config.name }}" default="{{ config.default_value }}"/>
+  {%- endfor %}
+
+  {% if use_container %}
+  <load_composable_node target="{{ container_name }}">
+    <composable_node pkg="{{ package_name }}" plugin="{{ plugin_name }}" name="${node_name}">
+      <!-- Remap input and output topics -->
+      {%- for input in inputs %}
+      <remap from="~/input/{{ input.name }}" to="$(var input/{{ input.name }})"/>
+      {%- endfor %}
+      {%- for output in outputs %}
+      <remap from="~/output/{{ output.name }}" to="$(var output/{{ output.name }})"/>
+      {%- endfor %}
+      
+      <!-- Parameters -->
+      {%- for param in parameters %}
+      <param from="$(var {{ param.name }})" allow_substs="{{ param.allow_substs }}"/>
+      {%- endfor %}
+      
+      <!-- Configurations -->
+      {%- for config in configurations %}
+      <param name="{{ config.name }}" value="$(var {{ config.name }})"/>
+      {%- endfor %}
+    </composable_node>
+  </load_composable_node>
+  {%- else %}
+  <node pkg="{{ package_name }}" exec="{{ executable_name }}" name="${node_name}" output="{{ node_output }}">
+    <!-- Remap input and output topics -->
+    {%- for input in inputs %}
+    <remap from="~/input/{{ input.name }}" to="$(var input/{{ input.name }})"/>
+    {%- endfor %}
+    {%- for output in outputs %}
+    <remap from="~/output/{{ output.name }}" to="$(var output/{{ output.name }})"/>
+    {%- endfor %}
+    
+    <!-- Parameters -->
+    {%- for param in parameters %}
+    <param from="$(var {{ param.name }})" allow_substs="{{ param.allow_substs }}"/>
+    {%- endfor %}
+    
+    <!-- Configurations -->
+    {%- for config in configurations %}
+    <param name="{{ config.name }}" value="$(var {{ config.name }})"/>
+    {%- endfor %}
+  </node>
+  {%- endif %}
+</launch>

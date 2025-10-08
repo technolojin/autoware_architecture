@@ -18,6 +18,7 @@ import sys
 
 import yaml
 import logging
+from jinja2 import Environment, FileSystemLoader
 
 from autoware_architect.utils import pascal_to_snake
 
@@ -27,117 +28,86 @@ def check_module_configuration(module_yaml) -> bool:
 
 
 def create_module_launcher_xml(module_yaml, executable_name: str) -> str:
-
+    """
+    Generate XML launcher content using Jinja2 template.
+    
+    Args:
+        module_yaml: Dictionary containing module configuration
+        executable_name: Name of the executable
+        
+    Returns:
+        Generated XML content as string
+    """
     # Extract necessary information from the module YAML
     launch_config = module_yaml.get("launch")
     package_name = launch_config.get("package")
     plugin_name = launch_config.get("plugin")
     node_output = launch_config.get("node_output", "screen")
     use_container = launch_config.get("use_container", False)
+    
     if use_container and not launch_config.get("container_name"):
-        ValueError("Container name is required when use_container is True")
-        return
+        raise ValueError("Container name is required when use_container is True")
     container_name = launch_config.get("container_name")
 
     # Extract interface information
-    input_list = module_yaml.get("inputs")
-    output_list = module_yaml.get("outputs")
+    input_list = module_yaml.get("inputs", [])
+    output_list = module_yaml.get("outputs", [])
 
     # Extract parameter information
-    param_path_list = module_yaml.get("parameters")
+    param_path_list = module_yaml.get("parameters", [])
 
     # Extract configuration information
-    configuration_list = module_yaml.get("configurations")
+    configuration_list = module_yaml.get("configurations", [])
 
     # node name is snake case of the module name which the original is in pascal case
     # e.g. ObjectDetector.module -> object_detector
     node_name = module_yaml.get("name").split(".")[0]
     node_name = pascal_to_snake(node_name)
 
-    # Generate the XML content
-    lines = []
+    # Prepare template data
+    template_data = {
+        'node_name': node_name,
+        'package_name': package_name,
+        'plugin_name': plugin_name,
+        'executable_name': executable_name,
+        'node_output': node_output,
+        'use_container': use_container,
+        'container_name': container_name,
+        'inputs': input_list,
+        'outputs': output_list,
+        'parameters': [
+            {
+                'name': param.get('name'),
+                'default': param.get('default'),
+                'allow_substs': str(param.get('allow_substs', False)).lower()
+            }
+            for param in param_path_list
+        ],
+        'configurations': [
+            {
+                'name': config.get('name'),
+                'default_value': (
+                    str(config.get('default')).lower()
+                    if config.get('type') == 'bool'
+                    else config.get('default')
+                )
+            }
+            for config in configuration_list
+        ]
+    }
 
-    # 1. header
-    lines.append('<?xml version="1.0"?>')
-    lines.append("<!-- This file is auto-generated ROS2 launcher by the autoware architect -->")
-    lines.append("<launch>")
-    lines.append(f'  <arg name="node_name" default="{node_name}"/>')
-
-    # 2. Interface
-    lines.append("  <!-- Interface -->")
-    for if_input in input_list:
-        input_name = if_input.get("name")
-        lines.append(f'  <arg name="input/{input_name}" default="{input_name}"/>')
-    for if_output in output_list:
-        output_name = if_output.get("name")
-        lines.append(f'  <arg name="output/{output_name}" default="{output_name}"/>')
-
-    # 3. Parameter file paths
-    lines.append("  <!-- Parameter file paths -->")
-    for param_path in param_path_list:
-        lines.append(
-            f'  <arg name="{param_path.get("name")}" default="{param_path.get("default")}"/>'
-        )
-
-    # 4. Configuration
-    lines.append("  <!-- Configuration -->")
-    for configuration in configuration_list:
-        default_value = (
-            str(configuration.get("default")).lower()
-            if configuration.get("type") == "bool"
-            else configuration.get("default")
-        )
-        lines.append(f'  <arg name="{configuration.get("name")}" default="{default_value}"/>')
-    # 5. Node
-    indent = "    "
-    lines.append("")
-    if use_container:
-        lines.append(f'  <load_composable_node target="{container_name}">')
-        lines.append(
-            f'    <composable_node pkg="{package_name}" plugin="{plugin_name}" name="${{node_name}}">'
-        )
-        indent = "      "
-    else:
-        lines.append(
-            f'  <node pkg="{package_name}" exec="{executable_name}" name="${{node_name}}" output="{node_output}">'
-        )
-
-    # remap the input and output topics
-    lines.append(f"{indent}<!-- Remap input and output topics -->")
-    for if_input in input_list:
-        input_name = if_input.get("name")
-        lines.append(f'{indent}<remap from="~/input/{input_name}" to="$(var input/{input_name})"/>')
-    for if_output in output_list:
-        output_name = if_output.get("name")
-        lines.append(
-            f'{indent}<remap from="~/output/{output_name}" to="$(var output/{output_name})"/>'
-        )
-    # add parameters
-    lines.append(f"{indent}<!-- Parameters -->")
-    for param_path in param_path_list:
-        allow_substs = str(param_path.get("allow_substs", "false")).lower()
-        lines.append(
-            f'{indent}<param from="$(var {param_path.get("name")})" allow_substs="{allow_substs}"/>'
-        )
-
-    # add configurations
-    lines.append(f"{indent}<!-- Configurations -->")
-    for configuration in configuration_list:
-        lines.append(
-            f'{indent}<param name="{configuration.get("name")}" value="$(var {configuration.get("name")})"/>'
-        )
-
-    # close
-    if use_container:
-        lines.append("    </composable_node>")
-        lines.append("  </load_composable_node>")
-    else:
-        lines.append("  </node>")
-    lines.append("</launch>")
-
-    # Join all lines to form the final XML content
-    launcher = "\n".join(lines)
-    return launcher
+    # Get the template directory (relative to this script)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    template_dir = os.path.join(script_dir, '..', 'template')
+    
+    # Setup Jinja2 environment
+    env = Environment(loader=FileSystemLoader(template_dir))
+    template = env.get_template('module_launcher.xml.jinja2')
+    
+    # Render the template
+    launcher_xml = template.render(**template_data)
+    
+    return launcher_xml
 
 
 def generate_launcher(module_yaml_dir, executable_name, launch_file_dir) -> None:
@@ -156,6 +126,8 @@ def generate_launcher(module_yaml_dir, executable_name, launch_file_dir) -> None
         logger.error(f"Field 'name' is required in module configuration., {module_yaml_dir}")
         return
     module_name = module_yaml.get("name")
+    node_name = module_name.split(".")[0]
+    node_name = pascal_to_snake(node_name)
 
     # check the module configuration
     # if the configuration is not correct, warn the user
@@ -169,7 +141,7 @@ def generate_launcher(module_yaml_dir, executable_name, launch_file_dir) -> None
     launcher_xml = create_module_launcher_xml(module_yaml, executable_name)
 
     # generate the launch file
-    launch_file = f"{module_name}.launch.xml"
+    launch_file = f"{node_name}.launch.xml"
     launch_file_path = os.path.join(launch_file_dir, launch_file)
 
     logger.info(f"Saving launcher to: {launch_file_path}")
