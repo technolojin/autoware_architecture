@@ -33,6 +33,7 @@ class ParameterList:
     def set_parameter(self, parameter_name, parameter_value):
         for parameter in self.list:
             if parameter.name == parameter_name:
+                # if found, overwrite the value
                 parameter.value = parameter_value
                 return
         # if not found, add it

@@ -77,6 +77,8 @@ class ParameterManager:
         if self.instance.element_type != "module":
             raise ValueError("_set_module_parameter is only supported for module")
         param_path_list = param.get("parameter_paths")
+        if not param_path_list:
+            raise ValueError(f"No parameter paths found in parameter: {param}")
         # get list of parameter paths, which comes in dictionary format
         for param_path in param_path_list:
             param_keys = param_path.keys()
