@@ -19,7 +19,7 @@ class Event:
     def __init__(self, name: str, namespace: List[str], is_process_event=False):
         self.name = name
         self.namespace = namespace
-        self.id = ("__".join(namespace) + "__" + name).replace("/", "__")
+        self.unique_id = ("__".join(namespace) + "__" + name).replace("/", "__")
         self.type_list = [
             "on_input",
             "on_trigger",
@@ -58,11 +58,11 @@ class Event:
             return False
 
     def add_trigger_event(self, event, vise_versa=True):
-        if event.id == self.id:
-            raise ValueError(f"Event cannot trigger itself: {self.id}")
+        if event.unique_id == self.unique_id:
+            raise ValueError(f"Event cannot trigger itself: {self.unique_id}")
         # check if the event is already in the list
         for e in self.triggers:
-            if e.id == event.id:
+            if e.unique_id == event.unique_id:
                 return
         # relationship is established
         self.triggers.append(event)
@@ -70,11 +70,11 @@ class Event:
             event.add_action_event(self, False)
 
     def add_action_event(self, event, vise_versa=True):
-        if event.id == self.id:
-            raise ValueError(f"Event cannot trigger itself: {self.id}")
+        if event.unique_id == self.unique_id:
+            raise ValueError(f"Event cannot trigger itself: {self.unique_id}")
         # check if the event is already in the list
         for e in self.actions:
-            if e.id == event.id:
+            if e.unique_id == event.unique_id:
                 return
         # relationship is established
         self.actions.append(event)
@@ -202,7 +202,7 @@ class Event:
             action.set_event_frequency(trigger_root_id, frequency, warn_rate, error_rate, timeout)
 
     def set_frequency_tree(self):
-        trigger_root_id = self.id
+        trigger_root_id = self.unique_id
         if self.type == "periodic" and self.is_set:
             # propagate the frequency to the children
             for action in self.actions:
@@ -292,7 +292,7 @@ class Process:
         self.namespace = namespace
         self.config_yaml = config_yaml
         self.event: EventChain = EventChain(name, namespace)
-        self.id = ("__".join(namespace) + "__process__" + name).replace("/", "__")
+        self.unique_id = ("__".join(namespace) + "__process__" + name).replace("/", "__")
 
     def set_condition(self, process_list, on_input_list):
         trigger_condition_config = self.config_yaml.get("trigger_conditions")
@@ -328,7 +328,7 @@ class Process:
 
         # debug
         # print(f"Process '{self.name}' outcomes: {outcome_config}")
-        # print(f"  actions: {[t.id for t in self.event.actions]}, to_output: {[e.name for e in to_output_events]}")
+        # print(f"  actions: {[t.unique_id for t in self.event.actions]}, to_output: {[e.name for e in to_output_events]}")
 
     def get_event_list(self):
         return self.event.get_children() + [self.event]

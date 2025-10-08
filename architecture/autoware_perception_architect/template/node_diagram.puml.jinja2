@@ -25,29 +25,29 @@ node {BackgroundColor #dddddd}
 
 {% macro build_instance_graph(instance) -%}
     {% if instance.element_type == "module" -%}
-    node {{ instance.name }} as {{ instance.id }} {
+    node {{ instance.name }} as {{ instance.unique_id }} {
         {# PORTS -#}
         {% for in_port in instance.in_ports -%}
-            portin "input/{{ in_port.name }} \n #{{in_port.event.type}}\n @{{in_port.event.frequency}}" as {{ in_port.id }}
+            portin "input/{{ in_port.name }} \n #{{in_port.event.type}}\n @{{in_port.event.frequency}}" as {{ in_port.unique_id }}
         {% endfor -%}
         {% for out_port in instance.out_ports -%}
-            portout "output/{{ out_port.name }}" as {{ out_port.id }}
+            portout "output/{{ out_port.name }}" as {{ out_port.unique_id }}
         {% endfor -%}
         {# MESSAGE INFO -#}
         {% for out_port in instance.out_ports -%}
             {# if the port is global, cloud -#}
             {% if out_port.is_global -%}
-                cloud "{{ "/" + "/".join(out_port.topic) }}\n @{{out_port.event.frequency}} Hz" as {{ out_port.id }}_cloud
-                {{ out_port.id }} -d-> {{ out_port.id }}_cloud
+                cloud "{{ "/" + "/".join(out_port.topic) }}\n @{{out_port.event.frequency}} Hz" as {{ out_port.unique_id }}_cloud
+                {{ out_port.unique_id }} -d-> {{ out_port.unique_id }}_cloud
             {% else -%}
-                note as {{ out_port.id }}_note
+                note as {{ out_port.unique_id }}_note
                     topic: {{ "/" + "/".join(out_port.topic) }}
                     type: {{ out_port.msg_type }}
                     freq: {{ out_port.event.frequency}} Hz
                     warn: {{ out_port.event.warn_rate }} Hz
                     error: {{ out_port.event.error_rate }} s
                 end note
-            {{ out_port.id }}_note - {{ out_port.id }}
+            {{ out_port.unique_id }}_note - {{ out_port.unique_id }}
             {% endif -%}
         {% endfor -%}
     }
@@ -55,23 +55,23 @@ node {BackgroundColor #dddddd}
     {% for in_port in instance.in_ports -%}
         {# if subscribing global topic, cloud -#}
         {% if in_port.is_global -%}
-            cloud "{{ "/" + "/".join(in_port.topic) }}" as {{ in_port.id }}_cloud
-            {{ in_port.id }}_cloud -d-> {{ in_port.id }}
+            cloud "{{ "/" + "/".join(in_port.topic) }}" as {{ in_port.unique_id }}_cloud
+            {{ in_port.unique_id }}_cloud -d-> {{ in_port.unique_id }}
         {% endif -%}
     {% endfor -%}
     {% elif instance.element_type == "pipeline" -%}
-    frame {{ instance.name }} as {{ instance.id }} {
+    frame {{ instance.name }} as {{ instance.unique_id }} {
         {% for in_port in instance.in_ports -%}
-            portin "input/{{ in_port.name }}" as {{ in_port.id }}
+            portin "input/{{ in_port.name }}" as {{ in_port.unique_id }}
         {% endfor -%}
         {% for out_port in instance.out_ports -%}
-            portout "output/{{ out_port.name }}" as {{ out_port.id }}
+            portout "output/{{ out_port.name }}" as {{ out_port.unique_id }}
         {% endfor -%}
         {% for child in instance.children -%}
             {{ build_instance_graph(child) -}}
         {% endfor -%}
         {% for link in instance.links -%}
-            {{ link.from_port.id }} -d-> {{ link.to_port.id }}
+            {{ link.from_port.unique_id }} -d-> {{ link.to_port.unique_id }}
         {% endfor -%}
     }
     {% endif -%}
@@ -79,32 +79,32 @@ node {BackgroundColor #dddddd}
 
 {% macro build_logic_graph(instance) -%}
     {% if instance.element_type == "module" -%}
-    node {{ instance.name }} as {{ instance.id }} {
-        rectangle "logic graph" as {{ instance.id }}_logic {
+    node {{ instance.name }} as {{ instance.unique_id }} {
+        rectangle "logic graph" as {{ instance.unique_id }}_logic {
         {% for event in instance.events -%}
             {% if event.type == "periodic" -%}
-                control "{{event.name}}\n #{{event.type}}\n @{{event.frequency}}" as {{ event.id }}
+                control "{{event.name}}\n #{{event.type}}\n @{{event.frequency}}" as {{ event.unique_id }}
             {% else -%}
-                process "{{event.name}}\n #{{event.type}}\n @{{event.frequency}}" as {{ event.id }}
+                process "{{event.name}}\n #{{event.type}}\n @{{event.frequency}}" as {{ event.unique_id }}
             {% endif -%}
             {% for event_trigger in event.triggers -%}
-                {{ event_trigger.id }} -d-> {{ event.id }}
+                {{ event_trigger.unique_id }} -d-> {{ event.unique_id }}
             {% endfor -%}
         {% endfor -%}
         {% for out_port in instance.out_ports -%}
             {% for output_trigger in out_port.event.triggers -%}
-                {{ output_trigger.id }} -d-> {{ out_port.event.id }}
+                {{ output_trigger.unique_id }} -d-> {{ out_port.event.unique_id }}
             {% endfor -%}
         {% endfor -%}
         {% for in_port in instance.in_ports -%}
             {% for input_trigger in in_port.event.triggers -%}
-                {{ input_trigger.id }} -[hidden]-> {{ in_port.event.id }}
+                {{ input_trigger.unique_id }} -[hidden]-> {{ in_port.event.unique_id }}
             {% endfor -%}
         {% endfor -%}
         }
     }
     {% elif instance.element_type == "pipeline" -%}
-    frame {{ instance.name }} as {{ instance.id }} {
+    frame {{ instance.name }} as {{ instance.unique_id }} {
         {% for child in instance.children -%}
             {{ build_logic_graph(child) }}
         {% endfor -%}
@@ -124,7 +124,7 @@ folder "{{ child.compute_unit}} : {{ child.namespace[0] }}" {
 
 {# links -#}
 {% for link in links -%}
-{{ link.from_port.id }} -d-> {{ link.to_port.id }}
+{{ link.from_port.unique_id }} -d-> {{ link.to_port.unique_id }}
 {% endfor -%}
 
 {# events -#}
@@ -137,7 +137,7 @@ folder "{{ child.namespace[0] }}" {
 {# only for the diagram shape -#}
 {% for i in range(children|length) -%}
     {% for j in range(i + 1, children|length) -%}
-        {{ children[i].id }} -[hidden]d- {{ children[j].id }}
+        {{ children[i].unique_id }} -[hidden]d- {{ children[j].unique_id }}
     {% endfor -%}
 {% endfor -%}
 

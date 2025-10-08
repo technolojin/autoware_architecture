@@ -37,7 +37,7 @@ class Instance:
         # create namespace string, FOR ERROR MESSAGE ONLY
         self.namespace_str: str = "/" + "/".join(self.namespace)
         # create unique ID
-        self.id = ("__".join(self.namespace) + "__" + name).replace("/", "__")
+        self.unique_id = ("__".join(self.namespace) + "__" + name).replace("/", "__")
 
         self.compute_unit: str = compute_unit
         self.layer: int = layer
@@ -216,7 +216,7 @@ class Instance:
     def collect_instance_data(self):
         data = {
             "name": self.name,
-            "id": self.id,
+            "unique_id": self.unique_id,
             "element_type": self.element_type,
             "namespace": self.namespace,
             "compute_unit": self.compute_unit,
