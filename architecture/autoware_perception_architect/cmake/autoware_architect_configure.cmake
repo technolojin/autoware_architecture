@@ -18,7 +18,7 @@
 macro(autoware_architect_configure)
   file(GLOB_RECURSE YAML_FILES "${CMAKE_CURRENT_SOURCE_DIR}/architecture/*.yaml")
   # define the path to the shared file
-  set(shared_file "${CMAKE_BINARY_DIR}/../autoware_perception_architect/autoware_architect_yaml_filelist.txt")
+  set(shared_file "${CMAKE_BINARY_DIR}/../autoware_perception_architect/autoware_architect_config_file_list.txt")
 
   foreach(YAML_FILE ${YAML_FILES})
     # read the current content of the shared file
