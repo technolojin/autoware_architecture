@@ -23,7 +23,7 @@
 
 {% if use_container %}
   <load_composable_node target="{{ container_name }}">
-    <composable_node pkg="{{ package_name }}" plugin="{{ plugin_name }}" name="${node_name}">
+    <composable_node pkg="{{ package_name }}" plugin="{{ plugin_name }}" name="$(var node_name)">
       <!-- Remap input and output topics -->
 {% for input in inputs %}
       <remap from="~/input/{{ input.name }}" to="$(var input/{{ input.name }})"/>
@@ -44,7 +44,7 @@
     </composable_node>
   </load_composable_node>
 {% else %}
-  <node pkg="{{ package_name }}" exec="{{ executable_name }}" name="${node_name}" output="{{ node_output }}">
+  <node pkg="{{ package_name }}" exec="{{ executable_name }}" name="$(var node_name)" output="{{ node_output }}">
     <!-- Remap input and output topics -->
 {% for input in inputs %}
     <remap from="~/input/{{ input.name }}" to="$(var input/{{ input.name }})"/>

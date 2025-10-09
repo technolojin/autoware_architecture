@@ -27,13 +27,12 @@ def check_module_configuration(module_yaml) -> bool:
     return True
 
 
-def create_module_launcher_xml(module_yaml, executable_name: str) -> str:
+def create_module_launcher_xml(module_yaml) -> str:
     """
     Generate XML launcher content using Jinja2 template.
     
     Args:
         module_yaml: Dictionary containing module configuration
-        executable_name: Name of the executable
         
     Returns:
         Generated XML content as string
@@ -42,6 +41,7 @@ def create_module_launcher_xml(module_yaml, executable_name: str) -> str:
     launch_config = module_yaml.get("launch")
     package_name = launch_config.get("package")
     plugin_name = launch_config.get("plugin")
+    executable_name = launch_config.get("executable")
     node_output = launch_config.get("node_output", "screen")
     use_container = launch_config.get("use_container", False)
     
@@ -105,7 +105,7 @@ def create_module_launcher_xml(module_yaml, executable_name: str) -> str:
     return launcher_xml
 
 
-def generate_launcher(module_yaml_dir, executable_name, launch_file_dir) -> None:
+def generate_launcher(module_yaml_dir, launch_file_dir) -> None:
 
     logger = logging.getLogger(__name__)
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -120,6 +120,17 @@ def generate_launcher(module_yaml_dir, executable_name, launch_file_dir) -> None
     if "name" not in module_yaml:
         logger.error(f"Field 'name' is required in module configuration., {module_yaml_dir}")
         return
+    
+    # Check if launch configuration exists and has required fields
+    if "launch" not in module_yaml:
+        logger.error(f"Field 'launch' is required in module configuration., {module_yaml_dir}")
+        return
+    
+    launch_config = module_yaml.get("launch")
+    if "executable" not in launch_config:
+        logger.error(f"Field 'executable' is required in launch configuration., {module_yaml_dir}")
+        return
+    
     module_name = module_yaml.get("name")
     node_name = module_name.split(".")[0]
     node_name = pascal_to_snake(node_name)
@@ -133,7 +144,7 @@ def generate_launcher(module_yaml_dir, executable_name, launch_file_dir) -> None
     logger.info(f"Generating launcher for module: {module_name}")
 
     # generate xml launcher file
-    launcher_xml = create_module_launcher_xml(module_yaml, executable_name)
+    launcher_xml = create_module_launcher_xml(module_yaml)
 
     # generate the launch file
     launch_file = f"{node_name}.launch.xml"
@@ -175,4 +186,4 @@ def _process_parameter_path(path, package_name):
 
 
 if __name__ == "__main__":
-    generate_launcher(sys.argv[1], sys.argv[2], sys.argv[3])
+    generate_launcher(sys.argv[1], sys.argv[2])

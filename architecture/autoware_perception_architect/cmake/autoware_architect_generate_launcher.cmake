@@ -46,7 +46,7 @@ macro(autoware_architect_generate_launcher)
           OUTPUT ${LAUNCHER_FILE}
           COMMAND ${CMAKE_COMMAND} -E make_directory ${LAUNCHER_FILE_DIR}
           COMMAND ${CMAKE_COMMAND} -E make_directory ${LOG_DIR}
-          COMMAND python3 ${GENERATE_LAUNCHER_PY_SCRIPT} ${MODULE_YAML_FILE} ${MODULE_NAME} ${LAUNCHER_FILE_DIR} >> ${LOG_FILE} 2>&1
+          COMMAND python3 ${GENERATE_LAUNCHER_PY_SCRIPT} ${MODULE_YAML_FILE} ${LAUNCHER_FILE_DIR} >> ${LOG_FILE} 2>&1
           DEPENDS ${MODULE_YAML_FILE} ${GENERATE_LAUNCHER_PY_SCRIPT}
           COMMENT "Generating launcher file ${MODULE_NAME}.launch.xml. Check log: ${LOG_FILE}"
           VERBATIM
