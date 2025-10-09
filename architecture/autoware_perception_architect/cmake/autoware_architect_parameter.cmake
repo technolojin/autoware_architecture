@@ -43,7 +43,7 @@ macro(autoware_architect_parameter)
       add_custom_command(
         OUTPUT ${CONFIG_FILES}
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CONFIG_OUTPUT_DIR}
-        COMMAND python3 ${PARAMETER_PROCESS_SCRIPT} ${SCHEMA_DIR} ${CONFIG_OUTPUT_DIR}
+        COMMAND python3 ${PARAMETER_PROCESS_SCRIPT} ${SCHEMA_DIR} ${CONFIG_OUTPUT_DIR} --package-name ${PROJECT_NAME}
         DEPENDS ${SCHEMA_FILES} ${PARAMETER_PROCESS_SCRIPT}
         COMMENT "Generating parameter files for ${PROJECT_NAME} from schema files"
         VERBATIM

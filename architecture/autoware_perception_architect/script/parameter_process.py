@@ -87,12 +87,13 @@ def resolve_refs(schema_data, root_schema):
         return schema_data
 
 
-def extract_defaults_from_resolved_schema(resolved_schema):
+def extract_defaults_from_resolved_schema(resolved_schema, package_name=None):
     """
     Extract default values from a resolved schema.
     
     Args:
         resolved_schema: Resolved JSON schema
+        package_name: Package name to prefix relative paths with
     
     Returns:
         Dictionary with default values in ROS parameter format
@@ -106,18 +107,19 @@ def extract_defaults_from_resolved_schema(resolved_schema):
             ros_params = root_props["properties"]["ros__parameters"]
             
             # Extract defaults from ros__parameters
-            param_defaults = extract_defaults_from_properties(ros_params)
+            param_defaults = extract_defaults_from_properties(ros_params, package_name)
             defaults["/**"]["ros__parameters"] = param_defaults
     
     return defaults
 
 
-def extract_defaults_from_properties(properties_schema):
+def extract_defaults_from_properties(properties_schema, package_name=None):
     """
     Extract default values from properties schema.
     
     Args:
         properties_schema: Properties section of JSON schema
+        package_name: Package name to prefix relative paths with
     
     Returns:
         Dictionary with default values
@@ -127,9 +129,17 @@ def extract_defaults_from_properties(properties_schema):
     if "properties" in properties_schema:
         for prop_name, prop_data in properties_schema["properties"].items():
             if "default" in prop_data:
-                defaults[prop_name] = prop_data["default"]
+                default_value = prop_data["default"]
+                # Check if default is a string that looks like a relative path
+                if (isinstance(default_value, str) and 
+                    package_name and 
+                    not default_value.startswith('/') and 
+                    not default_value.startswith('$(') and
+                    ('/' in default_value or default_value.endswith(('.yaml', '.json', '.pcd', '.onnx', '.xml')))):
+                    default_value = f"$(find-pkg-share {package_name})/{default_value}"
+                defaults[prop_name] = default_value
             elif prop_data.get("type") == "object" and "properties" in prop_data:
-                nested_defaults = extract_defaults_from_properties(prop_data)
+                nested_defaults = extract_defaults_from_properties(prop_data, package_name)
                 if nested_defaults:
                     defaults[prop_name] = nested_defaults
             elif prop_data.get("type") == "array" and "default" in prop_data:
@@ -138,13 +148,14 @@ def extract_defaults_from_properties(properties_schema):
     return defaults
 
 
-def process_schema_file(schema_file_path, output_dir):
+def process_schema_file(schema_file_path, output_dir, package_name=None):
     """
     Process a single schema file and generate corresponding config file.
     
     Args:
         schema_file_path: Path to the JSON schema file
         output_dir: Output directory for generated config files
+        package_name: Package name to prefix relative paths with
     
     Returns:
         bool: True if successful, False otherwise
@@ -159,7 +170,7 @@ def process_schema_file(schema_file_path, output_dir):
         resolved_schema = resolve_refs(schema_data, schema_data)
         
         # Extract default values
-        defaults = extract_defaults_from_resolved_schema(resolved_schema)
+        defaults = extract_defaults_from_resolved_schema(resolved_schema, package_name)
         
         # Generate output filename
         schema_filename = Path(schema_file_path).stem
@@ -201,11 +212,13 @@ def main():
     parser = argparse.ArgumentParser(description='Generate config files from JSON schema files')
     parser.add_argument('schema_dir', help='Directory containing schema files')
     parser.add_argument('output_dir', help='Output directory for generated config files')
+    parser.add_argument('--package-name', help='Package name to prefix relative paths with')
     
     args = parser.parse_args()
     
     schema_dir = Path(args.schema_dir)
     output_dir = Path(args.output_dir)
+    package_name = args.package_name
     
     if not schema_dir.exists():
         print(f"Error: Schema directory does not exist: {schema_dir}")
@@ -219,10 +232,12 @@ def main():
         sys.exit(1)
     
     print(f"Found {len(schema_files)} schema file(s)")
+    if package_name:
+        print(f"Using package name: {package_name}")
     
     success_count = 0
     for schema_file in schema_files:
-        if process_schema_file(schema_file, output_dir):
+        if process_schema_file(schema_file, output_dir, package_name):
             success_count += 1
     
     print(f"Successfully processed {success_count}/{len(schema_files)} schema files")

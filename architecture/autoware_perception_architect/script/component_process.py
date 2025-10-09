@@ -78,7 +78,7 @@ def create_module_launcher_xml(module_yaml, executable_name: str) -> str:
         'parameters': [
             {
                 'name': param.get('name'),
-                'default': param.get('default'),
+                'default': _process_parameter_path(param.get('default'), package_name),
                 'allow_substs': str(param.get('allow_substs', False)).lower()
             }
             for param in param_path_list
@@ -152,6 +152,26 @@ def generate_launcher(module_yaml_dir, executable_name, launch_file_dir) -> None
     with open(launch_file_path, "w") as f:
         # save empty file at this moment
         f.write(launcher_xml)
+
+
+def _process_parameter_path(path, package_name):
+    """
+    Process parameter path and add package prefix for relative paths.
+    
+    Args:
+        path: Parameter path from module YAML
+        package_name: Package name to prefix relative paths with
+    
+    Returns:
+        Processed path with package prefix if it was relative
+    """
+    if (isinstance(path, str) and 
+        package_name and 
+        not path.startswith('/') and 
+        not path.startswith('$(') and
+        ('/' in path or path.endswith(('.yaml', '.json', '.pcd', '.onnx', '.xml')))):
+        return f"$(find-pkg-share {package_name})/{path}"
+    return path
 
 
 if __name__ == "__main__":
