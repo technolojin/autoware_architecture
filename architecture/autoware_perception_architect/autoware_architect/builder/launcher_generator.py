@@ -55,6 +55,13 @@ def generate_pipeline_launch_file(instance: Instance, output_dir: str):
     logger.debug(f"Generating launcher for {instance.name} (type: {instance.element_type}) in {output_dir}")
     
     if instance.element_type == "architecture":
+        # generate current architecture launch file
+        # launcher per compute_unit
+        # For architecture, we assume children are pipelines or modules under compute units
+        # We will create a directory for each compute unit and generate launchers there
+    
+
+        # recursively call children pipelines
         for child in instance.children.values():
             # Split component name by slashes and use only the resulting parts as path
             name_parts = child.name.split('/')
