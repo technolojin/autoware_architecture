@@ -86,9 +86,14 @@ class Instance:
             instance_name = cfg_component.get("component")
             element_id = cfg_component.get("element")
             namespace = cfg_component.get("namespace")
+            if namespace:
+                if isinstance(namespace, str):
+                    namespace = namespace.split('/') if '/' in namespace else [namespace]
+            else:
+                namespace = []
 
             # create instance
-            instance = Instance(instance_name, compute_unit_name, [namespace])
+            instance = Instance(instance_name, compute_unit_name, namespace)
             instance.parent = self
             try:
                 instance.set_instances(element_id, config_registry)
@@ -218,7 +223,7 @@ class Instance:
         # delegate to event manager
         self.event_manager.set_event_tree()
 
-    def collect_instance_data(self):
+    def collect_instance_data(self) -> dict:
         data = {
             "name": self.name,
             "unique_id": self.unique_id,

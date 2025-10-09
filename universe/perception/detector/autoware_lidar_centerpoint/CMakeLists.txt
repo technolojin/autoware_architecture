@@ -13,3 +13,8 @@ ament_auto_package(
 autoware_architect_configure()
 
 autoware_architect_parameter()
+
+autoware_architect_generate_launcher(
+  LidarCenterPoint.module
+  lidar_center_point_node
+)
