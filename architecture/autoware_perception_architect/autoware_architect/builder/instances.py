@@ -35,7 +35,6 @@ class Instance:
         self.namespace: List[str] = namespace.copy()
         # add the instance name to the namespace
         self.namespace.append(name)
-        # create namespace string, FOR ERROR MESSAGE ONLY
         self.namespace_str: str = "/" + "/".join(self.namespace)
         # create unique ID
         self.unique_id = ("__".join(self.namespace) + "__" + name).replace("/", "__")

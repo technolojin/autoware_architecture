@@ -19,6 +19,7 @@ from .config import ArchitectureConfig
 from .models.config import Config
 from .builder.config_registry import ConfigRegistry
 from .builder.instances import DeploymentInstance
+from .builder.launcher_generator import generate_pipeline_launch_file
 from .parsers.data_validator import element_name_decode
 from .parsers.yaml_parser import yaml_parser
 from .exceptions import ValidationError
@@ -141,5 +142,11 @@ class Deployment:
 
 
     def generate_launcher(self):
-        # 3. build the launcher
-        pass
+        # 1. generate pipeline launch files, for backward compatibility
+        # topics an namespaces are decided in the deploy_instance
+        # module launch files are already generated on each package
+        # the pipeline launcher connects the module launchers and pipeline launchers, with its hierarchy
+        generate_pipeline_launch_file(self.deploy_instance, self.launcher_dir)
+
+        # 2. generate deployment launch file
+        # integrated all the module launch directly

@@ -22,10 +22,6 @@ import logging
 from autoware_architect.utils import pascal_to_snake
 from autoware_architect.template_utils import TemplateRenderer
 
-def check_module_configuration(module_yaml) -> bool:
-    #
-    return True
-
 
 def create_module_launcher_xml(module_yaml) -> str:
     """
@@ -134,12 +130,6 @@ def generate_launcher(module_yaml_dir, launch_file_dir) -> None:
     module_name = module_yaml.get("name")
     node_name = module_name.split(".")[0]
     node_name = pascal_to_snake(node_name)
-
-    # check the module configuration
-    # if the configuration is not correct, warn the user
-    if not check_module_configuration(module_yaml):
-        logger.warning(f"Invalid module configuration: {launch_file_dir}")
-        return
 
     logger.info(f"Generating launcher for module: {module_name}")
 
