@@ -19,16 +19,25 @@
 {% endfor %}
 
 {% for node in nodes %}
-  <!-- Node : {{ node.name }} -->
 {% if node.is_pipeline %}
-  <include file="{{ node.launcher_file }}">
+  <!-- Pipeline : {{ node.name }} -->
+  <group>
+    <push-ros-namespace namespace="{{ node.name }}"/>
+    <include file="{{ node.launcher_file }}">
+      <arg name="ns" value="$(var ns)/{{ node.name }}"/>
+{% for arg in node.args %}
+      <arg name="{{ arg.name }}" value="{{ arg.value }}"/>
+{% endfor %}
+    </include>
+  </group>
 {% else %}
+  <!-- Module : {{ node.name }} -->
   <include file="$(find-pkg-share {{ node.package }})/launcher/{{ node.launcher_file }}">
-{% endif %}
 {% for arg in node.args %}
     <arg name="{{ arg.name }}" value="{{ arg.value }}"/>
 {% endfor %}
   </include>
+{% endif %}
 
 {% endfor %}
 </launch>
