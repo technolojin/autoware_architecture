@@ -21,10 +21,10 @@ macro(autoware_architect_parameter)
     set(PARAMETER_PROCESS_SCRIPT "${CMAKE_BINARY_DIR}/../autoware_perception_architect/script/parameter_process.py")
     set(CONFIG_OUTPUT_DIR "${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}/config")
     
-    # Create log directory
-    set(LOG_DIR "${CMAKE_BINARY_DIR}/parameter_logs")
-    file(MAKE_DIRECTORY ${LOG_DIR})
-    set(LOG_FILE "${LOG_DIR}/${PROJECT_NAME}_parameter_generation.log")
+    # Set up logging
+    get_filename_component(WORKSPACE_ROOT "${CMAKE_BINARY_DIR}/../.." ABSOLUTE)
+    set(LOG_DIR "${WORKSPACE_ROOT}/log/latest_build/${PROJECT_NAME}")
+    set(LOG_FILE "${LOG_DIR}/parameter_generation.log")
     
     # Find all schema files
     file(GLOB SCHEMA_FILES "${SCHEMA_DIR}/*.schema.json")
@@ -43,9 +43,10 @@ macro(autoware_architect_parameter)
       add_custom_command(
         OUTPUT ${CONFIG_FILES}
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CONFIG_OUTPUT_DIR}
-        COMMAND python3 ${PARAMETER_PROCESS_SCRIPT} ${SCHEMA_DIR} ${CONFIG_OUTPUT_DIR} --package-name ${PROJECT_NAME}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${LOG_DIR}
+        COMMAND python3 ${PARAMETER_PROCESS_SCRIPT} ${SCHEMA_DIR} ${CONFIG_OUTPUT_DIR} --package-name ${PROJECT_NAME} > ${LOG_FILE} 2>&1
         DEPENDS ${SCHEMA_FILES} ${PARAMETER_PROCESS_SCRIPT}
-        COMMENT "Generating parameter files for ${PROJECT_NAME} from schema files"
+        COMMENT "Generating parameter files for ${PROJECT_NAME} from schema files. Check log: ${LOG_FILE}"
         VERBATIM
       )
       

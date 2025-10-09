@@ -14,7 +14,4 @@ autoware_architect_configure()
 
 autoware_architect_parameter()
 
-autoware_architect_generate_launcher(
-  MultiObjectTracker.module
-  multi_object_tracker_node
-)
+autoware_architect_generate_launcher()

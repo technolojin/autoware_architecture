@@ -1,5 +1,5 @@
 # module information
-name: LidarCenterPoint.module
+name: LidarCenterpoint.module
 
 launch:
   package: autoware_lidar_centerpoint

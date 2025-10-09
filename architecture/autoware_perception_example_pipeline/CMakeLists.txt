@@ -11,17 +11,4 @@ ament_auto_package(
 
 autoware_architect_configure()
 
-autoware_architect_generate_launcher(
-  module/DetectorA.module
-  detector_a_node
-)
-
-autoware_architect_generate_launcher(
-  module/FilterA.module
-  filter_a_node
-)
-
-autoware_architect_generate_launcher(
-  module/Tracker.module
-  tracker_node
-)
+autoware_architect_generate_launcher()
