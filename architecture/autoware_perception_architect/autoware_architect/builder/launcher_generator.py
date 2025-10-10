@@ -301,10 +301,58 @@ def _collect_component_interfaces(component: Instance, architecture_instance: In
     return {"inputs": inputs, "outputs": outputs}
 
 
+def _resolve_absolute_topic(port) -> str:
+    """Resolve the absolute topic path from a port by traversing the reference chain."""
+    
+    # First check if the port itself has a topic set
+    if hasattr(port, 'topic') and port.topic:
+        return "/" + "/".join(port.topic)
+    
+    # For external ports, traverse the reference chain to find the actual topic
+    if hasattr(port, 'reference') and port.reference:
+        for ref_port in port.reference:
+            if hasattr(ref_port, 'topic') and ref_port.topic:
+                return "/" + "/".join(ref_port.topic)
+            # Check if this reference port has its own references (deeper traversal)
+            if hasattr(ref_port, 'reference') and ref_port.reference:
+                for deeper_ref in ref_port.reference:
+                    if hasattr(deeper_ref, 'topic') and deeper_ref.topic:
+                        return "/" + "/".join(deeper_ref.topic)
+    
+    # For external inputs, check if connected to any internal ports with topics
+    if hasattr(port, 'servers') and port.servers:
+        for server_port in port.servers:
+            if hasattr(server_port, 'topic') and server_port.topic:
+                return "/" + "/".join(server_port.topic)
+    
+    # For external outputs, check if connected from any internal ports with topics  
+    if hasattr(port, 'users') and port.users:
+        for user_port in port.users:
+            if hasattr(user_port, 'topic') and user_port.topic:
+                return "/" + "/".join(user_port.topic)
+    
+    # If it's a global port, use the global topic
+    if hasattr(port, 'is_global') and port.is_global and hasattr(port, 'topic') and port.topic:
+        if isinstance(port.topic, list):
+            return "/" + "/".join(port.topic)
+        else:
+            return port.topic if port.topic.startswith('/') else '/' + port.topic
+    
+    # Fallback to constructing from namespace and name
+    if hasattr(port, 'namespace') and hasattr(port, 'name'):
+        if hasattr(port, 'namespace') and port.namespace:
+            return "/" + "/".join(port.namespace + [port.name])
+        else:
+            return "/" + port.name
+    
+    # Last resort fallback
+    return f"/default/{port.name}"
+
+
 def _collect_namespace_external_interfaces(components: list) -> dict:
     """Collect all external interfaces for a namespace from its components."""
-    external_inputs = set()
-    external_outputs = set()
+    external_inputs = {}
+    external_outputs = {}
     
     for component in components:
         if hasattr(component, 'link_manager'):
@@ -314,13 +362,17 @@ def _collect_namespace_external_interfaces(components: list) -> dict:
                 connection_type = link.connection_type
                 
                 if connection_type == ConnectionType.EXTERNAL_TO_INTERNAL:
-                    external_inputs.add(from_port.name)
+                    # Resolve absolute topic from the reference chain
+                    absolute_topic = _resolve_absolute_topic(from_port)
+                    external_inputs[from_port.name] = absolute_topic
                 elif connection_type == ConnectionType.INTERNAL_TO_EXTERNAL:
-                    external_outputs.add(to_port.name)
+                    # Resolve absolute topic from the reference chain
+                    absolute_topic = _resolve_absolute_topic(to_port)
+                    external_outputs[to_port.name] = absolute_topic
     
     return {
-        "external_inputs": [{"name": name, "default_value": f"/default/{name}"} for name in sorted(external_inputs)],
-        "external_outputs": [{"name": name, "default_value": f"/default/{name}"} for name in sorted(external_outputs)]
+        "external_inputs": [{"name": name, "default_value": topic} for name, topic in sorted(external_inputs.items())],
+        "external_outputs": [{"name": name, "default_value": topic} for name, topic in sorted(external_outputs.items())]
     }
 
 
