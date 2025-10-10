@@ -221,18 +221,139 @@ def _generate_launch_file(instance: Instance, output_dir: str, template_data: di
         raise
 
 
+def _generate_compute_unit_launcher_placeholder(compute_unit: str, components: list, output_dir: str):
+    """Generate placeholder launcher file for a compute unit showing which components belong to it."""
+    # Compute unit launcher: output_dir/main_ecu.launch.xml
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Generate a placeholder file that shows the compute unit structure
+    placeholder_file = os.path.join(output_dir, f"{compute_unit.lower()}.launch.xml")
+    
+    logger.debug(f"Creating compute unit placeholder launcher: {placeholder_file}")
+    
+    with open(placeholder_file, "w") as f:
+        f.write("<?xml version=\"1.0\"?>\n")
+        f.write("<!-- PLACEHOLDER: Compute Unit Launcher -->\n")
+        f.write(f"<!-- Compute Unit: {compute_unit} -->\n")
+        f.write(f"<!-- Components in this compute unit: {len(components)} -->\n")
+        f.write("<launch>\n")
+        f.write(f"  <!-- This launcher will start all components assigned to compute unit: {compute_unit} -->\n")
+        f.write("  \n")
+        
+        for component in components:
+            f.write(f"  <!-- Component: {component.name} -->\n")
+            f.write(f"  <!--   Type: {component.element_type} -->\n")
+            f.write(f"  <!--   Namespace: {'/'.join(component.namespace[:-1])} -->\n")
+            if hasattr(component, 'configuration') and component.configuration:
+                package_name = _extract_package_name_from_module(component)
+                if package_name:
+                    f.write(f"  <!--   Package: {package_name} -->\n")
+            f.write(f"  <!--   Path: {compute_unit}/{'/'.join(component.namespace[:-1])}/{component.name} -->\n")
+            f.write("  \n")
+        
+        f.write("  <!-- TODO: Implement actual component launching logic here -->\n")
+        f.write("  <!-- TODO: Add parameter passing and interface mapping -->\n")
+        f.write("</launch>\n")
+    
+    logger.info(f"Generated compute unit placeholder launcher: {placeholder_file}")
+
+
+def _generate_namespace_launcher_placeholder(compute_unit: str, namespace: str, components: list, output_dir: str):
+    """Generate placeholder launcher file for a namespace showing which components belong to it."""
+    # Namespace launcher: output_dir/main_ecu/perception/perception.launch.xml
+    namespace_dir = os.path.join(output_dir, compute_unit, namespace)
+    os.makedirs(namespace_dir, exist_ok=True)
+    
+    # Generate namespace-specific launcher filename
+    placeholder_file = os.path.join(namespace_dir, f"{namespace}.launch.xml")
+    
+    logger.debug(f"Creating namespace placeholder launcher: {placeholder_file}")
+    
+    with open(placeholder_file, "w") as f:
+        f.write("<?xml version=\"1.0\"?>\n")
+        f.write("<!-- PLACEHOLDER: Namespace Launcher -->\n")
+        f.write(f"<!-- Compute Unit: {compute_unit} -->\n")
+        f.write(f"<!-- Namespace: {namespace} -->\n")
+        f.write(f"<!-- Components in this namespace: {len(components)} -->\n")
+        f.write("<launch>\n")
+        f.write(f"  <!-- This launcher will start all components in namespace: {namespace} -->\n")
+        f.write("  \n")
+        
+        for component in components:
+            f.write(f"  <!-- Component: {component.name} -->\n")
+            f.write(f"  <!--   Type: {component.element_type} -->\n")
+            f.write(f"  <!--   Full Namespace: {'/'.join(component.namespace)} -->\n")
+            if hasattr(component, 'configuration') and component.configuration:
+                f.write(f"  <!--   Configuration: {component.configuration.name} -->\n")
+                package_name = _extract_package_name_from_module(component)
+                if package_name:
+                    f.write(f"  <!--   Package: {package_name} -->\n")
+            
+            # Show interface information for this component
+            if hasattr(component, 'link_manager'):
+                input_ports = component.link_manager.get_all_in_ports()
+                output_ports = component.link_manager.get_all_out_ports()
+                
+                if input_ports:
+                    f.write(f"  <!--   Input Interfaces: -->\n")
+                    for port in input_ports:
+                        f.write(f"  <!--     - {port.name} ({port.msg_type}) -->\n")
+                
+                if output_ports:
+                    f.write(f"  <!--   Output Interfaces: -->\n")
+                    for port in output_ports:
+                        f.write(f"  <!--     - {port.name} ({port.msg_type}) -->\n")
+            f.write("  \n")
+        
+        f.write("  <!-- TODO: Implement actual namespace launching logic here -->\n")
+        f.write("  <!-- TODO: Add component inclusion and parameter passing -->\n")
+        f.write("  <!-- TODO: Add interface remapping between components -->\n")
+        f.write("</launch>\n")
+    
+    logger.info(f"Generated namespace placeholder launcher: {placeholder_file}")
+
+
 def generate_pipeline_launch_file(instance: Instance, output_dir: str):
     logger.debug(f"Generating launcher for {instance.name} (type: {instance.element_type}) in {output_dir}")
     
     if instance.element_type == "architecture":
+
+        # parse children to extract compute units
+        # collect components per compute unit
+        # for each compute unit, create a directory and generate a launcher
+        compute_unit_map = {}
+        for child in instance.children.values():
+            if child.compute_unit not in compute_unit_map:
+                compute_unit_map[child.compute_unit] = []
+            compute_unit_map[child.compute_unit].append(child)
+        # Group components by compute unit and namespace
+        namespace_map = {}
+        for child in instance.children.values():
+            key = (child.compute_unit, child.namespace[0] if child.namespace else "default")
+            if key not in namespace_map:
+                namespace_map[key] = []
+            namespace_map[key].append(child)
+
+        # Generate compute unit launcher
+        # the compute unit launcher launches all components assigned to that compute unit
+        # no arguments or interfaces are needed at this level
+        # example: deployment/main_ecu/main_ecu.launch.xml
+        for compute_unit, components in compute_unit_map.items():
+            compute_unit_dir = os.path.join(output_dir, compute_unit)
+            os.makedirs(compute_unit_dir, exist_ok=True)
+            _generate_compute_unit_launcher_placeholder(compute_unit, components, compute_unit_dir)
+
+        # Generate namespace launcher
+        # the interfaces this level are deterministic, already defined in the Instance input.
+        # example: deployment/main_ecu/perception/perception.launch.xml
+        for (compute_unit, namespace), components in namespace_map.items():
+            _generate_namespace_launcher_placeholder(compute_unit, namespace, components, output_dir)
+
         # recursively call children pipelines/modules
         for child in instance.children.values():
-            # Split component name by slashes and use only the resulting parts as path
+            # Recursively call children pipelines/modules
             name_parts = child.name.split('/')
-            # Use the base namespace + split name parts
-            base_namespace = child.namespace[:-1] if child.namespace else []  # Remove the component name from namespace
-            path_parts = base_namespace + name_parts
-            path = os.path.join(output_dir, *path_parts)
+            path = os.path.join(output_dir,  child.compute_unit, *child.namespace)
             generate_pipeline_launch_file(child, path)
     elif instance.element_type == "pipeline":
         # Use existing configuration data with simplified extraction
@@ -268,4 +389,4 @@ def generate_pipeline_launch_file(instance: Instance, output_dir: str):
         # module launch files are already generated on each package build process
         return
     else:
-        raise ValueError(f"Invalid element type: {instance.element_type}")
+        raise ValueError(f"Invalid element type: {instance.element_type}")# example: deployment/main_ecu.launch.xml
