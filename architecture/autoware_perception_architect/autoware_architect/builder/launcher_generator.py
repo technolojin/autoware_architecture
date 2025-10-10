@@ -519,11 +519,27 @@ def _generate_namespace_launcher(compute_unit: str, namespace: str, components: 
         component_interfaces = _collect_component_interfaces(component, architecture_instance)
         
         # Determine the component's namespace path for pipeline includes
+        # Note: component.namespace includes the component name at the end
+        # e.g., for object_recognition with namespace "perception": ["perception", "object_recognition"]
+        # e.g., for camera_2d_detection with namespace "perception/object_recognition/detection": ["perception", "object_recognition", "detection", "camera_2d_detection"]
+        
+        logger.debug(f"Component {component.name}: namespace={component.namespace}, len={len(component.namespace)}")
+        
         if len(component.namespace) > 1:
             # Remove the component name from namespace for path calculation
             component_namespace_path = "/".join(component.namespace[:-1])
+            # Calculate remaining namespace path after the top-level namespace
+            # Skip the first element (top-level namespace) and last element (component name)
+            if len(component.namespace) > 2:
+                remaining_namespace_path = "/".join(component.namespace[1:-1])
+            else:
+                # Only 2 elements: [top_namespace, component_name] - no remaining path
+                remaining_namespace_path = ""
         else:
             component_namespace_path = ""
+            remaining_namespace_path = ""
+            
+        logger.debug(f"Component {component.name}: component_namespace_path='{component_namespace_path}', remaining_namespace_path='{remaining_namespace_path}'")
         
         # Prepare component data
         component_data = {
@@ -532,7 +548,8 @@ def _generate_namespace_launcher(compute_unit: str, namespace: str, components: 
             "inputs": component_interfaces["inputs"],
             "outputs": component_interfaces["outputs"],
             "args": [],  # Additional arguments can be added here
-            "namespace_path": component_namespace_path
+            "namespace_path": component_namespace_path,
+            "remaining_namespace_path": remaining_namespace_path
         }
         
         if component.element_type == "module":
