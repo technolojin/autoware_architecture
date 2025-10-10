@@ -22,6 +22,39 @@ from ..models.links import ConnectionType
 logger = logging.getLogger(__name__)
 
 
+def _ensure_directory(directory_path: str) -> None:
+    """Ensure directory exists by creating it if necessary."""
+    os.makedirs(directory_path, exist_ok=True)
+
+
+def _render_template_to_file(template_name: str, output_file_path: str, template_data: dict) -> None:
+    """Render template and write to file with error handling."""
+    try:
+        renderer = TemplateRenderer()
+        launcher_xml = renderer.render_template(template_name, **template_data)
+        
+        with open(output_file_path, "w") as f:
+            f.write(launcher_xml)
+            
+        logger.info(f"Successfully generated launcher: {output_file_path}")
+        
+    except Exception as e:
+        logger.error(f"Failed to generate launcher {output_file_path}: {e}")
+        raise
+
+
+def _process_links_with_interface_tracking(links, processor_func):
+    """Process links with interface tracking to avoid duplicates."""
+    interfaces = []
+    defined_interfaces = set()
+    
+    for link in links:
+        interface_items = processor_func(link, defined_interfaces)
+        interfaces.extend(interface_items)
+    
+    return interfaces
+
+
 def _convert_to_snake_case(name: str) -> str:
     """Convert CamelCase to snake_case."""
     # Handle the case where we have something like "CameraLidarFusion.pipeline"
@@ -68,68 +101,67 @@ def _extract_external_interfaces(instance: Instance, interface_type: str) -> lis
     return interfaces
 
 
+def _process_link_for_internal_interfaces(link, defined_interfaces: set) -> list:
+    """Process a single link for internal interface mapping."""
+    interfaces = []
+    from_port = link.from_port
+    to_port = link.to_port
+    connection_type = link.connection_type
+    
+    # Handle external input to internal input
+    if connection_type == ConnectionType.EXTERNAL_TO_INTERNAL:
+        child_instance_name = to_port.namespace[-1] if to_port.namespace else ""
+        interface_key = f"{child_instance_name}/input/{to_port.name}"
+        if interface_key not in defined_interfaces:
+            interfaces.append({
+                "name": interface_key,
+                "value": f"$(var input/{from_port.name})"
+            })
+            defined_interfaces.add(interface_key)
+    
+    # Handle internal output to external output
+    elif connection_type == ConnectionType.INTERNAL_TO_EXTERNAL:
+        child_instance_name = from_port.namespace[-1] if from_port.namespace else ""
+        interface_key = f"{child_instance_name}/output/{from_port.name}"
+        if interface_key not in defined_interfaces:
+            interfaces.append({
+                "name": interface_key,
+                "value": f"$(var output/{to_port.name})"
+            })
+            defined_interfaces.add(interface_key)
+    
+    # Handle internal to internal connections
+    elif connection_type == ConnectionType.INTERNAL_TO_INTERNAL:
+        from_instance_name = from_port.namespace[-1] if from_port.namespace else ""
+        to_instance_name = to_port.namespace[-1] if to_port.namespace else ""
+        
+        # Define the source output (if not already defined)
+        source_interface_key = f"{from_instance_name}/output/{from_port.name}"
+        if source_interface_key not in defined_interfaces:
+            interfaces.append({
+                "name": source_interface_key,
+                "value": f"$(var ns)/{from_instance_name}/{from_port.name}"
+            })
+            defined_interfaces.add(source_interface_key)
+        
+        # Define the destination input to reference the source
+        dest_interface_key = f"{to_instance_name}/input/{to_port.name}"
+        if dest_interface_key not in defined_interfaces:
+            interfaces.append({
+                "name": dest_interface_key,
+                "value": f"$(var {from_instance_name}/output/{from_port.name})"
+            })
+            defined_interfaces.add(dest_interface_key)
+    
+    return interfaces
+
+
 def _generate_internal_interfaces(instance: Instance) -> list:
     """Generate internal interface mappings based on processed links."""
-    internal_interfaces = []
-    defined_interfaces = set()
-    
-    # Use the already processed links from LinkManager
-    for link in instance.link_manager.get_all_links():
-        from_port = link.from_port
-        to_port = link.to_port
-        
-        # Use the stored connection type instead of re-determining it
-        connection_type = link.connection_type
-        
-        # Handle external input to internal input
-        if connection_type == ConnectionType.EXTERNAL_TO_INTERNAL:
-            # Extract child instance name from to_port namespace
-            child_instance_name = to_port.namespace[-1] if to_port.namespace else ""
-            interface_key = f"{child_instance_name}/input/{to_port.name}"
-            if interface_key not in defined_interfaces:
-                internal_interfaces.append({
-                    "name": interface_key,
-                    "value": f"$(var input/{from_port.name})"
-                })
-                defined_interfaces.add(interface_key)
-        
-        # Handle internal output to external output
-        elif connection_type == ConnectionType.INTERNAL_TO_EXTERNAL:
-            # Extract child instance name from from_port namespace
-            child_instance_name = from_port.namespace[-1] if from_port.namespace else ""
-            interface_key = f"{child_instance_name}/output/{from_port.name}"
-            if interface_key not in defined_interfaces:
-                internal_interfaces.append({
-                    "name": interface_key,
-                    "value": f"$(var output/{to_port.name})"
-                })
-                defined_interfaces.add(interface_key)
-        
-        # Handle internal to internal connections
-        elif connection_type == ConnectionType.INTERNAL_TO_INTERNAL:
-            # Extract child instance names from port namespaces
-            from_instance_name = from_port.namespace[-1] if from_port.namespace else ""
-            to_instance_name = to_port.namespace[-1] if to_port.namespace else ""
-            
-            # Define the source output (if not already defined)
-            source_interface_key = f"{from_instance_name}/output/{from_port.name}"
-            if source_interface_key not in defined_interfaces:
-                internal_interfaces.append({
-                    "name": source_interface_key,
-                    "value": f"$(var ns)/{from_instance_name}/{from_port.name}"
-                })
-                defined_interfaces.add(source_interface_key)
-            
-            # Define the destination input to reference the source
-            dest_interface_key = f"{to_instance_name}/input/{to_port.name}"
-            if dest_interface_key not in defined_interfaces:
-                internal_interfaces.append({
-                    "name": dest_interface_key,
-                    "value": f"$(var {from_instance_name}/output/{from_port.name})"
-                })
-                defined_interfaces.add(dest_interface_key)
-    
-    return internal_interfaces
+    return _process_links_with_interface_tracking(
+        instance.link_manager.get_all_links(),
+        _process_link_for_internal_interfaces
+    )
 
 
 def _process_child_nodes(instance: Instance) -> list:
@@ -198,107 +230,96 @@ def _generate_node_args(instance: Instance, child_name: str) -> list:
 
 def _generate_launch_file(instance: Instance, output_dir: str, template_data: dict):
     """Generate the launch file using template."""
-    os.makedirs(output_dir, exist_ok=True)
+    _ensure_directory(output_dir)
     launch_filename = _convert_to_snake_case(instance.name) + ".launch.xml"
     output_file_path = os.path.join(output_dir, launch_filename)
     
     logger.debug(f"Creating launcher file: {output_file_path}")
     
     # Ensure the directory exists for the output file
-    os.makedirs(os.path.dirname(output_file_path), exist_ok=True)
+    _ensure_directory(os.path.dirname(output_file_path))
     
-    try:
-        renderer = TemplateRenderer()
-        launcher_xml = renderer.render_template('pipeline_launcher.xml.jinja2', **template_data)
+    _render_template_to_file('pipeline_launcher.xml.jinja2', output_file_path, template_data)
+
+
+def _process_link_for_component_interfaces(link, component_name: str, interface_data: dict) -> None:
+    """Process a single link for component interface collection."""
+    from_port = link.from_port
+    to_port = link.to_port
+    connection_type = link.connection_type
+    
+    # For external to internal connections
+    if connection_type == ConnectionType.EXTERNAL_TO_INTERNAL:
+        # Check if this component is the target
+        if (len(to_port.namespace) >= 2 and 
+            to_port.namespace[-1] == component_name):
+            interface_key = to_port.name
+            if interface_key not in interface_data["added_inputs"]:
+                interface_data["inputs"].append({
+                    "name": to_port.name,
+                    "value": f"$(var input/{from_port.name})",
+                    "msg_type": to_port.msg_type
+                })
+                interface_data["added_inputs"].add(interface_key)
+    
+    # For internal to external connections
+    elif connection_type == ConnectionType.INTERNAL_TO_EXTERNAL:
+        # Check if this component is the source
+        if (len(from_port.namespace) >= 2 and 
+            from_port.namespace[-1] == component_name):
+            interface_key = from_port.name
+            if interface_key not in interface_data["added_outputs"]:
+                interface_data["outputs"].append({
+                    "name": from_port.name,
+                    "value": f"$(var output/{to_port.name})",
+                    "msg_type": from_port.msg_type
+                })
+                interface_data["added_outputs"].add(interface_key)
+    
+    # For internal to internal connections
+    elif connection_type == ConnectionType.INTERNAL_TO_INTERNAL:
+        # Check if this component is the target (receives input)
+        if (len(to_port.namespace) >= 2 and 
+            to_port.namespace[-1] == component_name):
+            source_component = from_port.namespace[-1] if from_port.namespace else ""
+            interface_key = to_port.name
+            if interface_key not in interface_data["added_inputs"]:
+                interface_data["inputs"].append({
+                    "name": to_port.name,
+                    "value": f"$(var {source_component}/output/{from_port.name})",
+                    "msg_type": to_port.msg_type
+                })
+                interface_data["added_inputs"].add(interface_key)
         
-        with open(output_file_path, "w") as f:
-            f.write(launcher_xml)
-            
-        logger.info(f"Successfully generated launcher: {output_file_path}")
-        
-    except Exception as e:
-        logger.error(f"Failed to generate launcher {output_file_path}: {e}")
-        raise
+        # Check if this component is the source (produces output)
+        if (len(from_port.namespace) >= 2 and 
+            from_port.namespace[-1] == component_name):
+            interface_key = from_port.name
+            if interface_key not in interface_data["added_outputs"]:
+                interface_data["outputs"].append({
+                    "name": from_port.name,
+                    "value": f"$(var ns)/{component_name}/{from_port.name}",
+                    "msg_type": from_port.msg_type
+                })
+                interface_data["added_outputs"].add(interface_key)
 
 
 def _collect_component_interfaces(component: Instance, architecture_instance: Instance) -> dict:
     """Collect input and output interfaces for a component based on architecture-level connections."""
-    inputs = []
-    outputs = []
-    
-    # Use sets to track already added interfaces to avoid duplicates
-    added_inputs = set()
-    added_outputs = set()
+    interface_data = {
+        "inputs": [],
+        "outputs": [],
+        "added_inputs": set(),
+        "added_outputs": set()
+    }
     
     # Access the architecture's link manager to get the actual connections
     architecture_links = architecture_instance.link_manager.get_all_links()
     
     for link in architecture_links:
-        from_port = link.from_port
-        to_port = link.to_port
-        connection_type = link.connection_type
-        
-        # Check if this link involves the current component
-        component_involved = False
-        
-        # For external to internal connections
-        if connection_type == ConnectionType.EXTERNAL_TO_INTERNAL:
-            # Check if this component is the target
-            if (len(to_port.namespace) >= 2 and 
-                to_port.namespace[-1] == component.name):
-                component_involved = True
-                interface_key = to_port.name
-                if interface_key not in added_inputs:
-                    inputs.append({
-                        "name": to_port.name,
-                        "value": f"$(var input/{from_port.name})",
-                        "msg_type": to_port.msg_type
-                    })
-                    added_inputs.add(interface_key)
-        
-        # For internal to external connections
-        elif connection_type == ConnectionType.INTERNAL_TO_EXTERNAL:
-            # Check if this component is the source
-            if (len(from_port.namespace) >= 2 and 
-                from_port.namespace[-1] == component.name):
-                component_involved = True
-                interface_key = from_port.name
-                if interface_key not in added_outputs:
-                    outputs.append({
-                        "name": from_port.name,
-                        "value": f"$(var output/{to_port.name})",
-                        "msg_type": from_port.msg_type
-                    })
-                    added_outputs.add(interface_key)
-        
-        # For internal to internal connections
-        elif connection_type == ConnectionType.INTERNAL_TO_INTERNAL:
-            # Check if this component is the target (receives input)
-            if (len(to_port.namespace) >= 2 and 
-                to_port.namespace[-1] == component.name):
-                source_component = from_port.namespace[-1] if from_port.namespace else ""
-                interface_key = to_port.name
-                if interface_key not in added_inputs:
-                    inputs.append({
-                        "name": to_port.name,
-                        "value": f"$(var {source_component}/output/{from_port.name})",
-                        "msg_type": to_port.msg_type
-                    })
-                    added_inputs.add(interface_key)
-            
-            # Check if this component is the source (produces output)
-            if (len(from_port.namespace) >= 2 and 
-                from_port.namespace[-1] == component.name):
-                interface_key = from_port.name
-                if interface_key not in added_outputs:
-                    outputs.append({
-                        "name": from_port.name,
-                        "value": f"$(var ns)/{component.name}/{from_port.name}",
-                        "msg_type": from_port.msg_type
-                    })
-                    added_outputs.add(interface_key)
+        _process_link_for_component_interfaces(link, component.name, interface_data)
     
-    return {"inputs": inputs, "outputs": outputs}
+    return {"inputs": interface_data["inputs"], "outputs": interface_data["outputs"]}
 
 
 def _resolve_absolute_topic(port) -> str:
@@ -349,30 +370,37 @@ def _resolve_absolute_topic(port) -> str:
     return f"/default/{port.name}"
 
 
+def _process_link_for_external_interfaces(link, interface_dict: dict) -> None:
+    """Process a single link for external interface collection."""
+    from_port = link.from_port
+    to_port = link.to_port
+    connection_type = link.connection_type
+    
+    if connection_type == ConnectionType.EXTERNAL_TO_INTERNAL:
+        # Resolve absolute topic from the reference chain
+        absolute_topic = _resolve_absolute_topic(from_port)
+        interface_dict["external_inputs"][from_port.name] = absolute_topic
+    elif connection_type == ConnectionType.INTERNAL_TO_EXTERNAL:
+        # Resolve absolute topic from the reference chain
+        absolute_topic = _resolve_absolute_topic(to_port)
+        interface_dict["external_outputs"][to_port.name] = absolute_topic
+
+
 def _collect_namespace_external_interfaces(components: list) -> dict:
     """Collect all external interfaces for a namespace from its components."""
-    external_inputs = {}
-    external_outputs = {}
+    interface_dict = {
+        "external_inputs": {},
+        "external_outputs": {}
+    }
     
     for component in components:
         if hasattr(component, 'link_manager'):
             for link in component.link_manager.get_all_links():
-                from_port = link.from_port
-                to_port = link.to_port
-                connection_type = link.connection_type
-                
-                if connection_type == ConnectionType.EXTERNAL_TO_INTERNAL:
-                    # Resolve absolute topic from the reference chain
-                    absolute_topic = _resolve_absolute_topic(from_port)
-                    external_inputs[from_port.name] = absolute_topic
-                elif connection_type == ConnectionType.INTERNAL_TO_EXTERNAL:
-                    # Resolve absolute topic from the reference chain
-                    absolute_topic = _resolve_absolute_topic(to_port)
-                    external_outputs[to_port.name] = absolute_topic
+                _process_link_for_external_interfaces(link, interface_dict)
     
     return {
-        "external_inputs": [{"name": name, "default_value": topic} for name, topic in sorted(external_inputs.items())],
-        "external_outputs": [{"name": name, "default_value": topic} for name, topic in sorted(external_outputs.items())]
+        "external_inputs": [{"name": name, "default_value": topic} for name, topic in sorted(interface_dict["external_inputs"].items())],
+        "external_outputs": [{"name": name, "default_value": topic} for name, topic in sorted(interface_dict["external_outputs"].items())]
     }
 
 
@@ -380,7 +408,7 @@ def _generate_compute_unit_launcher(compute_unit: str, components: list, output_
     """Generate compute unit launcher file that launches all namespaces in the compute unit."""
     # Compute unit launcher: output_dir/main_ecu/main_ecu.launch.xml
     compute_unit_dir = os.path.join(output_dir, compute_unit)
-    os.makedirs(compute_unit_dir, exist_ok=True)
+    _ensure_directory(compute_unit_dir)
     
     launcher_file = os.path.join(compute_unit_dir, f"{compute_unit.lower()}.launch.xml")
     
@@ -412,26 +440,66 @@ def _generate_compute_unit_launcher(compute_unit: str, components: list, output_
         "namespaces": namespaces_data
     }
     
-    # Generate using template
-    try:
-        renderer = TemplateRenderer()
-        launcher_xml = renderer.render_template('compute_unit_launcher.xml.jinja2', **template_data)
+    _render_template_to_file('compute_unit_launcher.xml.jinja2', launcher_file, template_data)
+
+
+def _process_link_for_namespace_interfaces(link, defined_interfaces: set, current_namespace: str) -> list:
+    """Process a single link for namespace internal interface mapping."""
+    interfaces = []
+    from_port = link.from_port
+    to_port = link.to_port
+    connection_type = link.connection_type
+    
+    # Handle internal to internal connections within this namespace
+    if connection_type == ConnectionType.INTERNAL_TO_INTERNAL:
+        # Check if both ports are within the current namespace
+        from_namespace = from_port.namespace[:-1] if len(from_port.namespace) > 1 else []
+        to_namespace = to_port.namespace[:-1] if len(to_port.namespace) > 1 else []
         
-        with open(launcher_file, "w") as f:
-            f.write(launcher_xml)
+        # Only include if both components are in the current namespace
+        if (len(from_namespace) > 0 and from_namespace[0] == current_namespace and
+            len(to_namespace) > 0 and to_namespace[0] == current_namespace):
             
-        logger.info(f"Generated compute unit launcher: {launcher_file}")
-        
-    except Exception as e:
-        logger.error(f"Failed to generate compute unit launcher {launcher_file}: {e}")
-        raise
+            from_instance_name = from_port.namespace[-1] if from_port.namespace else ""
+            to_instance_name = to_port.namespace[-1] if to_port.namespace else ""
+            
+            # Define the source output (if not already defined)
+            source_interface_key = f"{from_instance_name}/output/{from_port.name}"
+            if source_interface_key not in defined_interfaces:
+                interfaces.append({
+                    "name": source_interface_key,
+                    "value": f"$(var ns)/{from_instance_name}/{from_port.name}"
+                })
+                defined_interfaces.add(source_interface_key)
+            
+            # Define the destination input to reference the source
+            dest_interface_key = f"{to_instance_name}/input/{to_port.name}"
+            if dest_interface_key not in defined_interfaces:
+                interfaces.append({
+                    "name": dest_interface_key,
+                    "value": f"$(var {from_instance_name}/output/{from_port.name})"
+                })
+                defined_interfaces.add(dest_interface_key)
+    
+    return interfaces
+
+
+def _collect_namespace_internal_interfaces(architecture_instance: Instance, namespace: str) -> list:
+    """Collect internal interface mappings for a specific namespace."""
+    def processor_func(link, defined_interfaces):
+        return _process_link_for_namespace_interfaces(link, defined_interfaces, namespace)
+    
+    return _process_links_with_interface_tracking(
+        architecture_instance.link_manager.get_all_links(),
+        processor_func
+    )
 
 
 def _generate_namespace_launcher(compute_unit: str, namespace: str, components: list, output_dir: str, architecture_instance: Instance):
     """Generate namespace launcher file that launches all components in the namespace."""
     # Namespace launcher: output_dir/main_ecu/perception/perception.launch.xml
     namespace_dir = os.path.join(output_dir, compute_unit, namespace)
-    os.makedirs(namespace_dir, exist_ok=True)
+    _ensure_directory(namespace_dir)
     
     # Generate namespace-specific launcher filename
     launcher_file = os.path.join(namespace_dir, f"{namespace}.launch.xml")
@@ -442,45 +510,7 @@ def _generate_namespace_launcher(compute_unit: str, namespace: str, components: 
     external_interfaces = _collect_namespace_external_interfaces(components)
     
     # Collect internal interface mappings from the architecture's link manager
-    internal_interfaces = []
-    defined_interfaces = set()
-    
-    # Use architecture-level links for internal interface mappings
-    for link in architecture_instance.link_manager.get_all_links():
-        from_port = link.from_port
-        to_port = link.to_port
-        connection_type = link.connection_type
-        
-        # Handle internal to internal connections within this namespace
-        if connection_type == ConnectionType.INTERNAL_TO_INTERNAL:
-            # Check if both ports are within the current namespace
-            from_namespace = from_port.namespace[:-1] if len(from_port.namespace) > 1 else []
-            to_namespace = to_port.namespace[:-1] if len(to_port.namespace) > 1 else []
-            
-            # Only include if both components are in the current namespace
-            if (len(from_namespace) > 0 and from_namespace[0] == namespace and
-                len(to_namespace) > 0 and to_namespace[0] == namespace):
-                
-                from_instance_name = from_port.namespace[-1] if from_port.namespace else ""
-                to_instance_name = to_port.namespace[-1] if to_port.namespace else ""
-                
-                # Define the source output (if not already defined)
-                source_interface_key = f"{from_instance_name}/output/{from_port.name}"
-                if source_interface_key not in defined_interfaces:
-                    internal_interfaces.append({
-                        "name": source_interface_key,
-                        "value": f"$(var ns)/{from_instance_name}/{from_port.name}"
-                    })
-                    defined_interfaces.add(source_interface_key)
-                
-                # Define the destination input to reference the source
-                dest_interface_key = f"{to_instance_name}/input/{to_port.name}"
-                if dest_interface_key not in defined_interfaces:
-                    internal_interfaces.append({
-                        "name": dest_interface_key,
-                        "value": f"$(var {from_instance_name}/output/{from_port.name})"
-                    })
-                    defined_interfaces.add(dest_interface_key)
+    internal_interfaces = _collect_namespace_internal_interfaces(architecture_instance, namespace)
     
     # Prepare component data with detailed interface information
     components_data = []
@@ -532,19 +562,7 @@ def _generate_namespace_launcher(compute_unit: str, namespace: str, components: 
         "components": components_data
     }
     
-    # Generate using template
-    try:
-        renderer = TemplateRenderer()
-        launcher_xml = renderer.render_template('namespace_launcher.xml.jinja2', **template_data)
-        
-        with open(launcher_file, "w") as f:
-            f.write(launcher_xml)
-            
-        logger.info(f"Generated namespace launcher: {launcher_file}")
-        
-    except Exception as e:
-        logger.error(f"Failed to generate namespace launcher {launcher_file}: {e}")
-        raise
+    _render_template_to_file('namespace_launcher.xml.jinja2', launcher_file, template_data)
 
 
 def generate_pipeline_launch_file(instance: Instance, output_dir: str):
@@ -574,7 +592,7 @@ def generate_pipeline_launch_file(instance: Instance, output_dir: str):
         # example: deployment/main_ecu/main_ecu.launch.xml
         for compute_unit, components in compute_unit_map.items():
             compute_unit_dir = os.path.join(output_dir, compute_unit)
-            os.makedirs(compute_unit_dir, exist_ok=True)
+            _ensure_directory(compute_unit_dir)
             _generate_compute_unit_launcher(compute_unit, components, output_dir)
 
         # Generate namespace launcher
