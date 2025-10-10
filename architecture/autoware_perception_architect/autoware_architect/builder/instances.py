@@ -35,7 +35,6 @@ class Instance:
         self.namespace: List[str] = namespace.copy()
         # add the instance name to the namespace
         self.namespace.append(name)
-        # create namespace string, FOR ERROR MESSAGE ONLY
         self.namespace_str: str = "/" + "/".join(self.namespace)
         # create unique ID
         self.unique_id = ("__".join(self.namespace) + "__" + name).replace("/", "__")
@@ -86,9 +85,14 @@ class Instance:
             instance_name = cfg_component.get("component")
             element_id = cfg_component.get("element")
             namespace = cfg_component.get("namespace")
+            if namespace:
+                if isinstance(namespace, str):
+                    namespace = namespace.split('/') if '/' in namespace else [namespace]
+            else:
+                namespace = []
 
             # create instance
-            instance = Instance(instance_name, compute_unit_name, [namespace])
+            instance = Instance(instance_name, compute_unit_name, namespace)
             instance.parent = self
             try:
                 instance.set_instances(element_id, config_registry)
@@ -218,7 +222,7 @@ class Instance:
         # delegate to event manager
         self.event_manager.set_event_tree()
 
-    def collect_instance_data(self):
+    def collect_instance_data(self) -> dict:
         data = {
             "name": self.name,
             "unique_id": self.unique_id,

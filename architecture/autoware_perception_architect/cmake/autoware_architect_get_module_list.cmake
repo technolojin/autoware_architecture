@@ -2,7 +2,7 @@
 
 function(autoware_architect_get_module_list)
   # define the path to the shared file
-  set(shared_file "${CMAKE_BINARY_DIR}/../autoware_perception_architect/autoware_architect_yaml_filelist.txt")
+  set(shared_file "${CMAKE_BINARY_DIR}/../autoware_perception_architect/autoware_architect_config_file_list.txt")
 
   # check if the shared file exists
   if(EXISTS ${shared_file})
@@ -10,7 +10,7 @@ function(autoware_architect_get_module_list)
     file(READ ${shared_file} yaml_files_content)
 
     # print the final list of yaml files
-    message("Final autoware_architect_yaml_filelist:\n${yaml_files_content}")
+    message("Final autoware_architect_config_file_list:\n${yaml_files_content}")
   else()
     message("No YAML files collected.")
   endif()

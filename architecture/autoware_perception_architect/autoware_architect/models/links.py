@@ -26,13 +26,15 @@ class ConnectionType(int, Enum):
 
 class Link:
     # Link is a connection between two ports
-    def __init__(self, msg_type: str, from_port: Port, to_port: Port, namespace: List[str] = []):
+    def __init__(self, msg_type: str, from_port: Port, to_port: Port, namespace: List[str] = [], connection_type: ConnectionType = ConnectionType.UNDEFINED):
         self.msg_type: str = msg_type
         # from-port and to-port connection
         self.from_port: Port = from_port
         self.to_port: Port = to_port
         # namespace
         self.namespace: List[str] = namespace
+        # connection type
+        self.connection_type: ConnectionType = connection_type
 
         self.check_connection()
 
@@ -128,7 +130,7 @@ class Connection:
         self.to_instance: str = to_instance
         self.to_port_name: str = to_port_name
 
-    def parse_port_name(self, port_name: str) -> (str, str):  # (instance_name, port_name)
+    def parse_port_name(self, port_name: str) -> tuple[str, str]:  # (instance_name, port_name)
         name_splitted = port_name.split(".")
         if len(name_splitted) == 2:
             if name_splitted[0] == "input":

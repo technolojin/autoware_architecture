@@ -10,7 +10,7 @@ depends:
 nodes:
   - node: roi_cluster_fusion
     element: RoiClusterFusion.module
-  - node: low_intensity_cluster_filter_node
+  - node: low_intensity_cluster_filter
     element: LowIntensityClusterFilter.module
   - node: cluster_merger
     element: ClusterMerger.module
@@ -80,8 +80,8 @@ connections:
     to: roi_cluster_fusion.input.clusters
 
   - from: roi_cluster_fusion.output.clusters
-    to: low_intensity_cluster_filter_node.input.objects
-  - from: low_intensity_cluster_filter_node.output.objects
+    to: low_intensity_cluster_filter.input.objects
+  - from: low_intensity_cluster_filter.output.objects
     to: cluster_merger.input.cluster0
   - from: input.roi_clusters
     to: cluster_merger.input.cluster1

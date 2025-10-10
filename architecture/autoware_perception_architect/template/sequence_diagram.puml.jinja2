@@ -54,14 +54,19 @@ skinparam dpi 128
     {% endif -%}
 {% endmacro -%}
 
-
+''''''''''''''
+''' events '''
+'''        '''
+''''''''''''''
 {% for child in children -%}
-{# events -#}
 {{ build_logic_graph(child) }}
 {% endfor -%}
 
+'''''''''''''''''''
+''' connections '''
+'''             '''
+'''''''''''''''''''
 {% for child in children -%}
-{# event connections -#}
 {{ build_connection_graph(child) }}
 {% endfor -%}
 

@@ -20,3 +20,4 @@ include("${autoware_perception_architect_DIR}/autoware_architect_configure.cmake
 include("${autoware_perception_architect_DIR}/autoware_architect_get_module_list.cmake")
 include("${autoware_perception_architect_DIR}/autoware_architect_build_deploy.cmake")
 include("${autoware_perception_architect_DIR}/autoware_architect_generate_launcher.cmake")
+include("${autoware_perception_architect_DIR}/autoware_architect_parameter.cmake")

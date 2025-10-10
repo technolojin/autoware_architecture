@@ -1,0 +1,86 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Parameters for Detection Class Remapper",
+  "type": "object",
+  "definitions": {
+    "centerpoint": {
+      "type": "object",
+      "properties": {
+        "allow_remapping_by_area_matrix": {
+          "type": "array",
+          "description": "A 8x8 matrix defining remapping rules between object classes based on area. Row represents original class, column represents target class. Classes: UNKNOWN(0), CAR(1), TRUCK(2), BUS(3), TRAILER(4), MOTORBIKE(5), BICYCLE(6), PEDESTRIAN(7).",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "minItems": 64,
+          "maxItems": 64,
+          "default": [
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 1, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0
+          ]
+        },
+        "min_area_matrix": {
+          "type": "array",
+          "description": "A 8x8 matrix defining minimum area thresholds [m²] for remapping between object classes. Classes: UNKNOWN(0), CAR(1), TRUCK(2), BUS(3), TRAILER(4), MOTORBIKE(5), BICYCLE(6), PEDESTRIAN(7).",
+          "items": {
+            "type": "number",
+            "minimum": 0.0
+          },
+          "minItems": 64,
+          "maxItems": 64,
+          "default": [
+            0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000,
+            0.000, 0.000, 12.100, 0.000, 36.000, 0.000, 0.000, 0.000,
+            0.000, 0.000, 0.000, 0.000, 36.000, 0.000, 0.000, 0.000,
+            0.000, 0.000, 0.000, 0.000, 36.000, 0.000, 0.000, 0.000,
+            0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000,
+            0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000,
+            0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000,
+            0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000
+          ]
+        },
+        "max_area_matrix": {
+          "type": "array",
+          "description": "A 8x8 matrix defining maximum area thresholds [m²] for remapping between object classes. Classes: UNKNOWN(0), CAR(1), TRUCK(2), BUS(3), TRAILER(4), MOTORBIKE(5), BICYCLE(6), PEDESTRIAN(7).",
+          "items": {
+            "type": "number",
+            "minimum": 0.0
+          },
+          "minItems": 64,
+          "maxItems": 64,
+          "default": [
+            0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000,
+            0.000, 0.000, 36.000, 0.000, 999.999, 0.000, 0.000, 0.000,
+            0.000, 0.000, 0.000, 0.000, 999.999, 0.000, 0.000, 0.000,
+            0.000, 0.000, 0.000, 0.000, 999.999, 0.000, 0.000, 0.000,
+            0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000,
+            0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000,
+            0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000,
+            0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000
+          ]
+        }
+    },
+    "required": ["allow_remapping_by_area_matrix", "min_area_matrix", "max_area_matrix"]
+  }
+},
+  "properties": {
+    "/**": {
+      "type": "object",
+      "properties": {
+        "ros__parameters": {
+          "$ref": "#/definitions/centerpoint"
+        }
+      },
+      "required": ["ros__parameters"]
+    }
+  },
+  "required": ["/**"]
+}

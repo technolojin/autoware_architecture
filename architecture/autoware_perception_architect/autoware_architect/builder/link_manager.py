@@ -115,7 +115,7 @@ class LinkManager:
                 if connection.to_port_name == "*":
                     for port in port_list:
                         from_port = InPort(port.name, port.msg_type, self.instance.namespace)
-                        link = Link(port.msg_type, from_port, port, self.instance.namespace)
+                        link = Link(port.msg_type, from_port, port, self.instance.namespace, connection.type)
                         self.links.append(link)
                 else:
                     # match the port name
@@ -124,7 +124,7 @@ class LinkManager:
                     from_port = InPort(
                         connection.from_port_name, to_port.msg_type, self.instance.namespace
                     )
-                    link = Link(to_port.msg_type, from_port, to_port, self.instance.namespace)
+                    link = Link(to_port.msg_type, from_port, to_port, self.instance.namespace, connection.type)
                     self.links.append(link)
 
             # case 2. from internal output to internal input
@@ -136,7 +136,7 @@ class LinkManager:
                 from_port = from_instance.link_manager.get_out_port(connection.from_port_name)
                 to_port = to_instance.link_manager.get_in_port(connection.to_port_name)
                 # create link
-                link = Link(from_port.msg_type, from_port, to_port, self.instance.namespace)
+                link = Link(from_port.msg_type, from_port, to_port, self.instance.namespace, connection.type)
                 self.links.append(link)
 
             # case 3. from internal output to external output
@@ -150,7 +150,7 @@ class LinkManager:
                 if connection.from_port_name == "*":
                     for port in port_list:
                         to_port = OutPort(port.name, port.msg_type, self.instance.namespace)
-                        link = Link(port.msg_type, port, to_port, self.instance.namespace)
+                        link = Link(port.msg_type, port, to_port, self.instance.namespace, connection.type)
                         self.links.append(link)
                 else:
                     # match the port name
@@ -159,7 +159,7 @@ class LinkManager:
                     to_port = OutPort(
                         connection.to_port_name, from_port.msg_type, self.instance.namespace
                     )
-                    link = Link(from_port.msg_type, from_port, to_port, self.instance.namespace)
+                    link = Link(from_port.msg_type, from_port, to_port, self.instance.namespace, connection.type)
                     self.links.append(link)
 
     def create_external_ports(self, link_list):

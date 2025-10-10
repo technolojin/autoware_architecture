@@ -1,5 +1,5 @@
 # module information
-name: LidarCenterPoint.module
+name: LidarCenterpoint.module
 
 launch:
   package: autoware_lidar_centerpoint
@@ -23,16 +23,21 @@ outputs:
       reliability: reliable
       durability: transient_local
 parameters:
+  - name: common_param_path
+    default: config/centerpoint_common.param.yaml
+    schema: schema/centerpoint_common.schema.json
   - name: model_param_path
-    default: config/centerpoint_tiny.param.yaml
+    default: config/centerpoint.param.yaml
     schema: schema/centerpoint.schema.json
     allow_substs: true
   - name: ml_package_param_path
-    default: /data/centerpoint_tiny_ml_package.param.yaml
+    default: config/centerpoint_ml_package.param.yaml
     schema: schema/centerpoint_ml_package.schema.json
     allow_substs: true
   - name: class_remapper_param_path
     default: config/detection_class_remapper.param.yaml
+    schema: schema/detection_class_remapper.schema.json
+
 
 # configurations
 configurations:
@@ -40,6 +45,10 @@ configurations:
     type: bool
     default: false
     description: If true, the module will only build the model and exit.
+  - name: logger_name
+    type: str
+    default: $(var node_name)
+    description: The name of the logger for this module.
 
 # processes
 processes:
