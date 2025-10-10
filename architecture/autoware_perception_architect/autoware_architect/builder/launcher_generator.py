@@ -221,96 +221,278 @@ def _generate_launch_file(instance: Instance, output_dir: str, template_data: di
         raise
 
 
-def _generate_compute_unit_launcher_placeholder(compute_unit: str, components: list, output_dir: str):
-    """Generate placeholder launcher file for a compute unit showing which components belong to it."""
-    # Compute unit launcher: output_dir/main_ecu.launch.xml
-    os.makedirs(output_dir, exist_ok=True)
+def _collect_component_interfaces(component: Instance, architecture_instance: Instance) -> dict:
+    """Collect input and output interfaces for a component based on architecture-level connections."""
+    inputs = []
+    outputs = []
     
-    # Generate a placeholder file that shows the compute unit structure
-    placeholder_file = os.path.join(output_dir, f"{compute_unit.lower()}.launch.xml")
+    # Use sets to track already added interfaces to avoid duplicates
+    added_inputs = set()
+    added_outputs = set()
     
-    logger.debug(f"Creating compute unit placeholder launcher: {placeholder_file}")
+    # Access the architecture's link manager to get the actual connections
+    architecture_links = architecture_instance.link_manager.get_all_links()
     
-    with open(placeholder_file, "w") as f:
-        f.write("<?xml version=\"1.0\"?>\n")
-        f.write("<!-- PLACEHOLDER: Compute Unit Launcher -->\n")
-        f.write(f"<!-- Compute Unit: {compute_unit} -->\n")
-        f.write(f"<!-- Components in this compute unit: {len(components)} -->\n")
-        f.write("<launch>\n")
-        f.write(f"  <!-- This launcher will start all components assigned to compute unit: {compute_unit} -->\n")
-        f.write("  \n")
+    for link in architecture_links:
+        from_port = link.from_port
+        to_port = link.to_port
+        connection_type = link.connection_type
         
-        for component in components:
-            f.write(f"  <!-- Component: {component.name} -->\n")
-            f.write(f"  <!--   Type: {component.element_type} -->\n")
-            f.write(f"  <!--   Namespace: {'/'.join(component.namespace[:-1])} -->\n")
-            if hasattr(component, 'configuration') and component.configuration:
-                package_name = _extract_package_name_from_module(component)
-                if package_name:
-                    f.write(f"  <!--   Package: {package_name} -->\n")
-            f.write(f"  <!--   Path: {compute_unit}/{'/'.join(component.namespace[:-1])}/{component.name} -->\n")
-            f.write("  \n")
+        # Check if this link involves the current component
+        component_involved = False
         
-        f.write("  <!-- TODO: Implement actual component launching logic here -->\n")
-        f.write("  <!-- TODO: Add parameter passing and interface mapping -->\n")
-        f.write("</launch>\n")
+        # For external to internal connections
+        if connection_type == ConnectionType.EXTERNAL_TO_INTERNAL:
+            # Check if this component is the target
+            if (len(to_port.namespace) >= 2 and 
+                to_port.namespace[-1] == component.name):
+                component_involved = True
+                interface_key = to_port.name
+                if interface_key not in added_inputs:
+                    inputs.append({
+                        "name": to_port.name,
+                        "value": f"$(var input/{from_port.name})",
+                        "msg_type": to_port.msg_type
+                    })
+                    added_inputs.add(interface_key)
+        
+        # For internal to external connections
+        elif connection_type == ConnectionType.INTERNAL_TO_EXTERNAL:
+            # Check if this component is the source
+            if (len(from_port.namespace) >= 2 and 
+                from_port.namespace[-1] == component.name):
+                component_involved = True
+                interface_key = from_port.name
+                if interface_key not in added_outputs:
+                    outputs.append({
+                        "name": from_port.name,
+                        "value": f"$(var output/{to_port.name})",
+                        "msg_type": from_port.msg_type
+                    })
+                    added_outputs.add(interface_key)
+        
+        # For internal to internal connections
+        elif connection_type == ConnectionType.INTERNAL_TO_INTERNAL:
+            # Check if this component is the target (receives input)
+            if (len(to_port.namespace) >= 2 and 
+                to_port.namespace[-1] == component.name):
+                source_component = from_port.namespace[-1] if from_port.namespace else ""
+                interface_key = to_port.name
+                if interface_key not in added_inputs:
+                    inputs.append({
+                        "name": to_port.name,
+                        "value": f"$(var {source_component}/output/{from_port.name})",
+                        "msg_type": to_port.msg_type
+                    })
+                    added_inputs.add(interface_key)
+            
+            # Check if this component is the source (produces output)
+            if (len(from_port.namespace) >= 2 and 
+                from_port.namespace[-1] == component.name):
+                interface_key = from_port.name
+                if interface_key not in added_outputs:
+                    outputs.append({
+                        "name": from_port.name,
+                        "value": f"$(var ns)/{component.name}/{from_port.name}",
+                        "msg_type": from_port.msg_type
+                    })
+                    added_outputs.add(interface_key)
     
-    logger.info(f"Generated compute unit placeholder launcher: {placeholder_file}")
+    return {"inputs": inputs, "outputs": outputs}
 
 
-def _generate_namespace_launcher_placeholder(compute_unit: str, namespace: str, components: list, output_dir: str):
-    """Generate placeholder launcher file for a namespace showing which components belong to it."""
+def _collect_namespace_external_interfaces(components: list) -> dict:
+    """Collect all external interfaces for a namespace from its components."""
+    external_inputs = set()
+    external_outputs = set()
+    
+    for component in components:
+        if hasattr(component, 'link_manager'):
+            for link in component.link_manager.get_all_links():
+                from_port = link.from_port
+                to_port = link.to_port
+                connection_type = link.connection_type
+                
+                if connection_type == ConnectionType.EXTERNAL_TO_INTERNAL:
+                    external_inputs.add(from_port.name)
+                elif connection_type == ConnectionType.INTERNAL_TO_EXTERNAL:
+                    external_outputs.add(to_port.name)
+    
+    return {
+        "external_inputs": [{"name": name, "default_value": f"/default/{name}"} for name in sorted(external_inputs)],
+        "external_outputs": [{"name": name, "default_value": f"/default/{name}"} for name in sorted(external_outputs)]
+    }
+
+
+def _generate_compute_unit_launcher(compute_unit: str, components: list, output_dir: str):
+    """Generate compute unit launcher file that launches all namespaces in the compute unit."""
+    # Compute unit launcher: output_dir/main_ecu/main_ecu.launch.xml
+    compute_unit_dir = os.path.join(output_dir, compute_unit)
+    os.makedirs(compute_unit_dir, exist_ok=True)
+    
+    launcher_file = os.path.join(compute_unit_dir, f"{compute_unit.lower()}.launch.xml")
+    
+    logger.debug(f"Creating compute unit launcher: {launcher_file}")
+    
+    # Group components by namespace to determine which namespace launchers to include
+    namespace_groups = {}
+    for component in components:
+        namespace = component.namespace[0] if component.namespace else "default"
+        if namespace not in namespace_groups:
+            namespace_groups[namespace] = []
+        namespace_groups[namespace].append(component)
+    
+    # Prepare template data
+    namespaces_data = []
+    for namespace, comps in sorted(namespace_groups.items()):
+        # Collect external interfaces for this namespace
+        external_interfaces = _collect_namespace_external_interfaces(comps)
+        
+        namespace_info = {
+            "namespace": namespace,
+            "component_count": len(comps),
+            "args": []  # TODO: Add namespace-level arguments if needed
+        }
+        namespaces_data.append(namespace_info)
+    
+    template_data = {
+        "compute_unit": compute_unit,
+        "namespaces": namespaces_data
+    }
+    
+    # Generate using template
+    try:
+        renderer = TemplateRenderer()
+        launcher_xml = renderer.render_template('compute_unit_launcher.xml.jinja2', **template_data)
+        
+        with open(launcher_file, "w") as f:
+            f.write(launcher_xml)
+            
+        logger.info(f"Generated compute unit launcher: {launcher_file}")
+        
+    except Exception as e:
+        logger.error(f"Failed to generate compute unit launcher {launcher_file}: {e}")
+        raise
+
+
+def _generate_namespace_launcher(compute_unit: str, namespace: str, components: list, output_dir: str, architecture_instance: Instance):
+    """Generate namespace launcher file that launches all components in the namespace."""
     # Namespace launcher: output_dir/main_ecu/perception/perception.launch.xml
     namespace_dir = os.path.join(output_dir, compute_unit, namespace)
     os.makedirs(namespace_dir, exist_ok=True)
     
     # Generate namespace-specific launcher filename
-    placeholder_file = os.path.join(namespace_dir, f"{namespace}.launch.xml")
+    launcher_file = os.path.join(namespace_dir, f"{namespace}.launch.xml")
     
-    logger.debug(f"Creating namespace placeholder launcher: {placeholder_file}")
+    logger.debug(f"Creating namespace launcher: {launcher_file}")
     
-    with open(placeholder_file, "w") as f:
-        f.write("<?xml version=\"1.0\"?>\n")
-        f.write("<!-- PLACEHOLDER: Namespace Launcher -->\n")
-        f.write(f"<!-- Compute Unit: {compute_unit} -->\n")
-        f.write(f"<!-- Namespace: {namespace} -->\n")
-        f.write(f"<!-- Components in this namespace: {len(components)} -->\n")
-        f.write("<launch>\n")
-        f.write(f"  <!-- This launcher will start all components in namespace: {namespace} -->\n")
-        f.write("  \n")
+    # Collect external interfaces for the namespace
+    external_interfaces = _collect_namespace_external_interfaces(components)
+    
+    # Collect internal interface mappings from the architecture's link manager
+    internal_interfaces = []
+    defined_interfaces = set()
+    
+    # Use architecture-level links for internal interface mappings
+    for link in architecture_instance.link_manager.get_all_links():
+        from_port = link.from_port
+        to_port = link.to_port
+        connection_type = link.connection_type
         
-        for component in components:
-            f.write(f"  <!-- Component: {component.name} -->\n")
-            f.write(f"  <!--   Type: {component.element_type} -->\n")
-            f.write(f"  <!--   Full Namespace: {'/'.join(component.namespace)} -->\n")
-            if hasattr(component, 'configuration') and component.configuration:
-                f.write(f"  <!--   Configuration: {component.configuration.name} -->\n")
-                package_name = _extract_package_name_from_module(component)
-                if package_name:
-                    f.write(f"  <!--   Package: {package_name} -->\n")
+        # Handle internal to internal connections within this namespace
+        if connection_type == ConnectionType.INTERNAL_TO_INTERNAL:
+            # Check if both ports are within the current namespace
+            from_namespace = from_port.namespace[:-1] if len(from_port.namespace) > 1 else []
+            to_namespace = to_port.namespace[:-1] if len(to_port.namespace) > 1 else []
             
-            # Show interface information for this component
-            if hasattr(component, 'link_manager'):
-                input_ports = component.link_manager.get_all_in_ports()
-                output_ports = component.link_manager.get_all_out_ports()
+            # Only include if both components are in the current namespace
+            if (len(from_namespace) > 0 and from_namespace[0] == namespace and
+                len(to_namespace) > 0 and to_namespace[0] == namespace):
                 
-                if input_ports:
-                    f.write(f"  <!--   Input Interfaces: -->\n")
-                    for port in input_ports:
-                        f.write(f"  <!--     - {port.name} ({port.msg_type}) -->\n")
+                from_instance_name = from_port.namespace[-1] if from_port.namespace else ""
+                to_instance_name = to_port.namespace[-1] if to_port.namespace else ""
                 
-                if output_ports:
-                    f.write(f"  <!--   Output Interfaces: -->\n")
-                    for port in output_ports:
-                        f.write(f"  <!--     - {port.name} ({port.msg_type}) -->\n")
-            f.write("  \n")
-        
-        f.write("  <!-- TODO: Implement actual namespace launching logic here -->\n")
-        f.write("  <!-- TODO: Add component inclusion and parameter passing -->\n")
-        f.write("  <!-- TODO: Add interface remapping between components -->\n")
-        f.write("</launch>\n")
+                # Define the source output (if not already defined)
+                source_interface_key = f"{from_instance_name}/output/{from_port.name}"
+                if source_interface_key not in defined_interfaces:
+                    internal_interfaces.append({
+                        "name": source_interface_key,
+                        "value": f"$(var ns)/{from_instance_name}/{from_port.name}"
+                    })
+                    defined_interfaces.add(source_interface_key)
+                
+                # Define the destination input to reference the source
+                dest_interface_key = f"{to_instance_name}/input/{to_port.name}"
+                if dest_interface_key not in defined_interfaces:
+                    internal_interfaces.append({
+                        "name": dest_interface_key,
+                        "value": f"$(var {from_instance_name}/output/{from_port.name})"
+                    })
+                    defined_interfaces.add(dest_interface_key)
     
-    logger.info(f"Generated namespace placeholder launcher: {placeholder_file}")
+    # Prepare component data with detailed interface information
+    components_data = []
+    for component in components:
+        # Get interfaces for this component using architecture-level connections
+        component_interfaces = _collect_component_interfaces(component, architecture_instance)
+        
+        # Determine the component's namespace path for pipeline includes
+        if len(component.namespace) > 1:
+            # Remove the component name from namespace for path calculation
+            component_namespace_path = "/".join(component.namespace[:-1])
+        else:
+            component_namespace_path = ""
+        
+        # Prepare component data
+        component_data = {
+            "name": component.name,
+            "element_type": component.element_type,
+            "inputs": component_interfaces["inputs"],
+            "outputs": component_interfaces["outputs"],
+            "args": [],  # Additional arguments can be added here
+            "namespace_path": component_namespace_path
+        }
+        
+        if component.element_type == "module":
+            package_name = _extract_package_name_from_module(component)
+            component_data.update({
+                "package": package_name,
+                "launcher_file": _get_launcher_filename(component.configuration.name) if component.configuration else f"{component.name}.launch.xml"
+            })
+        elif component.element_type == "pipeline":
+            # For pipelines, construct the path correctly
+            pipeline_path_parts = component.namespace[:-1]  # Exclude component name
+            pipeline_path = "/".join(pipeline_path_parts) if pipeline_path_parts else component.name
+            component_data.update({
+                "namespace_path": pipeline_path,
+                "launcher_file": _convert_to_snake_case(component.configuration.name) + ".launch.xml" if component.configuration else f"{component.name}.launch.xml"
+            })
+        
+        components_data.append(component_data)
+    
+    # Prepare template data
+    template_data = {
+        "compute_unit": compute_unit,
+        "namespace": namespace,
+        "external_inputs": external_interfaces["external_inputs"],
+        "external_outputs": external_interfaces["external_outputs"],
+        "internal_interfaces": internal_interfaces,
+        "components": components_data
+    }
+    
+    # Generate using template
+    try:
+        renderer = TemplateRenderer()
+        launcher_xml = renderer.render_template('namespace_launcher.xml.jinja2', **template_data)
+        
+        with open(launcher_file, "w") as f:
+            f.write(launcher_xml)
+            
+        logger.info(f"Generated namespace launcher: {launcher_file}")
+        
+    except Exception as e:
+        logger.error(f"Failed to generate namespace launcher {launcher_file}: {e}")
+        raise
 
 
 def generate_pipeline_launch_file(instance: Instance, output_dir: str):
@@ -341,13 +523,13 @@ def generate_pipeline_launch_file(instance: Instance, output_dir: str):
         for compute_unit, components in compute_unit_map.items():
             compute_unit_dir = os.path.join(output_dir, compute_unit)
             os.makedirs(compute_unit_dir, exist_ok=True)
-            _generate_compute_unit_launcher_placeholder(compute_unit, components, compute_unit_dir)
+            _generate_compute_unit_launcher(compute_unit, components, output_dir)
 
         # Generate namespace launcher
         # the interfaces this level are deterministic, already defined in the Instance input.
         # example: deployment/main_ecu/perception/perception.launch.xml
         for (compute_unit, namespace), components in namespace_map.items():
-            _generate_namespace_launcher_placeholder(compute_unit, namespace, components, output_dir)
+            _generate_namespace_launcher(compute_unit, namespace, components, output_dir, instance)
 
         # recursively call children pipelines/modules
         for child in instance.children.values():
