@@ -15,7 +15,7 @@
 import os
 import re
 import logging
-from .instances import Instance, DeploymentInstance
+from .instances import Instance
 from ..template_utils import TemplateRenderer
 from ..models.links import ConnectionType
 
@@ -78,10 +78,9 @@ def _get_launcher_filename(module_name: str) -> str:
 
 def _extract_package_name_from_module(instance: Instance) -> str:
     """Extract package name from module configuration."""
-    if instance.element_type == "module" and instance.configuration:
-        launch_config = instance.configuration.launch
-        if launch_config and isinstance(launch_config, dict):
-            return launch_config.get("package", "")
+    launch_config = instance.configuration.launch
+    if launch_config and isinstance(launch_config, dict):
+        return launch_config["package"]
     return ""
 
 
@@ -89,7 +88,7 @@ def _extract_external_interfaces(instance: Instance, interface_type: str) -> lis
     """Extract external interfaces from instance configuration."""
     interfaces = []
     
-    if instance.configuration and instance.configuration.external_interfaces:
+    if instance.configuration.external_interfaces:
         ext_interfaces = instance.configuration.external_interfaces
         
         if interface_type in ext_interfaces:
@@ -110,7 +109,7 @@ def _process_link_for_internal_interfaces(link, defined_interfaces: set) -> list
     
     # Handle external input to internal input
     if connection_type == ConnectionType.EXTERNAL_TO_INTERNAL:
-        child_instance_name = to_port.namespace[-1] if to_port.namespace else ""
+        child_instance_name = to_port.namespace[-1]
         interface_key = f"{child_instance_name}/input/{to_port.name}"
         if interface_key not in defined_interfaces:
             interfaces.append({
@@ -121,7 +120,7 @@ def _process_link_for_internal_interfaces(link, defined_interfaces: set) -> list
     
     # Handle internal output to external output
     elif connection_type == ConnectionType.INTERNAL_TO_EXTERNAL:
-        child_instance_name = from_port.namespace[-1] if from_port.namespace else ""
+        child_instance_name = from_port.namespace[-1]
         interface_key = f"{child_instance_name}/output/{from_port.name}"
         if interface_key not in defined_interfaces:
             interfaces.append({
@@ -132,8 +131,8 @@ def _process_link_for_internal_interfaces(link, defined_interfaces: set) -> list
     
     # Handle internal to internal connections
     elif connection_type == ConnectionType.INTERNAL_TO_INTERNAL:
-        from_instance_name = from_port.namespace[-1] if from_port.namespace else ""
-        to_instance_name = to_port.namespace[-1] if to_port.namespace else ""
+        from_instance_name = from_port.namespace[-1]
+        to_instance_name = to_port.namespace[-1]
         
         # Define the source output (if not already defined)
         source_interface_key = f"{from_instance_name}/output/{from_port.name}"
@@ -208,8 +207,8 @@ def _generate_node_args(instance: Instance, child_name: str) -> list:
     defined_args = set()
     
     for link in instance.link_manager.get_all_links():
-        from_instance = link.from_port.namespace[-1] if link.from_port.namespace else ""
-        to_instance = link.to_port.namespace[-1] if link.to_port.namespace else ""
+        from_instance = link.from_port.namespace[-1]
+        to_instance = link.to_port.namespace[-1]
         
         # Add output arg if child is source
         if from_instance == child_name:
@@ -281,7 +280,7 @@ def _process_link_for_component_interfaces(link, component_name: str, interface_
         # Check if this component is the target (receives input)
         if (len(to_port.namespace) >= 2 and 
             to_port.namespace[-1] == component_name):
-            source_component = from_port.namespace[-1] if from_port.namespace else ""
+            source_component = from_port.namespace[-1]
             interface_key = to_port.name
             if interface_key not in interface_data["added_inputs"]:
                 interface_data["inputs"].append({
@@ -361,7 +360,7 @@ def _resolve_absolute_topic(port) -> str:
     
     # Fallback to constructing from namespace and name
     if hasattr(port, 'namespace') and hasattr(port, 'name'):
-        if hasattr(port, 'namespace') and port.namespace:
+        if port.namespace:
             return "/" + "/".join(port.namespace + [port.name])
         else:
             return "/" + port.name
@@ -417,7 +416,7 @@ def _generate_compute_unit_launcher(compute_unit: str, components: list, output_
     # Group components by namespace to determine which namespace launchers to include
     namespace_groups = {}
     for component in components:
-        namespace = component.namespace[0] if component.namespace else "default"
+        namespace = component.namespace[0]
         if namespace not in namespace_groups:
             namespace_groups[namespace] = []
         namespace_groups[namespace].append(component)
@@ -460,8 +459,8 @@ def _process_link_for_namespace_interfaces(link, defined_interfaces: set, curren
         if (len(from_namespace) > 0 and from_namespace[0] == current_namespace and
             len(to_namespace) > 0 and to_namespace[0] == current_namespace):
             
-            from_instance_name = from_port.namespace[-1] if from_port.namespace else ""
-            to_instance_name = to_port.namespace[-1] if to_port.namespace else ""
+            from_instance_name = from_port.namespace[-1]
+            to_instance_name = to_port.namespace[-1]
             
             # Define the source output (if not already defined)
             source_interface_key = f"{from_instance_name}/output/{from_port.name}"
@@ -525,18 +524,14 @@ def _generate_namespace_launcher(compute_unit: str, namespace: str, components: 
         
         logger.debug(f"Component {component.name}: namespace={component.namespace}, len={len(component.namespace)}")
         
-        if len(component.namespace) > 1:
-            # Remove the component name from namespace for path calculation
-            component_namespace_path = "/".join(component.namespace[:-1])
-            # Calculate remaining namespace path after the top-level namespace
-            # Skip the first element (top-level namespace) and last element (component name)
-            if len(component.namespace) > 2:
-                remaining_namespace_path = "/".join(component.namespace[1:-1])
-            else:
-                # Only 2 elements: [top_namespace, component_name] - no remaining path
-                remaining_namespace_path = ""
+        # Remove the component name from namespace for path calculation
+        component_namespace_path = "/".join(component.namespace[:-1])
+        # Calculate remaining namespace path after the top-level namespace
+        # Skip the first element (top-level namespace) and last element (component name)
+        if len(component.namespace) > 2:
+            remaining_namespace_path = "/".join(component.namespace[1:-1])
         else:
-            component_namespace_path = ""
+            # Only 2 elements: [top_namespace, component_name] - no remaining path
             remaining_namespace_path = ""
             
         logger.debug(f"Component {component.name}: component_namespace_path='{component_namespace_path}', remaining_namespace_path='{remaining_namespace_path}'")
@@ -556,7 +551,7 @@ def _generate_namespace_launcher(compute_unit: str, namespace: str, components: 
             package_name = _extract_package_name_from_module(component)
             component_data.update({
                 "package": package_name,
-                "launcher_file": _get_launcher_filename(component.configuration.name) if component.configuration else f"{component.name}.launch.xml"
+                "launcher_file": _get_launcher_filename(component.configuration.name)
             })
         elif component.element_type == "pipeline":
             # For pipelines, construct the path correctly
@@ -564,7 +559,7 @@ def _generate_namespace_launcher(compute_unit: str, namespace: str, components: 
             pipeline_path = "/".join(pipeline_path_parts) if pipeline_path_parts else component.name
             component_data.update({
                 "namespace_path": pipeline_path,
-                "launcher_file": _convert_to_snake_case(component.configuration.name) + ".launch.xml" if component.configuration else f"{component.name}.launch.xml"
+                "launcher_file": _convert_to_snake_case(component.configuration.name) + ".launch.xml"
             })
         
         components_data.append(component_data)
@@ -586,7 +581,6 @@ def generate_pipeline_launch_file(instance: Instance, output_dir: str):
     logger.debug(f"Generating launcher for {instance.name} (type: {instance.element_type}) in {output_dir}")
     
     if instance.element_type == "architecture":
-
         # parse children to extract compute units
         # collect components per compute unit
         # for each compute unit, create a directory and generate a launcher
@@ -598,32 +592,25 @@ def generate_pipeline_launch_file(instance: Instance, output_dir: str):
         # Group components by compute unit and namespace
         namespace_map = {}
         for child in instance.children.values():
-            key = (child.compute_unit, child.namespace[0] if child.namespace else "default")
+            key = (child.compute_unit, child.namespace[0])
             if key not in namespace_map:
                 namespace_map[key] = []
             namespace_map[key].append(child)
 
         # Generate compute unit launcher
-        # the compute unit launcher launches all components assigned to that compute unit
-        # no arguments or interfaces are needed at this level
-        # example: deployment/main_ecu/main_ecu.launch.xml
         for compute_unit, components in compute_unit_map.items():
-            compute_unit_dir = os.path.join(output_dir, compute_unit)
-            _ensure_directory(compute_unit_dir)
             _generate_compute_unit_launcher(compute_unit, components, output_dir)
 
         # Generate namespace launcher
-        # the interfaces this level are deterministic, already defined in the Instance input.
-        # example: deployment/main_ecu/perception/perception.launch.xml
         for (compute_unit, namespace), components in namespace_map.items():
             _generate_namespace_launcher(compute_unit, namespace, components, output_dir, instance)
 
         # recursively call children pipelines/modules
         for child in instance.children.values():
             # Recursively call children pipelines/modules
-            name_parts = child.name.split('/')
             path = os.path.join(output_dir,  child.compute_unit, *child.namespace)
             generate_pipeline_launch_file(child, path)
+
     elif instance.element_type == "pipeline":
         # Use existing configuration data with simplified extraction
         external_inputs = _extract_external_interfaces(instance, "input")
@@ -656,6 +643,4 @@ def generate_pipeline_launch_file(instance: Instance, output_dir: str):
                 generate_pipeline_launch_file(child, child_path)
     elif instance.element_type == "module":
         # module launch files are already generated on each package build process
-        return
-    else:
-        raise ValueError(f"Invalid element type: {instance.element_type}")# example: deployment/main_ecu.launch.xml
+        return# example: deployment/main_ecu.launch.xml
