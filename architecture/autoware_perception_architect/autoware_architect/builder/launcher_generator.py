@@ -51,17 +51,192 @@ def _extract_package_name_from_module(instance: Instance) -> str:
     return ""
 
 
+def _extract_external_interfaces(instance: Instance, interface_type: str) -> list:
+    """Extract external interfaces from instance configuration."""
+    interfaces = []
+    
+    if instance.configuration and instance.configuration.external_interfaces:
+        ext_interfaces = instance.configuration.external_interfaces
+        
+        if interface_type in ext_interfaces:
+            for interface in ext_interfaces[interface_type]:
+                interfaces.append({
+                    "name": interface.get("name", "")
+                })
+    
+    return interfaces
+
+
+def _generate_internal_interfaces(instance: Instance) -> list:
+    """Generate internal interface mappings based on processed links."""
+    internal_interfaces = []
+    defined_interfaces = set()
+    
+    # Use the already processed links from LinkManager
+    for link in instance.link_manager.get_all_links():
+        from_port = link.from_port
+        to_port = link.to_port
+        
+        # Determine connection type based on port types and namespaces
+        is_from_external = from_port.namespace == instance.namespace
+        is_to_external = to_port.namespace == instance.namespace
+        
+        # Handle external input to internal input (from_port is external, to_port is internal)
+        if is_from_external and not is_to_external:
+            # Extract child instance name from to_port namespace
+            child_instance_name = to_port.namespace[-1] if to_port.namespace else ""
+            interface_key = f"{child_instance_name}/input/{to_port.name}"
+            if interface_key not in defined_interfaces:
+                internal_interfaces.append({
+                    "name": interface_key,
+                    "value": f"$(var input/{from_port.name})"
+                })
+                defined_interfaces.add(interface_key)
+        
+        # Handle internal output to external output (from_port is internal, to_port is external)
+        elif not is_from_external and is_to_external:
+            # Extract child instance name from from_port namespace
+            child_instance_name = from_port.namespace[-1] if from_port.namespace else ""
+            interface_key = f"{child_instance_name}/output/{from_port.name}"
+            if interface_key not in defined_interfaces:
+                internal_interfaces.append({
+                    "name": interface_key,
+                    "value": f"$(var output/{to_port.name})"
+                })
+                defined_interfaces.add(interface_key)
+        
+        # Handle internal to internal connections (both ports are internal)
+        elif not is_from_external and not is_to_external:
+            # Extract child instance names from port namespaces
+            from_instance_name = from_port.namespace[-1] if from_port.namespace else ""
+            to_instance_name = to_port.namespace[-1] if to_port.namespace else ""
+            
+            # Define the source output (if not already defined)
+            source_interface_key = f"{from_instance_name}/output/{from_port.name}"
+            if source_interface_key not in defined_interfaces:
+                internal_interfaces.append({
+                    "name": source_interface_key,
+                    "value": f"$(var ns)/{from_instance_name}/{from_port.name}"
+                })
+                defined_interfaces.add(source_interface_key)
+            
+            # Define the destination input to reference the source
+            dest_interface_key = f"{to_instance_name}/input/{to_port.name}"
+            if dest_interface_key not in defined_interfaces:
+                internal_interfaces.append({
+                    "name": dest_interface_key,
+                    "value": f"$(var {from_instance_name}/output/{from_port.name})"
+                })
+                defined_interfaces.add(dest_interface_key)
+    
+    return internal_interfaces
+
+
+def _process_child_nodes(instance: Instance) -> list:
+    """Process child nodes using instance hierarchy."""
+    nodes = []
+    
+    for child_name, child_instance in instance.children.items():
+        if child_instance.element_type == "module":
+            package_name = _extract_package_name_from_module(child_instance)
+            launcher_file = _get_launcher_filename(child_instance.configuration.name)
+            
+            # Generate arguments for this node based on configuration connections
+            node_args = _generate_node_args(instance, child_name)
+            
+            nodes.append({
+                "name": child_name,
+                "package": package_name,
+                "launcher_file": launcher_file,
+                "args": node_args
+            })
+            
+        elif child_instance.element_type == "pipeline":
+            # Handle pipeline children
+            child_launcher_file = _convert_to_snake_case(child_instance.name) + ".launch.xml"
+            child_pipeline_path = f"{child_name}/{child_launcher_file}"
+            
+            # Generate arguments for this child pipeline based on configuration connections
+            node_args = _generate_node_args(instance, child_name)
+            
+            nodes.append({
+                "name": child_name,
+                "package": None,  # Pipelines don't have packages
+                "launcher_file": child_pipeline_path,
+                "args": node_args,
+                "is_pipeline": True  # Flag to distinguish from modules
+            })
+    
+    return nodes
+
+
+def _generate_node_args(instance: Instance, child_name: str) -> list:
+    """Generate arguments for a child node based on connections."""
+    node_args = []
+    defined_args = set()  # Track already defined arguments to avoid duplicates
+    
+    # Use the processed links instead of raw configuration
+    for link in instance.link_manager.get_all_links():
+        from_port = link.from_port
+        to_port = link.to_port
+        
+        # Check if this link involves the current child
+        from_instance_name = from_port.namespace[-1] if from_port.namespace and len(from_port.namespace) > 0 else ""
+        to_instance_name = to_port.namespace[-1] if to_port.namespace and len(to_port.namespace) > 0 else ""
+        
+        # If this child is the source (output)
+        if from_instance_name == child_name:
+            arg_name = f"output/{from_port.name}"
+            if arg_name not in defined_args:
+                node_args.append({
+                    "name": arg_name,
+                    "value": f"$(var {child_name}/output/{from_port.name})"
+                })
+                defined_args.add(arg_name)
+        
+        # If this child is the destination (input)
+        if to_instance_name == child_name:
+            arg_name = f"input/{to_port.name}"
+            if arg_name not in defined_args:
+                node_args.append({
+                    "name": arg_name,
+                    "value": f"$(var {child_name}/input/{to_port.name})"
+                })
+                defined_args.add(arg_name)
+    
+    return node_args
+
+
+def _generate_launch_file(instance: Instance, output_dir: str, template_data: dict):
+    """Generate the launch file using template."""
+    os.makedirs(output_dir, exist_ok=True)
+    launch_filename = _convert_to_snake_case(instance.name) + ".launch.xml"
+    output_file_path = os.path.join(output_dir, launch_filename)
+    
+    logger.debug(f"Creating launcher file: {output_file_path}")
+    
+    # Ensure the directory exists for the output file
+    os.makedirs(os.path.dirname(output_file_path), exist_ok=True)
+    
+    try:
+        renderer = TemplateRenderer()
+        launcher_xml = renderer.render_template('pipeline_launcher.xml.jinja2', **template_data)
+        
+        with open(output_file_path, "w") as f:
+            f.write(launcher_xml)
+            
+        logger.info(f"Successfully generated launcher: {output_file_path}")
+        
+    except Exception as e:
+        logger.error(f"Failed to generate launcher {output_file_path}: {e}")
+        raise
+
+
 def generate_pipeline_launch_file(instance: Instance, output_dir: str):
     logger.debug(f"Generating launcher for {instance.name} (type: {instance.element_type}) in {output_dir}")
     
     if instance.element_type == "architecture":
-        # generate current architecture launch file
-        # launcher per compute_unit
-        # For architecture, we assume children are pipelines or modules under compute units
-        # We will create a directory for each compute unit and generate launchers there
-    
-
-        # recursively call children pipelines
+        # recursively call children pipelines/modules
         for child in instance.children.values():
             # Split component name by slashes and use only the resulting parts as path
             name_parts = child.name.split('/')
@@ -71,191 +246,15 @@ def generate_pipeline_launch_file(instance: Instance, output_dir: str):
             path = os.path.join(output_dir, *path_parts)
             generate_pipeline_launch_file(child, path)
     elif instance.element_type == "pipeline":
-        # generate current pipeline launch file
-        pipeline_launch_dict = {}
-        pipeline_launch_dict["pipeline_name"] = instance.name
+        # Use existing configuration data with simplified extraction
+        external_inputs = _extract_external_interfaces(instance, "input")
+        external_outputs = _extract_external_interfaces(instance, "output")
         
-        # Extract external interfaces
-        external_inputs = []
-        external_outputs = []
+        # Generate internal interface mappings using existing connection data
+        internal_interfaces = _generate_internal_interfaces(instance)
         
-        if instance.configuration and instance.configuration.external_interfaces:
-            ext_interfaces = instance.configuration.external_interfaces
-            
-            # Process external inputs
-            if "input" in ext_interfaces:
-                for input_interface in ext_interfaces["input"]:
-                    external_inputs.append({
-                        "name": input_interface.get("name", "")
-                    })
-            
-            # Process external outputs  
-            if "output" in ext_interfaces:
-                for output_interface in ext_interfaces["output"]:
-                    external_outputs.append({
-                        "name": output_interface.get("name", "")
-                    })
-        
-        # Generate internal interface mappings based on connections
-        internal_interfaces = []
-        defined_interfaces = set()  # Track already defined interfaces to avoid duplicates
-        
-        # Create internal interface mappings based on the pipeline configuration connections
-        if instance.configuration and instance.configuration.connections:
-            for connection in instance.configuration.connections:
-                from_part = connection.get("from", "")
-                to_part = connection.get("to", "")
-                
-                # Parse the from and to parts
-                if "." in from_part and "." in to_part:
-                    from_parts = from_part.split(".")
-                    to_parts = to_part.split(".")
-                    
-                    if len(from_parts) >= 2 and len(to_parts) >= 2:
-                        from_instance = from_parts[0]
-                        from_port = ".".join(from_parts[1:])
-                        to_instance = to_parts[0]
-                        to_port = ".".join(to_parts[1:])
-                        
-                        # Convert dots to slashes for proper ROS naming
-                        from_port_ros = from_port.replace(".", "/")
-                        to_port_ros = to_port.replace(".", "/")
-                        
-                        # Handle external input to internal input
-                        if from_instance == "input":
-                            interface_key = f"{to_instance}/{to_port_ros}"
-                            if interface_key not in defined_interfaces:
-                                internal_interfaces.append({
-                                    "name": interface_key,
-                                    "value": f"$(var input/{from_port_ros})"
-                                })
-                                defined_interfaces.add(interface_key)
-                        
-                        # Handle internal output to external output  
-                        elif to_instance == "output":
-                            interface_key = f"{from_instance}/{from_port_ros}"
-                            if interface_key not in defined_interfaces:
-                                internal_interfaces.append({
-                                    "name": interface_key,
-                                    "value": f"$(var output/{to_port_ros})"
-                                })
-                                defined_interfaces.add(interface_key)
-                        
-                        # Handle internal to internal connections
-                        else:
-                            # Define the source output (only if not already defined)
-                            source_interface_key = f"{from_instance}/{from_port_ros}"
-                            if source_interface_key not in defined_interfaces:
-                                internal_interfaces.append({
-                                    "name": source_interface_key,
-                                    "value": f"$(var ns)/{from_instance}/objects"
-                                })
-                                defined_interfaces.add(source_interface_key)
-                            
-                            # Define the destination input to reference the source
-                            dest_interface_key = f"{to_instance}/{to_port_ros}"
-                            if dest_interface_key not in defined_interfaces:
-                                internal_interfaces.append({
-                                    "name": dest_interface_key,
-                                    "value": f"$(var {from_instance}/{from_port_ros})"
-                                })
-                                defined_interfaces.add(dest_interface_key)
-        
-        # Process child nodes
-        nodes = []
-        for child_name, child_instance in instance.children.items():
-            if child_instance.element_type == "module":
-                package_name = _extract_package_name_from_module(child_instance)
-                launcher_file = _get_launcher_filename(child_instance.configuration.name)
-                
-                # Generate arguments for this node based on configuration connections
-                node_args = []
-                
-                # Find all connections involving this node
-                if instance.configuration and instance.configuration.connections:
-                    for connection in instance.configuration.connections:
-                        from_part = connection.get("from", "")
-                        to_part = connection.get("to", "")
-                        
-                        # Check if this connection involves the current child node
-                        if "." in from_part:
-                            from_parts = from_part.split(".")
-                            if len(from_parts) >= 2 and from_parts[0] == child_name:
-                                # This node is the source
-                                port_path = ".".join(from_parts[1:])
-                                # Convert dots to slashes for proper ROS naming
-                                port_path_ros = port_path.replace(".", "/")
-                                node_args.append({
-                                    "name": port_path_ros,
-                                    "value": f"$(var {child_name}/{port_path_ros})"
-                                })
-                        
-                        if "." in to_part:
-                            to_parts = to_part.split(".")
-                            if len(to_parts) >= 2 and to_parts[0] == child_name:
-                                # This node is the destination
-                                port_path = ".".join(to_parts[1:])
-                                # Convert dots to slashes for proper ROS naming
-                                port_path_ros = port_path.replace(".", "/")
-                                node_args.append({
-                                    "name": port_path_ros,
-                                    "value": f"$(var {child_name}/{port_path_ros})"
-                                })
-                
-                nodes.append({
-                    "name": child_name,
-                    "package": package_name,
-                    "launcher_file": launcher_file,
-                    "args": node_args
-                })
-                
-            elif child_instance.element_type == "pipeline":
-                # Handle pipeline children
-                child_launcher_file = _convert_to_snake_case(child_instance.name) + ".launch.xml"
-                # Child pipelines are in subdirectories, so we need to construct the relative path
-                child_pipeline_path = f"{child_name}/{child_launcher_file}"
-                
-                # Generate arguments for this child pipeline based on configuration connections
-                node_args = []
-                
-                # Find all connections involving this child pipeline
-                if instance.configuration and instance.configuration.connections:
-                    for connection in instance.configuration.connections:
-                        from_part = connection.get("from", "")
-                        to_part = connection.get("to", "")
-                        
-                        # Check if this connection involves the current child pipeline
-                        if "." in from_part:
-                            from_parts = from_part.split(".")
-                            if len(from_parts) >= 2 and from_parts[0] == child_name:
-                                # This pipeline is the source
-                                port_path = ".".join(from_parts[1:])
-                                # Convert dots to slashes for proper ROS naming
-                                port_path_ros = port_path.replace(".", "/")
-                                node_args.append({
-                                    "name": port_path_ros,
-                                    "value": f"$(var {child_name}/{port_path_ros})"
-                                })
-                        
-                        if "." in to_part:
-                            to_parts = to_part.split(".")
-                            if len(to_parts) >= 2 and to_parts[0] == child_name:
-                                # This pipeline is the destination
-                                port_path = ".".join(to_parts[1:])
-                                # Convert dots to slashes for proper ROS naming
-                                port_path_ros = port_path.replace(".", "/")
-                                node_args.append({
-                                    "name": port_path_ros,
-                                    "value": f"$(var {child_name}/{port_path_ros})"
-                                })
-                
-                nodes.append({
-                    "name": child_name,
-                    "package": None,  # Pipelines don't have packages
-                    "launcher_file": child_pipeline_path,
-                    "args": node_args,
-                    "is_pipeline": True  # Flag to distinguish from modules
-                })
+        # Process child nodes using existing instance hierarchy
+        nodes = _process_child_nodes(instance)
         
         # Prepare template data
         template_data = {
@@ -266,27 +265,7 @@ def generate_pipeline_launch_file(instance: Instance, output_dir: str):
         }
         
         # Generate launch file using template
-        os.makedirs(output_dir, exist_ok=True)
-        launch_filename = _convert_to_snake_case(instance.name) + ".launch.xml"
-        output_file_path = os.path.join(output_dir, launch_filename)
-        
-        logger.debug(f"Creating launcher file: {output_file_path}")
-        
-        # Ensure the directory exists for the output file
-        os.makedirs(os.path.dirname(output_file_path), exist_ok=True)
-        
-        try:
-            renderer = TemplateRenderer()
-            launcher_xml = renderer.render_template('pipeline_launcher.xml.jinja2', **template_data)
-            
-            with open(output_file_path, "w") as f:
-                f.write(launcher_xml)
-                
-            logger.info(f"Successfully generated launcher: {output_file_path}")
-            
-        except Exception as e:
-            logger.error(f"Failed to generate launcher {output_file_path}: {e}")
-            raise
+        _generate_launch_file(instance, output_dir, template_data)
 
         # recursively call children pipelines
         for child in instance.children.values():
