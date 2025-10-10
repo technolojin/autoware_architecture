@@ -17,6 +17,7 @@ import re
 import logging
 from .instances import Instance, DeploymentInstance
 from ..template_utils import TemplateRenderer
+from ..models.links import ConnectionType
 
 logger = logging.getLogger(__name__)
 
@@ -77,12 +78,11 @@ def _generate_internal_interfaces(instance: Instance) -> list:
         from_port = link.from_port
         to_port = link.to_port
         
-        # Determine connection type based on port types and namespaces
-        is_from_external = from_port.namespace == instance.namespace
-        is_to_external = to_port.namespace == instance.namespace
+        # Use the stored connection type instead of re-determining it
+        connection_type = link.connection_type
         
-        # Handle external input to internal input (from_port is external, to_port is internal)
-        if is_from_external and not is_to_external:
+        # Handle external input to internal input
+        if connection_type == ConnectionType.EXTERNAL_TO_INTERNAL:
             # Extract child instance name from to_port namespace
             child_instance_name = to_port.namespace[-1] if to_port.namespace else ""
             interface_key = f"{child_instance_name}/input/{to_port.name}"
@@ -93,8 +93,8 @@ def _generate_internal_interfaces(instance: Instance) -> list:
                 })
                 defined_interfaces.add(interface_key)
         
-        # Handle internal output to external output (from_port is internal, to_port is external)
-        elif not is_from_external and is_to_external:
+        # Handle internal output to external output
+        elif connection_type == ConnectionType.INTERNAL_TO_EXTERNAL:
             # Extract child instance name from from_port namespace
             child_instance_name = from_port.namespace[-1] if from_port.namespace else ""
             interface_key = f"{child_instance_name}/output/{from_port.name}"
@@ -105,8 +105,8 @@ def _generate_internal_interfaces(instance: Instance) -> list:
                 })
                 defined_interfaces.add(interface_key)
         
-        # Handle internal to internal connections (both ports are internal)
-        elif not is_from_external and not is_to_external:
+        # Handle internal to internal connections
+        elif connection_type == ConnectionType.INTERNAL_TO_INTERNAL:
             # Extract child instance names from port namespaces
             from_instance_name = from_port.namespace[-1] if from_port.namespace else ""
             to_instance_name = to_port.namespace[-1] if to_port.namespace else ""
@@ -173,35 +173,24 @@ def _process_child_nodes(instance: Instance) -> list:
 def _generate_node_args(instance: Instance, child_name: str) -> list:
     """Generate arguments for a child node based on connections."""
     node_args = []
-    defined_args = set()  # Track already defined arguments to avoid duplicates
+    defined_args = set()
     
-    # Use the processed links instead of raw configuration
     for link in instance.link_manager.get_all_links():
-        from_port = link.from_port
-        to_port = link.to_port
+        from_instance = link.from_port.namespace[-1] if link.from_port.namespace else ""
+        to_instance = link.to_port.namespace[-1] if link.to_port.namespace else ""
         
-        # Check if this link involves the current child
-        from_instance_name = from_port.namespace[-1] if from_port.namespace and len(from_port.namespace) > 0 else ""
-        to_instance_name = to_port.namespace[-1] if to_port.namespace and len(to_port.namespace) > 0 else ""
-        
-        # If this child is the source (output)
-        if from_instance_name == child_name:
-            arg_name = f"output/{from_port.name}"
+        # Add output arg if child is source
+        if from_instance == child_name:
+            arg_name = f"output/{link.from_port.name}"
             if arg_name not in defined_args:
-                node_args.append({
-                    "name": arg_name,
-                    "value": f"$(var {child_name}/output/{from_port.name})"
-                })
+                node_args.append({"name": arg_name, "value": f"$(var {child_name}/output/{link.from_port.name})"})
                 defined_args.add(arg_name)
         
-        # If this child is the destination (input)
-        if to_instance_name == child_name:
-            arg_name = f"input/{to_port.name}"
+        # Add input arg if child is destination
+        if to_instance == child_name:
+            arg_name = f"input/{link.to_port.name}"
             if arg_name not in defined_args:
-                node_args.append({
-                    "name": arg_name,
-                    "value": f"$(var {child_name}/input/{to_port.name})"
-                })
+                node_args.append({"name": arg_name, "value": f"$(var {child_name}/input/{link.to_port.name})"})
                 defined_args.add(arg_name)
     
     return node_args
