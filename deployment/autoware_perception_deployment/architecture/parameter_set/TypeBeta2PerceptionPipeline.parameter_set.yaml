@@ -1,0 +1,29 @@
+name: TypeBeta2PerceptionPipeline.parameter_set
+parameters:
+  - node: /perception/object_recognition/detection/centerpoint/lidar_centerpoint
+    parameters:
+      - common_param_path: /perception/object_recognition/detection/centerpoint/common_param_path.param.yaml
+      - model_param_path: /perception/object_recognition/detection/centerpoint/model_param_path.param.yaml
+      - ml_package_param_path: /perception/object_recognition/detection/centerpoint/ml_package_param_path.param.yaml
+      - class_remapper_param_path: /perception/object_recognition/detection/centerpoint/class_remapper_param_path.param.yaml
+    configurations:
+      - name: build_only
+        type: bool
+        value: false
+      - name: logger_name
+        type: str
+        value: $(var node_name)
+  - node: /perception/object_recognition/detection/clustering/camera_lidar_fusion/roi_cluster_fusion
+    parameters:
+      - sync_param_path: /perception/object_recognition/detection/clustering/camera_lidar_fusion/roi_cluster_fusion/sync_param_path.param.yaml
+      - param_path: /perception/object_recognition/detection/clustering/camera_lidar_fusion/roi_cluster_fusion/param_path.param.yaml
+    configurations: []
+  - node: /perception/object_recognition/tracking/multi_object_tracker
+    parameters:
+      - tracker_setting_path: /perception/object_recognition/tracking/multi_object_tracker/tracker_setting_path.param.yaml
+      - data_association_matrix_path: /perception/object_recognition/tracking/multi_object_tracker/data_association_matrix_path.param.yaml
+      - input_channels_path: /perception/object_recognition/tracking/multi_object_tracker/input_channels_path.param.yaml
+    configurations:
+      - name: publish_merged_objects
+        type: bool
+        value: true

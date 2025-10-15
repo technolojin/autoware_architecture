@@ -57,6 +57,7 @@ class Deployment:
         self.launcher_dir = os.path.join(self.output_root_dir, "exports", self.name, "launcher/")
         self.system_monitor_dir = os.path.join(self.output_root_dir, "exports", self.name, "system_monitor/")
         self.visualization_dir = os.path.join(self.output_root_dir, "exports", self.name,"visualization/")
+        self.parameter_set_dir = os.path.join(self.output_root_dir, "exports", self.name,"parameter_set/")
 
         # build the deployment
         self.build()
@@ -150,3 +151,23 @@ class Deployment:
 
         # 2. generate deployment launch file
         # integrated all the module launch directly
+
+    def generate_parameter_set_template(self):
+        """Generate parameter set template using ParameterManager functionality."""
+        if not self.deploy_instance:
+            raise ValidationError("Deployment instance is not initialized")
+        
+        # Create output directory if it doesn't exist
+        os.makedirs(self.parameter_set_dir, exist_ok=True)
+        
+        # Initialize template renderer
+        renderer = TemplateRenderer()
+        
+        # Use the deployment instance's parameter manager to generate the template
+        output_path = self.deploy_instance.parameter_manager.generate_parameter_set_template(
+            self.name, 
+            renderer, 
+            self.parameter_set_dir
+        )
+        
+        return output_path

@@ -1,0 +1,19 @@
+name: {{ name }}
+parameters:
+{% for module in parameters %}
+  - node: {{ module.node }}
+    parameters:
+{% for param_name, param_path in module.parameter_paths.items() %}
+      - {{ param_name }}: {{ param_path }}
+{% endfor %}
+{% if module.configurations %}
+    configurations:
+{% for config in module.configurations %}
+      - name: {{ config.name }}
+        type: {{ config.type }}
+        value: {{ config.value }}
+{% endfor %}
+{% else %}
+    configurations: []
+{% endif %}
+{% endfor %}

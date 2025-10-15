@@ -40,6 +40,10 @@ def build(deployment_file: str, architecture_yaml_list_file: str, output_root_di
     logger.info("autoware architect: Building deployment...")
     deployment = Deployment(architecture_config)
 
+    # parameter set template export
+    logger.info("autoware architect: Exporting parameter set template...")
+    deployment.generate_parameter_set_template()
+
     # generate the system visualization
     logger.info("autoware architect: Generating visualization...")
     deployment.visualize()
