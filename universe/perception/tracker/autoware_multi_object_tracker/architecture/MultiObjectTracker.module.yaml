@@ -92,7 +92,7 @@ configurations:
   - name: input/detection12/channel
     type: string
     default: none
-  - name: is_simulation
+  - name: publish_merged_objects
     type: boolean
     default: false
 
