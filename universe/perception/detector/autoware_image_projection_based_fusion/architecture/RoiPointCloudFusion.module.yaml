@@ -55,7 +55,7 @@ outputs:
     qos:
       reliability: reliable
       durability: transient_local
-parameters:
+parameter_files:
   - name: sync_param_path
     default: config/fusion_common.param.yaml
     schema: schema/fusion_common.schema.json

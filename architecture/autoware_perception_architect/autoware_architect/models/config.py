@@ -48,7 +48,7 @@ class ModuleConfig(Config):
     launch: Dict[str, Any] = None
     inputs: List[Dict[str, Any]] = None
     outputs: List[Dict[str, Any]] = None
-    parameters: Any = None  # Can be dict or list
+    parameter_files: Any = None  # Can be dict or list
     configurations: Any = None  # Can be dict or list
     processes: List[Dict[str, Any]] = None
 
@@ -59,7 +59,7 @@ class PipelineConfig(Config):
     nodes: List[Dict[str, Any]] = None
     external_interfaces: Any = None  # Can be dict or list
     connections: List[Dict[str, Any]] = None
-    parameters: Any = None  # Can be dict or list
+    parameter_files: Any = None  # Can be dict or list
     configurations: Any = None  # Can be dict or list
 
 @dataclass

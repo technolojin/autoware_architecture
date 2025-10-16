@@ -22,7 +22,7 @@ outputs:
     qos:
       reliability: reliable
       durability: transient_local
-parameters:
+parameter_files:
   - name: tracker_setting_path
     default: path/to/tracker_setting_path.yaml
   - name: data_association_matrix_path

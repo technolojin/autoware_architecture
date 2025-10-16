@@ -46,7 +46,7 @@ outputs:
     qos:
       reliability: reliable
       durability: transient_local
-parameters:
+parameter_files:
   - name: tracker_setting_path
     default: config/multi_object_tracker_node.param.yaml
   - name: data_association_matrix_path

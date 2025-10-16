@@ -22,7 +22,7 @@ outputs:
     qos:
       reliability: best_effort
       durability: volatile
-parameters:
+parameter_files:
   - name: ground_segmentation_param_file
     default: config/scan_ground_filter.param.yaml
   - name: vehicle_info_param_file

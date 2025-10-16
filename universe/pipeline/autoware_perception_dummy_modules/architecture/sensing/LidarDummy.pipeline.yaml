@@ -16,6 +16,6 @@ connections:
   - from: lidar_top.output.pointcloud
     to: output.concatenated/pointcloud
 
-parameters: []
+parameter_files: []
 
 configurations: []

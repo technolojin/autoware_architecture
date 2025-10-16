@@ -93,6 +93,6 @@ connections:
   - from: detected_object_feature_remover.output.output
     to: output.objects
 
-parameters: []
+parameter_files: []
 
 configurations: []

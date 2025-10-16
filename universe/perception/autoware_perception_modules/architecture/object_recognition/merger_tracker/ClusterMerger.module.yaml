@@ -22,7 +22,7 @@ outputs:
     qos:
       reliability: reliable
       durability: transient_local
-parameters:
+parameter_files:
   - name: param_path
     default: config/cluster_merger.param.yaml
 

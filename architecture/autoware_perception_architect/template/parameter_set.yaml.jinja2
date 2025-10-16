@@ -2,8 +2,8 @@ name: {{ name }}
 parameters:
 {% for module in parameters %}
   - node: {{ module.node }}
-    parameters:
-{% for param_name, param_path in module.parameter_paths.items() %}
+    parameter_files:
+{% for param_name, param_path in module.parameter_files.items() %}
       - {{ param_name }}: {{ param_path }}
 {% endfor %}
 {% if module.configurations %}

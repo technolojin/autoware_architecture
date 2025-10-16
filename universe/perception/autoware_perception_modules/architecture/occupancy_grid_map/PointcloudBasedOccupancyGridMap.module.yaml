@@ -25,7 +25,7 @@ outputs:
       reliability: reliable
       durability: transient_local
 
-parameters:
+parameter_files:
   - name: param_file
     default: /config/pointcloud_based_occupancy_grid_map.param.yaml
     schema: schema/pointcloud_based_occupancy_grid_map.schema.json

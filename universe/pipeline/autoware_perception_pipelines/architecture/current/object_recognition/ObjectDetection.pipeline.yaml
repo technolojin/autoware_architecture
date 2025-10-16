@@ -175,6 +175,6 @@ connections:
   - from: radar_object_filter.output.filtered_objects
     to: output.radar_filtered_objects
 
-parameters: []
+parameter_files: []
 
 configurations: []

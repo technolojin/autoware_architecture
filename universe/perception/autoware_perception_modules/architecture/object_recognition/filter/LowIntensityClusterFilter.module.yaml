@@ -17,7 +17,7 @@ outputs:
     qos:
       reliability: reliable
       durability: transient_local
-parameters:
+parameter_files:
   - name: low_intensity_cluster_filter_param_path
     default: config/low_intensity_cluster_filter.param.yaml
 

@@ -110,6 +110,6 @@ connections:
   - from: prediction.output.objects
     to: output.objects
 
-parameters: []
+parameter_files: []
 
 configurations: []

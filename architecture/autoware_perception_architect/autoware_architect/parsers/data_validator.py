@@ -130,7 +130,7 @@ class ModuleValidator(BaseValidator):
     """Validator for module elements."""
     
     def get_required_fields(self) -> List[str]:
-        return ["name", "launch", "inputs", "outputs", "parameters", "configurations", "processes"]
+        return ["name", "launch", "inputs", "outputs", "parameter_files", "configurations", "processes"]
     
     def get_schema_properties(self) -> Dict[str, Dict[str, str]]:
         return {
@@ -138,7 +138,7 @@ class ModuleValidator(BaseValidator):
             'launch': {'type': 'object'},
             'inputs': {'type': 'array'},
             'outputs': {'type': 'array'},
-            'parameters': {'type': 'object_or_array'},
+            'parameter_files': {'type': 'object_or_array'},
             'configurations': {'type': 'object_or_array'},
             'processes': {'type': 'array'}
         }
@@ -147,7 +147,7 @@ class PipelineValidator(BaseValidator):
     """Validator for pipeline elements."""
     
     def get_required_fields(self) -> List[str]:
-        return ["name", "depends", "nodes", "external_interfaces", "connections", "parameters", "configurations"]
+        return ["name", "depends", "nodes", "external_interfaces", "connections", "parameter_files", "configurations"]
     
     def get_schema_properties(self) -> Dict[str, Dict[str, str]]:
         return {
@@ -156,7 +156,7 @@ class PipelineValidator(BaseValidator):
             'nodes': {'type': 'array'},
             'external_interfaces': {'type': 'object_or_array'},
             'connections': {'type': 'array'},
-            'parameters': {'type': 'object_or_array'},
+            'parameter_files': {'type': 'object_or_array'},
             'configurations': {'type': 'object_or_array'},
         }
 

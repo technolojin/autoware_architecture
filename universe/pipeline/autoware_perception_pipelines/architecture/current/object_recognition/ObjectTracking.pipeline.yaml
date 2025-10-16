@@ -36,6 +36,6 @@ connections:
   - from: decorative_tracker_merger.output.merged_object
     to: output.objects
 
-parameters: []
+parameter_files: []
 
 configurations: []

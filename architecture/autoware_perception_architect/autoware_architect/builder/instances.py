@@ -153,8 +153,8 @@ class Instance:
         try:
             if cfg_param_set is not None:
                 param_list = cfg_param_set.parameters
-                for param in param_list:
-                    instance.parameter_manager.set_parameter(param)
+                for param_file in param_list:
+                    instance.parameter_manager.set_parameter_file(param_file)
         except Exception as e:
             raise ValidationError(f"Error in applying parameter set '{param_set_name}' to instance '{instance.name}', at {cfg_param_set.file_path}")
 
@@ -249,7 +249,7 @@ class Instance:
                 else []
             ),
             "events": self.event_manager.get_all_events(),
-            "parameters": self.parameter_manager.get_all_parameters(),
+            "parameters": self.parameter_manager.get_all_parameter_files(),
         }
 
         return data

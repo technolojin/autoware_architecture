@@ -26,6 +26,6 @@ connections:
   - from: map_based_prediction.output.output_topic
     to: output.objects
 
-parameters: []
+parameter_files: []
 
 configurations: []

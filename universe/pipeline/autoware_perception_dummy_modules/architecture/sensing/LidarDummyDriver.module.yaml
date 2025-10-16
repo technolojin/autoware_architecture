@@ -13,7 +13,7 @@ outputs:
     qos:
       reliability: best_effort
       durability: volatile
-parameters: []
+parameter_files: []
 
 # configurations
 configurations:

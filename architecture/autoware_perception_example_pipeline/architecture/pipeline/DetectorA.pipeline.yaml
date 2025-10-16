@@ -30,7 +30,7 @@ connections:
   - from: node_filter.output.*
     to: output.*
 
-parameters:
+parameter_files:
   - from: parameter.detector
     to: node_detector
   - from: parameter.filter

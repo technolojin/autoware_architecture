@@ -17,7 +17,7 @@ from enum import Enum
 
 class ParameterType(Enum):
     """Type of parameter - either a file path or a direct configuration value."""
-    PARAMETER = "parameter"  # Load from file
+    PARAMETER_FILES = "parameter"  # Load from file
     CONFIGURATION = "configuration"  # Direct overwrite of parameter
 
 class Parameter:
@@ -26,7 +26,7 @@ class Parameter:
                  allow_substs: bool = True):
         self.name = name
         self.value = value
-        self.param_type = param_type  # PARAMETER or CONFIGURATION
+        self.param_type = param_type  # PARAMETER_FILES or CONFIGURATION
         self.data_type = data_type  # string, bool, int, float, etc.
         self.schema_path = schema_path  # path to the schema file if available
         self.allow_substs = allow_substs  # whether to allow substitutions in ROS launch

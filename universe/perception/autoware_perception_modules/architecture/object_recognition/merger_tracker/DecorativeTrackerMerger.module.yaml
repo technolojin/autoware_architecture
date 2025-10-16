@@ -22,7 +22,7 @@ outputs:
     qos:
       reliability: reliable
       durability: transient_local
-parameters:
+parameter_files:
   - name: data_association_matrix_path
     default: config/data_association_matrix.param.yaml
   - name: merge_options_path

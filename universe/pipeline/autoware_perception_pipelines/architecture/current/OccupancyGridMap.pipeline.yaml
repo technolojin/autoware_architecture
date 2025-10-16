@@ -33,6 +33,6 @@ connections:
   - from: occupancy_grid_map_node.output.occupancy_grid_map
     to: output.map
 
-parameters: []
+parameter_files: []
 
 configurations: []

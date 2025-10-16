@@ -1,7 +1,7 @@
 name: TypeBeta2PerceptionPipeline.parameter_set
 parameters:
   - node: /perception/object_recognition/detection/centerpoint/lidar_centerpoint
-    parameters:
+    parameter_files:
       - common_param_path: /perception/object_recognition/detection/centerpoint/common_param_path.param.yaml
       - model_param_path: /perception/object_recognition/detection/centerpoint/model_param_path.param.yaml
       - ml_package_param_path: /perception/object_recognition/detection/centerpoint/ml_package_param_path.param.yaml
@@ -14,12 +14,12 @@ parameters:
         type: str
         value: $(var node_name)
   - node: /perception/object_recognition/detection/clustering/camera_lidar_fusion/roi_cluster_fusion
-    parameters:
+    parameter_files:
       - sync_param_path: /perception/object_recognition/detection/clustering/camera_lidar_fusion/roi_cluster_fusion/sync_param_path.param.yaml
       - param_path: /perception/object_recognition/detection/clustering/camera_lidar_fusion/roi_cluster_fusion/param_path.param.yaml
     configurations: []
   - node: /perception/object_recognition/tracking/multi_object_tracker
-    parameters:
+    parameter_files:
       - tracker_setting_path: /perception/object_recognition/tracking/multi_object_tracker/tracker_setting_path.param.yaml
       - data_association_matrix_path: /perception/object_recognition/tracking/multi_object_tracker/data_association_matrix_path.param.yaml
       - input_channels_path: /perception/object_recognition/tracking/multi_object_tracker/input_channels_path.param.yaml

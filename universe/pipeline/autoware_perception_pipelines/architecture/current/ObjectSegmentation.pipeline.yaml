@@ -26,6 +26,6 @@ connections:
   - from: common_ground_filter.output.pointcloud
     to: output.pointcloud
 
-parameters: []
+parameter_files: []
 
 configurations: []

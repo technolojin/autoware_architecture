@@ -17,7 +17,7 @@ outputs:
     qos:
       reliability: reliable
       durability: transient_local
-parameters: []
+parameter_files: []
 # configurations
 configurations: []
 

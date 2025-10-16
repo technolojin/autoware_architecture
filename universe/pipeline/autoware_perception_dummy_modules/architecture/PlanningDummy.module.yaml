@@ -14,7 +14,7 @@ inputs:
   - name: occupancy_grid_map
     message_type: nav_msgs/msg/OccupancyGrid
 outputs: []
-parameters: []
+parameter_files: []
 
 # configurations
 configurations: []

@@ -20,7 +20,7 @@ outputs:
     qos:
       reliability: reliable
       durability: transient_local
-parameters:
+parameter_files:
   - name: config_file
     default: config/shape_estimation.param.yaml
 

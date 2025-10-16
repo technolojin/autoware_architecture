@@ -28,6 +28,6 @@ connections:
   - from: validation.output.objects
     to: output.detected_objects
 
-parameters: []
+parameter_files: []
 
 configurations: []

@@ -80,7 +80,7 @@ class ConfigParser:
                 launch=config.get('launch'),
                 inputs=config.get('inputs'),
                 outputs=config.get('outputs'),
-                parameters=config.get('parameters'),
+                parameter_files=config.get('parameter_files'),
                 configurations=config.get('configurations'),
                 processes=config.get('processes')
             )
@@ -91,7 +91,7 @@ class ConfigParser:
                 nodes=config.get('nodes'),
                 external_interfaces=config.get('external_interfaces'),
                 connections=config.get('connections'),
-                parameters=config.get('parameters'),
+                parameter_files=config.get('parameter_files'),
                 configurations=config.get('configurations')
             )
         elif element_type == ConfigType.PARAMETER_SET:
