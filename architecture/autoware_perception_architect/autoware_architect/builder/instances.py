@@ -141,7 +141,7 @@ class Instance:
         self.is_initialized = True
 
     def _apply_parameter_set(self, instance: "Instance", cfg_component: dict, config_registry: ConfigRegistry):
-        """Apply parameter set to an instance."""
+        """Apply parameter set to an instance using direct node targeting."""
         parameter_set = cfg_component.get("parameter_set")
         cfg_param_set: ParameterSetConfig = None
         if parameter_set is not None:
@@ -153,10 +153,24 @@ class Instance:
         try:
             if cfg_param_set is not None:
                 param_list = cfg_param_set.parameters
-                for param_file in param_list:
-                    instance.parameter_manager.set_parameter_file(param_file)
+                # New parameter set format: direct node targeting
+                for param_config in param_list:
+                    if isinstance(param_config, dict) and "node" in param_config:
+                        # New format: direct node targeting with absolute namespace
+                        node_namespace = param_config.get("node")
+                        parameter_files = param_config.get("parameter_files", [])
+                        configurations = param_config.get("configurations", [])
+                        
+                        # Apply parameters directly to the target node
+                        instance.parameter_manager.apply_node_parameters(
+                            node_namespace, parameter_files, configurations
+                        )
+                    else:
+                        # Legacy format: pipeline parameter routing (deprecated)
+                        logger.warning(f"Legacy parameter format detected in {param_set_name}. Please migrate to new format with direct node targeting.")
+                        instance.parameter_manager.set_parameter_file(param_config)
         except Exception as e:
-            raise ValidationError(f"Error in applying parameter set '{param_set_name}' to instance '{instance.name}', at {cfg_param_set.file_path}")
+            raise ValidationError(f"Error in applying parameter set '{param_set_name}' to instance '{instance.name}': {e}")
 
     def _create_pipeline_children(self, config_registry: ConfigRegistry):
         """Create child instances for pipeline elements."""

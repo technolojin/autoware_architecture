@@ -18,6 +18,7 @@ import logging
 from .instances import Instance
 from ..template_utils import TemplateRenderer
 from ..models.links import ConnectionType
+from ..models.parameters import ParameterType
 
 logger = logging.getLogger(__name__)
 
@@ -202,10 +203,11 @@ def _process_child_nodes(instance: Instance) -> list:
 
 
 def _generate_node_args(instance: Instance, child_name: str) -> list:
-    """Generate arguments for a child node based on connections."""
+    """Generate arguments for a child node based on connections and parameters."""
     node_args = []
     defined_args = set()
     
+    # Add I/O arguments based on connections
     for link in instance.link_manager.get_all_links():
         from_instance = link.from_port.namespace[-1]
         to_instance = link.to_port.namespace[-1]
@@ -223,6 +225,24 @@ def _generate_node_args(instance: Instance, child_name: str) -> list:
             if arg_name not in defined_args:
                 node_args.append({"name": arg_name, "value": f"$(var {child_name}/input/{link.to_port.name})"})
                 defined_args.add(arg_name)
+    
+    # Add parameter arguments from the child instance
+    child_instance = instance.children.get(child_name)
+    if child_instance and child_instance.element_type == "module":
+        # Get all parameters from the child's parameter manager
+        parameter_files = child_instance.parameter_manager.get_all_parameter_files()
+        for param in parameter_files:
+            arg_name = param.name
+            if arg_name not in defined_args:
+                # Format the value based on parameter type
+                if param.param_type == ParameterType.CONFIGURATION:
+                    # For configurations, use the value directly (bool, int, string, etc.)
+                    node_args.append({"name": arg_name, "value": str(param.value)})
+                else:
+                    # For parameter files (ParameterType.PARAMETER_FILES), use the path
+                    node_args.append({"name": arg_name, "value": str(param.value)})
+                defined_args.add(arg_name)
+                logger.debug(f"Added parameter arg: {arg_name}={param.value} (type: {param.param_type.value})")
     
     return node_args
 

@@ -34,45 +34,112 @@ class ParameterManager:
 
     def set_parameter_file(self, param_file):
         """Set parameter based on instance element type."""
-        # in case of pipeline, search parameter connection and call set_parameter for children
         if self.instance.element_type == "pipeline":
-            self._set_pipeline_parameter_file(param_file)
-        # in case of module, set the parameter
+            # in case of pipeline do nothing
+            pass
         elif self.instance.element_type == "module":
+            # in case of module, set the parameter
             self._set_module_parameter_file(param_file)
         else:
             raise ValueError(f"Invalid element type: {self.instance.element_type}")
 
-    def _set_pipeline_parameter_file(self, param_file):
-        """Set parameter for pipeline element type."""
-        if self.instance.element_type != "pipeline":
-            raise ValueError("_set_pipeline_parameter is only supported for pipeline")
-        param_name = param_file.get("name")
+    def apply_node_parameters(self, node_namespace: str, parameter_files: list, configurations: list):
+        """Apply parameters directly to a target node using new parameter set format.
+        
+        This method finds a node by its absolute namespace and applies both parameter_files 
+        and configurations directly to it. Configurations will override parameter_files.
+        
+        Args:
+            node_namespace: Absolute namespace path to the target node 
+                           (e.g., "/perception/object_recognition/node_tracker")
+            parameter_files: List of parameter file mappings 
+                            (e.g., [{"model_param_path": "path/to/file.yaml"}])
+            configurations: List of direct parameter configurations 
+                           (e.g., [{"name": "build_only", "type": "bool", "value": false}])
+        """
+        target_instance = self._find_node_by_namespace(node_namespace)
+        if target_instance is None:
+            logger.warning(f"Target node not found: {node_namespace}")
+            return
+            
+        if target_instance.element_type != "module":
+            logger.warning(f"Target node is not a module: {node_namespace} (type: {target_instance.element_type})")
+            return
+        
+        logger.info(f"Applying parameters to node: {node_namespace}")
+            
+        # Apply parameter files first
+        if parameter_files:
+            for param_file_mapping in parameter_files:
+                for param_name, param_path in param_file_mapping.items():
+                    target_instance.parameter_manager.parameter_files.set_parameter(
+                        param_name,
+                        param_path,
+                        param_type=ParameterType.PARAMETER_FILES,
+                        data_type="path",
+                        allow_substs=True
+                    )
+                    logger.debug(f"  Applied parameter file: {param_name}={param_path}")
+        
+        # Apply configurations (these override parameter files)
+        if configurations:
+            for config in configurations:
+                config_name = config.get("name")
+                config_type = config.get("type", "string")
+                config_value = config.get("value")
+                
+                target_instance.parameter_manager.parameter_files.set_parameter(
+                    config_name,
+                    config_value,
+                    param_type=ParameterType.CONFIGURATION,
+                    data_type=config_type,
+                    allow_substs=True
+                )
+                logger.debug(f"  Applied configuration: {config_name}={config_value}")
 
-        # check external_interfaces/parameter
-        cfg_pipeline_parameter_list = self.instance.configuration.external_interfaces.get("parameter")
-        # check if the param_list_yaml is superset of pipeline_parameter_list
-        cfg_pipeline_parameter_list = [param.get("name") for param in cfg_pipeline_parameter_list]
-        if param_name not in cfg_pipeline_parameter_list:
-            raise ValueError(f"Parameter not found: '{param_name}' in {cfg_pipeline_parameter_list}")
-
-        # check parameter_files to connect parameters to the children
-        cfg_param_connection_list = self.instance.configuration.parameter_files
-        for cfg_connection in cfg_param_connection_list:
-            param_from = cfg_connection.get("from")
-            param_from_name = param_from.split(".")[1]
-            if param_from_name != param_name:
-                continue
-
-            param_to = cfg_connection.get("to")
-            param_to_inst_name = param_to.split(".")[0]
-            child_instance = self.instance.get_child(param_to_inst_name)
-
-            # set the parameter to the child instance
-            if child_instance.element_type == "pipeline":
-                param_file["name"] = param_to.split(".")[2]
-
-            child_instance.parameter_manager.set_parameter_file(param_file)
+    def _find_node_by_namespace(self, target_namespace: str):
+        """Find a node instance by its absolute namespace path.
+        
+        Args:
+            target_namespace: Absolute namespace path (e.g., "/perception/object_recognition/node_tracker")
+            
+        Returns:
+            Instance object if found, None otherwise
+        """
+        # Start from the root deployment instance
+        current_instance = self.instance
+        
+        # Navigate to the root deployment instance
+        while current_instance.parent is not None:
+            current_instance = current_instance.parent
+            
+        # Now traverse down to find the target node
+        return self._traverse_to_namespace(current_instance, target_namespace)
+    
+    def _traverse_to_namespace(self, instance, target_namespace: str):
+        """Recursively traverse instance tree to find target namespace.
+        
+        Args:
+            instance: Current instance to check
+            target_namespace: Target namespace to find
+            
+        Returns:
+            Instance object if found, None otherwise
+        """
+        # Check if current instance matches the target namespace
+        if instance.namespace_str == target_namespace:
+            return instance
+            
+        # Check if target namespace starts with current instance namespace
+        # This means we need to look deeper in this branch
+        if target_namespace.startswith(instance.namespace_str + "/") or target_namespace == instance.namespace_str:
+            # Search in children
+            for child in instance.children.values():
+                result = self._traverse_to_namespace(child, target_namespace)
+                if result is not None:
+                    return result
+        
+        return None
 
     def _set_module_parameter_file(self, param_file):
         """Set parameter for module element type."""
