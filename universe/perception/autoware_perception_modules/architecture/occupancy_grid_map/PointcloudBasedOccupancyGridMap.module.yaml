@@ -27,10 +27,10 @@ outputs:
 
 parameter_files:
   - name: param_file
-    default: /config/pointcloud_based_occupancy_grid_map.param.yaml
+    default: config/pointcloud_based_occupancy_grid_map.param.yaml
     schema: schema/pointcloud_based_occupancy_grid_map.schema.json
   - name: updater_param_file
-    default: /config/binary_bayes_filter_updater.param.yaml
+    default: config/binary_bayes_filter_updater.param.yaml
     schema: schema/binary_bayes_filter_updater.schema.json
 
 # configurations

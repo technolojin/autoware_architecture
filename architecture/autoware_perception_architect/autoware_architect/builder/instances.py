@@ -182,10 +182,6 @@ class Instance:
                         instance.parameter_manager.apply_node_parameters(
                             node_namespace, parameter_files, configurations
                         )
-                    else:
-                        # Legacy format: pipeline parameter routing (deprecated)
-                        logger.warning(f"Legacy parameter format detected in {param_set_name}. Please migrate to new format with direct node targeting.")
-                        instance.parameter_manager.set_parameter_file(param_config)
         except Exception as e:
             raise ValidationError(f"Error in applying parameter set '{param_set_name}' to instance '{instance.name}': {e}")
 

@@ -26,23 +26,35 @@ logger = logging.getLogger(__name__)
 
 
 class ParameterManager:
-    """Manages parameter operations for Instance objects."""
+    """Manages parameter operations for Instance objects.
+    
+    This class handles:
+    1. Applying parameters from parameter sets to target nodes
+    2. Initializing module parameters from configuration
+    3. Collecting and generating parameter set templates
+    4. Managing parameter file copying and organization
+    """
     
     def __init__(self, instance: 'Instance'):
         self.instance = instance
         self.parameter_files: ParameterList = ParameterList()
 
-    def set_parameter_file(self, param_file):
-        """Set parameter based on instance element type."""
-        if self.instance.element_type == "pipeline":
-            # in case of pipeline do nothing
-            pass
-        elif self.instance.element_type == "module":
-            # in case of module, set the parameter
-            self._set_module_parameter_file(param_file)
-        else:
-            raise ValueError(f"Invalid element type: {self.instance.element_type}")
+    # =========================================================================
+    # Public API Methods
+    # =========================================================================
+    
+    def get_parameter(self, parameter_name: str):
+        """Get parameter value by name."""
+        return self.parameter_files.get_parameter(parameter_name)
 
+    def get_all_parameter_files(self):
+        """Get all parameter_files."""
+        return self.parameter_files.list
+
+    # =========================================================================
+    # Parameter Application (from parameter sets)
+    # =========================================================================
+    
     def apply_node_parameters(self, node_namespace: str, parameter_files: list, configurations: list):
         """Apply parameters directly to a target node using new parameter set format.
         
@@ -95,6 +107,10 @@ class ParameterManager:
                     allow_substs=True
                 )
 
+    # =========================================================================
+    # Node Finding (helper methods for parameter application)
+    # =========================================================================
+    
     def _find_node_by_namespace(self, target_namespace: str):
         """Find a node instance by its absolute namespace path.
         
@@ -148,27 +164,10 @@ class ParameterManager:
         
         return None
 
-    def _set_module_parameter_file(self, param_file):
-        """Set parameter for module element type."""
-        if self.instance.element_type != "module":
-            raise ValueError("_set_module_parameter_file is only supported for module")
-        param_path_list = param_file.get("parameter_files")
-        if not param_path_list:
-            raise ValueError(f"No parameter paths found in parameter: {param_file}")
-        # get list of parameter paths, which comes in dictionary format
-        for param_path in param_path_list:
-            param_keys = param_path.keys()
-            for param_key in param_keys:
-                param_value = param_path.get(param_key)
-                # Set parameter with metadata indicating it's a template path
-                self.parameter_files.set_parameter(
-                    param_key, 
-                    param_value, 
-                    param_type=ParameterType.PARAMETER_FILES,
-                    data_type="path",
-                    allow_substs=True
-                )
-
+    # =========================================================================
+    # Module Parameter Initialization
+    # =========================================================================
+    
     def initialize_module_parameters(self):
         """Initialize parameters for module element during module configuration."""
         if self.instance.element_type != "module":
@@ -188,13 +187,53 @@ class ParameterManager:
                 allow_substs=cfg_param.get("allow_substs", True)
             )
 
-    def get_parameter(self, parameter_name: str):
-        """Get parameter value by name."""
-        return self.parameter_files.get_parameter(parameter_name)
-
-    def get_all_parameter_files(self):
-        """Get all parameter_files."""
-        return self.parameter_files.list
+    # =========================================================================
+    # Parameter Set Template Generation
+    # =========================================================================
+    
+    def generate_parameter_set_template(self, deployment_name: str, 
+                                      template_renderer, output_dir: str) -> str:
+        """Generate parameter set template for the entire deployment.
+        
+        Args:
+            deployment_name: Name of the deployment
+            template_renderer: Template renderer instance
+            output_dir: Output directory for the template file
+            
+        Returns:
+            Path to the generated template file
+        """
+        # Create parameter set directory structure
+        parameter_set_root = os.path.join(output_dir, f"{deployment_name}.parameter_set")
+        os.makedirs(parameter_set_root, exist_ok=True)
+        
+        # Collect all module parameter data
+        module_data = self.collect_module_parameter_files_for_template()
+        
+        # Copy config files to namespace structure and update paths
+        for module in module_data:
+            self._create_namespace_structure_and_copy_configs(module, parameter_set_root)
+        
+        # Prepare template data
+        template_data = {
+            "name": f"{deployment_name}.parameter_set",
+            "parameters": module_data
+        }
+        
+        # Generate output filename
+        output_filename = f"{deployment_name}.parameter_set.yaml"
+        output_path = os.path.join(output_dir, output_filename)
+        
+        # Render template
+        template_renderer.render_template_to_file(
+            "parameter_set.yaml.jinja2", 
+            output_path, 
+            **template_data
+        )
+        
+        logger.info(f"Generated parameter set template: {output_path}")
+        logger.info(f"Generated parameter set structure at: {parameter_set_root}")
+        return output_path
     
     def collect_module_parameter_files_for_template(self, base_namespace: str = "") -> List[Dict[str, Any]]:
         """Collect parameter template data for all modules in the deployment instance.
@@ -208,6 +247,10 @@ class ParameterManager:
         module_data = []
         self._collect_module_parameter_files_recursive(self.instance, module_data, base_namespace)
         return module_data
+    
+    # =========================================================================
+    # Helper Methods for Template Generation
+    # =========================================================================
     
     def _collect_module_parameter_files_recursive(self, instance: 'Instance', 
                                            module_data: List[Dict[str, Any]], 
@@ -295,50 +338,6 @@ class ParameterManager:
                 configurations.append(param_override)
         
         return parameter_files, configurations
-    
-    def generate_parameter_set_template(self, deployment_name: str, 
-                                      template_renderer, output_dir: str) -> str:
-        """Generate parameter set template for the entire deployment.
-        
-        Args:
-            deployment_name: Name of the deployment
-            template_renderer: Template renderer instance
-            output_dir: Output directory for the template file
-            
-        Returns:
-            Path to the generated template file
-        """
-        # Create parameter set directory structure
-        parameter_set_root = os.path.join(output_dir, f"{deployment_name}.parameter_set")
-        os.makedirs(parameter_set_root, exist_ok=True)
-        
-        # Collect all module parameter data
-        module_data = self.collect_module_parameter_files_for_template()
-        
-        # Copy config files to namespace structure and update paths
-        for module in module_data:
-            self._create_namespace_structure_and_copy_configs(module, parameter_set_root)
-        
-        # Prepare template data
-        template_data = {
-            "name": f"{deployment_name}.parameter_set",
-            "parameters": module_data
-        }
-        
-        # Generate output filename
-        output_filename = f"{deployment_name}.parameter_set.yaml"
-        output_path = os.path.join(output_dir, output_filename)
-        
-        # Render template
-        template_renderer.render_template_to_file(
-            "parameter_set.yaml.jinja2", 
-            output_path, 
-            **template_data
-        )
-        
-        logger.info(f"Generated parameter set template: {output_path}")
-        logger.info(f"Generated parameter set structure at: {parameter_set_root}")
-        return output_path
     
     def _create_namespace_structure_and_copy_configs(self, module_data: Dict[str, Any], 
                                                    parameter_set_root: str) -> None:
