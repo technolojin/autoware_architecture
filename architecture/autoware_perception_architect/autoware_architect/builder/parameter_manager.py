@@ -79,7 +79,6 @@ class ParameterManager:
                         data_type="path",
                         allow_substs=True
                     )
-                    logger.debug(f"  Applied parameter file: {param_name}={param_path}")
         
         # Apply configurations (these override parameter files)
         if configurations:
@@ -95,7 +94,6 @@ class ParameterManager:
                     data_type=config_type,
                     allow_substs=True
                 )
-                logger.debug(f"  Applied configuration: {config_name}={config_value}")
 
     def _find_node_by_namespace(self, target_namespace: str):
         """Find a node instance by its absolute namespace path.
@@ -113,7 +111,16 @@ class ParameterManager:
         while current_instance.parent is not None:
             current_instance = current_instance.parent
             
-        # Now traverse down to find the target node
+        # If we're at the deployment root (element_type == "architecture"),
+        # search in its children directly since parameter_set paths don't include the deployment name
+        if current_instance.element_type == "architecture":
+            for child in current_instance.children.values():
+                result = self._traverse_to_namespace(child, target_namespace)
+                if result is not None:
+                    return result
+            return None
+        
+        # Otherwise, traverse down from current instance
         return self._traverse_to_namespace(current_instance, target_namespace)
     
     def _traverse_to_namespace(self, instance, target_namespace: str):
@@ -161,8 +168,6 @@ class ParameterManager:
                     data_type="path",
                     allow_substs=True
                 )
-        for param in self.parameter_files.list:
-            logger.debug(f"  Parameter: {param.name} = {param.value}")
 
     def initialize_module_parameters(self):
         """Initialize parameters for module element during module configuration."""

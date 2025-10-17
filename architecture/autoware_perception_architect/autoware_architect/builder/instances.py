@@ -80,6 +80,7 @@ class Instance:
 
     def _set_architecture_instances(self, config_registry: ConfigRegistry):
         """Set instances for architecture element type."""
+        # First pass: create all component instances
         for cfg_component in self.configuration.components:
             compute_unit_name = cfg_component.get("compute_unit")
             instance_name = cfg_component.get("component")
@@ -101,9 +102,14 @@ class Instance:
                 self.children[instance_name] = instance
                 raise ValidationError(f"Error in setting component instance '{instance_name}', at {self.configuration.file_path}")
 
-            # parameter set
-            self._apply_parameter_set(instance, cfg_component, config_registry)
             self.children[instance_name] = instance
+        
+        # Second pass: apply parameter sets after all instances are created
+        # This ensures that parameter_sets can target nodes across different components
+        for cfg_component in self.configuration.components:
+            instance_name = cfg_component.get("component")
+            instance = self.children[instance_name]
+            self._apply_parameter_set(instance, cfg_component, config_registry)
         
         # all children are initialized
         self.is_initialized = True
@@ -153,13 +159,24 @@ class Instance:
         try:
             if cfg_param_set is not None:
                 param_list = cfg_param_set.parameters
+                logger.info(f"Applying parameter set '{param_set_name}' to component '{instance.name}'")
+                
                 # New parameter set format: direct node targeting
                 for param_config in param_list:
                     if isinstance(param_config, dict) and "node" in param_config:
                         # New format: direct node targeting with absolute namespace
                         node_namespace = param_config.get("node")
-                        parameter_files = param_config.get("parameter_files", [])
+                        parameter_files_raw = param_config.get("parameter_files", [])
                         configurations = param_config.get("configurations", [])
+                        
+                        # Validate parameter_files format (should be list of dicts)
+                        parameter_files = []
+                        if parameter_files_raw:
+                            for pf in parameter_files_raw:
+                                if isinstance(pf, dict):
+                                    parameter_files.append(pf)
+                                else:
+                                    logger.warning(f"Invalid parameter_files format in parameter set '{param_set_name}': {pf}")
                         
                         # Apply parameters directly to the target node
                         instance.parameter_manager.apply_node_parameters(

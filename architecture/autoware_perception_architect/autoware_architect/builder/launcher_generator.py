@@ -153,6 +153,7 @@ def _extract_module_data(module_instance: Instance, pipeline_path: List[str]) ->
     parameter_set_configs = {}
     
     parameter_files = module_instance.parameter_manager.get_all_parameter_files()
+    
     for param in parameter_files:
         if param.param_type == ParameterType.PARAMETER_FILES:
             parameter_set_params[param.name] = param.value
@@ -176,11 +177,15 @@ def _extract_module_data(module_instance: Instance, pipeline_path: List[str]) ->
         final_param_files.append({
             "path": default_full_path
         })
-        # If parameter_set provides an override file, add it after (to override subset of params)
+        
+        # If parameter_set provides an override file AND it's different from default, add it after
         if name in parameter_set_params:
-            final_param_files.append({
-                "path": parameter_set_params[name]
-            })
+            override_path = parameter_set_params[name]
+            # Only add override if it's actually different from the default
+            if override_path != default_path and override_path != default_full_path:
+                final_param_files.append({
+                    "path": override_path
+                })
     
     # Build final configurations list (defaults + parameter_set overrides)
     final_configurations = []
