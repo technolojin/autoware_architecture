@@ -37,18 +37,22 @@ components:
     element: Camera2dDetection.pipeline
     namespace: perception/object_recognition/detection
     compute_unit: perception_ecu_2
+    parameter_set: TypeBeta2PerceptionCamera2dDetection.parameter_set
   - component: object_segmentation
     element: ObjectSegmentation.pipeline
     namespace: perception
     compute_unit: main_ecu
+    parameter_set: TypeBeta2PerceptionPipeline.parameter_set
   - component: object_recognition
     element: ObjectRecognition.pipeline
     namespace: perception
     compute_unit: main_ecu
+    parameter_set: TypeBeta2PerceptionPipeline.parameter_set
   - component: occupancy_grid_map
     element: OccupancyGridMap.pipeline
     namespace: perception
     compute_unit: main_ecu
+    parameter_set: TypeBeta2PerceptionPipeline.parameter_set
 
   # planner
   - component: planner
