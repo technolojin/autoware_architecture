@@ -405,7 +405,7 @@ def _process_link_for_external_interfaces(link, interface_dict: dict) -> None:
         interface_dict["external_outputs"][to_port.name] = absolute_topic
 
 
-def _collect_namespace_external_interfaces(components: list) -> dict:
+def _collect_component_external_interfaces(components: list) -> dict:
     """Collect all external interfaces for a namespace from its components."""
     interface_dict = {
         "external_inputs": {},
@@ -445,7 +445,7 @@ def _generate_compute_unit_launcher(compute_unit: str, components: list, output_
     namespaces_data = []
     for namespace, comps in sorted(namespace_groups.items()):
         # Collect external interfaces for this namespace
-        external_interfaces = _collect_namespace_external_interfaces(comps)
+        external_interfaces = _collect_component_external_interfaces(comps)
         
         namespace_info = {
             "namespace": namespace,
@@ -462,8 +462,8 @@ def _generate_compute_unit_launcher(compute_unit: str, components: list, output_
     _render_template_to_file('compute_unit_launcher.xml.jinja2', launcher_file, template_data)
 
 
-def _process_link_for_namespace_interfaces(link, defined_interfaces: set, current_namespace: str) -> list:
-    """Process a single link for namespace internal interface mapping."""
+def _process_link_for_component_interfaces(link, defined_interfaces: set, current_namespace: str) -> list:
+    """Process a single link for component internal interface mapping."""
     interfaces = []
     from_port = link.from_port
     to_port = link.to_port
@@ -503,10 +503,10 @@ def _process_link_for_namespace_interfaces(link, defined_interfaces: set, curren
     return interfaces
 
 
-def _collect_namespace_internal_interfaces(architecture_instance: Instance, namespace: str) -> list:
+def _collect_component_internal_interfaces(architecture_instance: Instance, namespace: str) -> list:
     """Collect internal interface mappings for a specific namespace."""
     def processor_func(link, defined_interfaces):
-        return _process_link_for_namespace_interfaces(link, defined_interfaces, namespace)
+        return _process_link_for_component_interfaces(link, defined_interfaces, namespace)
     
     return _process_links_with_interface_tracking(
         architecture_instance.link_manager.get_all_links(),
@@ -514,22 +514,22 @@ def _collect_namespace_internal_interfaces(architecture_instance: Instance, name
     )
 
 
-def _generate_namespace_launcher(compute_unit: str, namespace: str, components: list, output_dir: str, architecture_instance: Instance):
-    """Generate namespace launcher file that launches all components in the namespace."""
-    # Namespace launcher: output_dir/main_ecu/perception/perception.launch.xml
-    namespace_dir = os.path.join(output_dir, compute_unit, namespace)
-    _ensure_directory(namespace_dir)
+def _generate_component_launcher(compute_unit: str, namespace: str, components: list, output_dir: str, architecture_instance: Instance):
+    """Generate component launcher file that launches all components in the component."""
+    # Component launcher: output_dir/main_ecu/perception/perception.launch.xml
+    component_dir = os.path.join(output_dir, compute_unit, namespace)
+    _ensure_directory(component_dir)
     
-    # Generate namespace-specific launcher filename
-    launcher_file = os.path.join(namespace_dir, f"{namespace}.launch.xml")
+    # Generate component-specific launcher filename
+    launcher_file = os.path.join(component_dir, f"{namespace}.launch.xml")
     
-    logger.debug(f"Creating namespace launcher: {launcher_file}")
+    logger.debug(f"Creating component launcher: {launcher_file}")
     
-    # Collect external interfaces for the namespace
-    external_interfaces = _collect_namespace_external_interfaces(components)
+    # Collect external interfaces for the component
+    external_interfaces = _collect_component_external_interfaces(components)
     
     # Collect internal interface mappings from the architecture's link manager
-    internal_interfaces = _collect_namespace_internal_interfaces(architecture_instance, namespace)
+    internal_interfaces = _collect_component_internal_interfaces(architecture_instance, namespace)
     
     # Prepare component data with detailed interface information
     components_data = []
@@ -537,7 +537,7 @@ def _generate_namespace_launcher(compute_unit: str, namespace: str, components: 
         # Get interfaces for this component using architecture-level connections
         component_interfaces = _collect_component_interfaces(component, architecture_instance)
         
-        # Determine the component's namespace path for pipeline includes
+        # Determine the component's component path for pipeline includes
         # Note: component.namespace includes the component name at the end
         # e.g., for object_recognition with namespace "perception": ["perception", "object_recognition"]
         # e.g., for camera_2d_detection with namespace "perception/object_recognition/detection": ["perception", "object_recognition", "detection", "camera_2d_detection"]
@@ -594,7 +594,7 @@ def _generate_namespace_launcher(compute_unit: str, namespace: str, components: 
         "components": components_data
     }
     
-    _render_template_to_file('namespace_launcher.xml.jinja2', launcher_file, template_data)
+    _render_template_to_file('component_launcher.xml.jinja2', launcher_file, template_data)
 
 
 def generate_pipeline_launch_file(instance: Instance, output_dir: str):
@@ -623,7 +623,7 @@ def generate_pipeline_launch_file(instance: Instance, output_dir: str):
 
         # Generate namespace launcher
         for (compute_unit, namespace), components in namespace_map.items():
-            _generate_namespace_launcher(compute_unit, namespace, components, output_dir, instance)
+            _generate_component_launcher(compute_unit, namespace, components, output_dir, instance)
 
         # recursively call children pipelines/modules
         for child in instance.children.values():
