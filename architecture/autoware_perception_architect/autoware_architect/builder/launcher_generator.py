@@ -163,8 +163,9 @@ def _extract_module_data(module_instance: Instance, pipeline_path: List[str]) ->
                 parameter_set_configs[param.name] = param.value
     
     # Build final parameter_files list
-    # Load default file first, then parameter_set file if available (to override subset of params)
-    final_param_files = []
+    # Group into default files and override files for better organization
+    default_param_file_list = []
+    override_param_file_list = []
     
     for name, default_path in default_param_files.items():
         # Always add the default path first with package prefix
@@ -174,19 +175,19 @@ def _extract_module_data(module_instance: Instance, pipeline_path: List[str]) ->
         else:
             default_full_path = f"$(find-pkg-share {package})/{default_path}"
         
-        final_param_files.append({
+        default_param_file_list.append({
             "path": default_full_path
         })
         
-        # If parameter_set provides an override file AND it's different from default, add it after
+        # If parameter_set provides an override file AND it's different from default, add it to override list
         if name in parameter_set_params:
             override_path = parameter_set_params[name]
             # Only add override if it's actually different from the default
             if override_path != default_path and override_path != default_full_path:
-                final_param_files.append({
+                override_param_file_list.append({
                     "path": override_path
                 })
-    
+
     # Build final configurations list (defaults + parameter_set overrides)
     final_configurations = []
     
@@ -217,7 +218,8 @@ def _extract_module_data(module_instance: Instance, pipeline_path: List[str]) ->
         "namespace_groups": namespace_groups,
         "full_namespace_path": full_namespace_path,
         "ports": ports,
-        "parameter_files": final_param_files,
+        "default_param_files": default_param_file_list,
+        "override_param_files": override_param_file_list,
         "configurations": final_configurations
     }
 

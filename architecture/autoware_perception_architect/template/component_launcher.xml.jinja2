@@ -20,10 +20,19 @@
       <remap from="~/{{ port.direction }}/{{ port.name }}" to="{{ port.topic }}"/>
 {% endfor %}
 
-      <!-- Parameter files -->
-{% for param_file in module.parameter_files %}
+{% if module.default_param_files %}
+      <!-- Default parameter files -->
+{% for param_file in module.default_param_files %}
       <param from="{{ param_file.path }}"/>
 {% endfor %}
+{% endif %}
+
+{% if module.override_param_files %}
+      <!-- Overriding parameter files -->
+{% for param_file in module.override_param_files %}
+      <param from="{{ param_file.path }}"/>
+{% endfor %}
+{% endif %}
 
       <!-- Configurations -->
 {% for config in module.configurations %}
@@ -38,10 +47,19 @@
     <remap from="~/{{ port.direction }}/{{ port.name }}" to="{{ port.topic }}"/>
 {% endfor %}
 
-    <!-- Parameter files -->
-{% for param_file in module.parameter_files %}
+{% if module.default_param_files %}
+    <!-- Default parameter files -->
+{% for param_file in module.default_param_files %}
     <param from="{{ param_file.path }}"/>
 {% endfor %}
+{% endif %}
+
+{% if module.override_param_files %}
+    <!-- Overriding parameter files -->
+{% for param_file in module.override_param_files %}
+    <param from="{{ param_file.path }}"/>
+{% endfor %}
+{% endif %}
 
     <!-- Configurations -->
 {% for config in module.configurations %}
@@ -65,10 +83,19 @@
         <remap from="~/{{ port.direction }}/{{ port.name }}" to="{{ port.topic }}"/>
 {% endfor %}
 
-        <!-- Parameter files -->
-{% for param_file in module.parameter_files %}
+{% if module.default_param_files %}
+        <!-- Default parameter files -->
+{% for param_file in module.default_param_files %}
         <param from="{{ param_file.path }}"/>
 {% endfor %}
+{% endif %}
+
+{% if module.override_param_files %}
+        <!-- Overriding parameter files -->
+{% for param_file in module.override_param_files %}
+        <param from="{{ param_file.path }}"/>
+{% endfor %}
+{% endif %}
 
         <!-- Configurations -->
 {% for config in module.configurations %}
@@ -83,10 +110,19 @@
       <remap from="~/{{ port.direction }}/{{ port.name }}" to="{{ port.topic }}"/>
 {% endfor %}
 
-      <!-- Parameter files -->
-{% for param_file in module.parameter_files %}
+{% if module.default_param_files %}
+      <!-- Default parameter files -->
+{% for param_file in module.default_param_files %}
       <param from="{{ param_file.path }}"/>
 {% endfor %}
+{% endif %}
+
+{% if module.override_param_files %}
+      <!-- Overriding parameter files -->
+{% for param_file in module.override_param_files %}
+      <param from="{{ param_file.path }}"/>
+{% endfor %}
+{% endif %}
 
       <!-- Configurations -->
 {% for config in module.configurations %}
