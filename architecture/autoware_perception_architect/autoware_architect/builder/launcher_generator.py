@@ -191,6 +191,45 @@ def _generate_compute_unit_launcher(compute_unit: str, components: list, output_
     _render_template_to_file('compute_unit_launcher.xml.jinja2', launcher_file, template_data)
 
 
+def _build_namespace_tree(modules: List[Dict[str, Any]], base_namespace: List[str]) -> Dict:
+    """Build a tree structure from modules based on their namespace paths.
+    
+    Args:
+        modules: List of module data dictionaries
+        base_namespace: Base namespace from the component (e.g., ['perception', 'object_recognition'])
+    
+    Returns:
+        A nested dictionary representing the namespace tree structure
+    """
+    tree = {}
+    
+    for module in modules:
+        # Combine base namespace with module's namespace groups
+        full_namespace = base_namespace + module['namespace_groups']
+        
+        # Add module to the leaf node
+        if not full_namespace:
+            # Module at root level
+            if '__root__' not in tree:
+                tree['__root__'] = {'modules': [], 'children': {}}
+            tree['__root__']['modules'].append(module)
+        else:
+            # Navigate/create the tree structure and add module at the end
+            current = tree
+            for i, ns in enumerate(full_namespace):
+                if ns not in current:
+                    current[ns] = {'modules': [], 'children': {}}
+                
+                # If this is the last namespace in the path, add the module here
+                if i == len(full_namespace) - 1:
+                    current[ns]['modules'].append(module)
+                else:
+                    # Otherwise, continue navigating down
+                    current = current[ns]['children']
+    
+    return tree
+
+
 def _generate_component_launcher(compute_unit: str, namespace: str, components: list, output_dir: str):
     """Generate component launcher file that directly launches all modules in the component."""
     component_dir = os.path.join(output_dir, compute_unit, namespace)
@@ -202,15 +241,23 @@ def _generate_component_launcher(compute_unit: str, namespace: str, components: 
     
     # Collect all modules recursively from all components in this namespace
     all_modules = []
+    component_full_namespace = []
     for component in components:
         modules = _collect_all_modules_recursively(component)
         all_modules.extend(modules)
+        # Extract the full namespace from the component (should be same for all components in this group)
+        if not component_full_namespace and hasattr(component, 'namespace'):
+            component_full_namespace = component.namespace.copy()
+    
+    # Build namespace tree
+    namespace_tree = _build_namespace_tree(all_modules, component_full_namespace)
     
     # Prepare template data
     template_data = {
         "compute_unit": compute_unit,
         "namespace": namespace,
-        "modules": all_modules
+        "component_full_namespace": component_full_namespace,
+        "namespace_tree": namespace_tree
     }
     
     _render_template_to_file('component_launcher.xml.jinja2', launcher_file, template_data)

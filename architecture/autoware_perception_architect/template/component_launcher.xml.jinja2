@@ -5,14 +5,13 @@
   <!-- Compute Unit: {{ compute_unit }} -->
   <!-- This launcher starts all modules in component: {{ namespace }} -->
 
-{% for module in modules %}
-  <!-- Module: {{ module.full_namespace_path }}/{{ module.name }} -->
-{% if module.namespace_groups %}
-{% for ns_group in module.namespace_groups %}
-  <group>
-    <push-ros-namespace namespace="{{ ns_group }}"/>
-{% endfor %}
-{% endif %}
+{# Macro to recursively render namespace tree #}
+{% macro render_namespace_tree(tree, current_path=[]) %}
+{% for ns_name, ns_data in tree.items() %}
+{% if ns_name == '__root__' %}
+{# Modules at root level (no namespace grouping) #}
+{% for module in ns_data.modules %}
+  <!-- Module: /{{ module.name }} -->
   <load_composable_node target="{{ module.container }}">
     <composable_node pkg="{{ module.package }}" plugin="{{ module.plugin }}" name="{{ module.name }}">
       <!-- Remap input and output topics -->
@@ -31,11 +30,43 @@
 {% endfor %}
     </composable_node>
   </load_composable_node>
-{% if module.namespace_groups %}
-{% for ns_group in module.namespace_groups %}
-  </group>
-{% endfor %}
-{% endif %}
 
 {% endfor %}
+{% else %}
+  <group>
+    <push-ros-namespace namespace="{{ ns_name }}"/>
+{# Render modules at this namespace level #}
+{% for module in ns_data.modules %}
+    <!-- Module: {{ (current_path + [ns_name]) | join('/') }}/{{ module.name }} -->
+    <load_composable_node target="{{ module.container }}">
+      <composable_node pkg="{{ module.package }}" plugin="{{ module.plugin }}" name="{{ module.name }}">
+        <!-- Remap input and output topics -->
+{% for port in module.ports %}
+        <remap from="~/{{ port.direction }}/{{ port.name }}" to="{{ port.topic }}"/>
+{% endfor %}
+
+        <!-- Parameters -->
+{% for param in module.parameters %}
+        <param name="{{ param.name }}" value="{{ param.value }}"/>
+{% endfor %}
+
+        <!-- Configurations -->
+{% for config in module.configurations %}
+        <param name="{{ config.name }}" value="{{ config.value }}"/>
+{% endfor %}
+      </composable_node>
+    </load_composable_node>
+
+{% endfor %}
+{# Recursively render child namespaces #}
+{% if ns_data.children %}
+{{ render_namespace_tree(ns_data.children, current_path + [ns_name]) }}
+{% endif %}
+  </group>
+{% endif %}
+{% endfor %}
+{% endmacro %}
+
+{# Start rendering from the root of the tree #}
+{{ render_namespace_tree(namespace_tree) }}
 </launch>
