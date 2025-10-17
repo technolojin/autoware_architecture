@@ -75,13 +75,20 @@ class ConfigParser:
         }
         
         if element_type == ConfigType.MODULE:
+            # Initialize configuration values from defaults
+            configurations = config.get('configurations', [])
+            if configurations:
+                for cfg in configurations:
+                    if 'default' in cfg and 'value' not in cfg:
+                        cfg['value'] = cfg['default']
+            
             return ModuleConfig(
                 **base_data,
                 launch=config.get('launch'),
                 inputs=config.get('inputs'),
                 outputs=config.get('outputs'),
                 parameter_files=config.get('parameter_files'),
-                configurations=config.get('configurations'),
+                configurations=configurations,
                 processes=config.get('processes')
             )
         elif element_type == ConfigType.PIPELINE:

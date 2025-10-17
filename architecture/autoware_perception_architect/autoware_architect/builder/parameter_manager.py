@@ -316,7 +316,7 @@ class ParameterManager:
             for config in module_instance.configuration.configurations:
                 config_name = config.get('name')
                 config_type = config.get('type', 'string')
-                config_value = config.get('value')
+                config_value = config.get('value')  # Now initialized from 'default' during parsing
                 
                 if config_name is not None:
                     configuration = {
@@ -327,15 +327,27 @@ class ParameterManager:
                     configurations.append(configuration)
         
         # Get any runtime parameter overrides from the parameter manager
+        # These override the default values from module configuration
+        runtime_overrides = {}
         for param in module_instance.parameter_manager.get_all_parameter_files():
             if hasattr(param, 'param_type') and param.param_type == ParameterType.CONFIGURATION:
-                # This is a runtime configuration override
-                param_override = {
+                # Track runtime overrides by name to avoid duplicates
+                runtime_overrides[param.name] = {
                     "name": param.name,
                     "type": getattr(param, 'data_type', 'string'),
                     "value": param.value
                 }
-                configurations.append(param_override)
+        
+        # Apply runtime overrides (update existing or add new configurations)
+        for config in configurations:
+            if config['name'] in runtime_overrides:
+                # Update existing configuration with runtime override
+                config['value'] = runtime_overrides[config['name']]['value']
+                # Remove from runtime_overrides so we don't add it again
+                del runtime_overrides[config['name']]
+        
+        # Add any remaining runtime overrides that weren't in the original config
+        configurations.extend(runtime_overrides.values())
         
         return parameter_files, configurations
     
