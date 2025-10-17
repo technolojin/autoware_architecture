@@ -12,6 +12,7 @@
 {# Modules at root level (no namespace grouping) #}
 {% for module in ns_data.modules %}
   <!-- Module: /{{ module.name }} -->
+{% if module.use_container %}
   <load_composable_node target="{{ module.container }}">
     <composable_node pkg="{{ module.package }}" plugin="{{ module.plugin }}" name="{{ module.name }}">
       <!-- Remap input and output topics -->
@@ -19,9 +20,9 @@
       <remap from="~/{{ port.direction }}/{{ port.name }}" to="{{ port.topic }}"/>
 {% endfor %}
 
-      <!-- Parameters -->
-{% for param in module.parameters %}
-      <param name="{{ param.name }}" value="{{ param.value }}"/>
+      <!-- Parameter files -->
+{% for param_file in module.parameter_files %}
+      <param from="{{ param_file.path }}"/>
 {% endfor %}
 
       <!-- Configurations -->
@@ -30,6 +31,24 @@
 {% endfor %}
     </composable_node>
   </load_composable_node>
+{% else %}
+  <node pkg="{{ module.package }}" exec="{{ module.executable }}" name="{{ module.name }}" output="{{ module.node_output }}">
+    <!-- Remap input and output topics -->
+{% for port in module.ports %}
+    <remap from="~/{{ port.direction }}/{{ port.name }}" to="{{ port.topic }}"/>
+{% endfor %}
+
+    <!-- Parameter files -->
+{% for param_file in module.parameter_files %}
+    <param from="{{ param_file.path }}"/>
+{% endfor %}
+
+    <!-- Configurations -->
+{% for config in module.configurations %}
+    <param name="{{ config.name }}" value="{{ config.value }}"/>
+{% endfor %}
+  </node>
+{% endif %}
 
 {% endfor %}
 {% else %}
@@ -38,6 +57,7 @@
 {# Render modules at this namespace level #}
 {% for module in ns_data.modules %}
     <!-- Module: {{ (current_path + [ns_name]) | join('/') }}/{{ module.name }} -->
+{% if module.use_container %}
     <load_composable_node target="{{ module.container }}">
       <composable_node pkg="{{ module.package }}" plugin="{{ module.plugin }}" name="{{ module.name }}">
         <!-- Remap input and output topics -->
@@ -45,9 +65,9 @@
         <remap from="~/{{ port.direction }}/{{ port.name }}" to="{{ port.topic }}"/>
 {% endfor %}
 
-        <!-- Parameters -->
-{% for param in module.parameters %}
-        <param name="{{ param.name }}" value="{{ param.value }}"/>
+        <!-- Parameter files -->
+{% for param_file in module.parameter_files %}
+        <param from="{{ param_file.path }}"/>
 {% endfor %}
 
         <!-- Configurations -->
@@ -56,6 +76,24 @@
 {% endfor %}
       </composable_node>
     </load_composable_node>
+{% else %}
+    <node pkg="{{ module.package }}" exec="{{ module.executable }}" name="{{ module.name }}" output="{{ module.node_output }}">
+      <!-- Remap input and output topics -->
+{% for port in module.ports %}
+      <remap from="~/{{ port.direction }}/{{ port.name }}" to="{{ port.topic }}"/>
+{% endfor %}
+
+      <!-- Parameter files -->
+{% for param_file in module.parameter_files %}
+      <param from="{{ param_file.path }}"/>
+{% endfor %}
+
+      <!-- Configurations -->
+{% for config in module.configurations %}
+      <param name="{{ config.name }}" value="{{ config.value }}"/>
+{% endfor %}
+    </node>
+{% endif %}
 
 {% endfor %}
 {# Recursively render child namespaces #}

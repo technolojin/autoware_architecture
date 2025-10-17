@@ -58,40 +58,40 @@ parameter_files:
 configurations:
   - name: input/detection01/channel
     type: string
-    default: none
+    default: "none"
   - name: input/detection02/channel
     type: string
-    default: none
+    default: "none"
   - name: input/detection03/channel
     type: string
-    default: none
+    default: "none"
   - name: input/detection04/channel
     type: string
-    default: none
+    default: "none"
   - name: input/detection05/channel
     type: string
-    default: none
+    default: "none"
   - name: input/detection06/channel
     type: string
-    default: none
+    default: "none"
   - name: input/detection07/channel
     type: string
-    default: none
+    default: "none"
   - name: input/detection08/channel
     type: string
-    default: none
+    default: "none"
   - name: input/detection09/channel
     type: string
-    default: none
+    default: "none"
   - name: input/detection10/channel
     type: string
-    default: none
+    default: "none"
   - name: input/detection11/channel
     type: string
-    default: none
+    default: "none"
   - name: input/detection12/channel
     type: string
-    default: none
+    default: "none"
   - name: publish_merged_objects
     type: boolean
     default: false

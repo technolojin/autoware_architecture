@@ -92,11 +92,15 @@ def _collect_all_modules_recursively(instance: Instance) -> List[Dict[str, Any]]
 def _extract_module_data(module_instance: Instance, pipeline_path: List[str]) -> Dict[str, Any]:
     """Extract all necessary data from a module instance for launcher generation."""
     launch_config = module_instance.configuration.launch
+    module_config = module_instance.configuration.config
     
     # Extract launch information
     package = launch_config.get("package", "")
     plugin = launch_config.get("plugin", "")
-    container = "perception_container"  # Default container, could be configurable
+    executable = launch_config.get("executable", "")
+    use_container = launch_config.get("use_container", False)  # Default to regular node
+    container = launch_config.get("container_name", "perception_container")
+    node_output = launch_config.get("node_output", "screen")
     
     # Calculate namespace groups for nested push-ros-namespace
     # pipeline_path contains the intermediate pipeline names
@@ -126,33 +130,90 @@ def _extract_module_data(module_instance: Instance, pipeline_path: List[str]) ->
             "topic": topic
         })
     
-    # Collect parameters
-    parameters = []
-    configurations = []
+    # Collect default parameter_files from module configuration
+    default_param_files = {}
+    if "parameter_files" in module_config:
+        for param in module_config["parameter_files"]:
+            param_name = param.get("name")
+            param_default = param.get("default")
+            if param_name and param_default:
+                default_param_files[param_name] = param_default
+    
+    # Collect default configurations from module configuration
+    default_configurations = {}
+    if "configurations" in module_config:
+        for config in module_config["configurations"]:
+            config_name = config.get("name")
+            config_default = config.get("default")
+            if config_name:
+                default_configurations[config_name] = config_default
+    
+    # Collect parameter overrides from parameter_set (via parameter_manager)
+    parameter_set_params = {}
+    parameter_set_configs = {}
     
     parameter_files = module_instance.parameter_manager.get_all_parameter_files()
     for param in parameter_files:
         if param.param_type == ParameterType.PARAMETER_FILES:
-            parameters.append({
-                "name": param.name,
-                "value": param.value
-            })
+            parameter_set_params[param.name] = param.value
         elif param.param_type == ParameterType.CONFIGURATION:
-            configurations.append({
-                "name": param.name,
-                "value": param.value
+            # Only include configurations that are not "none"
+            if param.value != "none":
+                parameter_set_configs[param.name] = param.value
+    
+    # Build final parameter_files list
+    # Load default file first, then parameter_set file if available (to override subset of params)
+    final_param_files = []
+    
+    for name, default_path in default_param_files.items():
+        # Always add the default path first with package prefix
+        # If the path already starts with $( or /, don't add prefix
+        if default_path.startswith('$(') or default_path.startswith('/'):
+            default_full_path = default_path
+        else:
+            default_full_path = f"$(find-pkg-share {package})/{default_path}"
+        
+        final_param_files.append({
+            "path": default_full_path
+        })
+        # If parameter_set provides an override file, add it after (to override subset of params)
+        if name in parameter_set_params:
+            final_param_files.append({
+                "path": parameter_set_params[name]
+            })
+    
+    # Build final configurations list (defaults + parameter_set overrides)
+    final_configurations = []
+    
+    # Merge default configurations with parameter_set overrides
+    all_config_keys = set(default_configurations.keys()) | set(parameter_set_configs.keys())
+    for config_name in sorted(all_config_keys):
+        # Use parameter_set value if available, otherwise use default
+        if config_name in parameter_set_configs:
+            config_value = parameter_set_configs[config_name]
+        else:
+            config_value = default_configurations.get(config_name)
+        
+        # Only include if value is not None and not "none"
+        if config_value is not None and config_value != "none":
+            final_configurations.append({
+                "name": config_name,
+                "value": config_value
             })
     
     return {
         "name": module_instance.name,
         "package": package,
         "plugin": plugin,
+        "executable": executable,
+        "use_container": use_container,
         "container": container,
+        "node_output": node_output,
         "namespace_groups": namespace_groups,
         "full_namespace_path": full_namespace_path,
         "ports": ports,
-        "parameters": parameters,
-        "configurations": configurations
+        "parameter_files": final_param_files,
+        "configurations": final_configurations
     }
 
 

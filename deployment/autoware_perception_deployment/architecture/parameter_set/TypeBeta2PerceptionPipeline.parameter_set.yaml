@@ -18,10 +18,10 @@ parameters:
     configurations:
       - name: build_only
         type: bool
-        value: None
+        value: none
       - name: logger_name
         type: str
-        value: None
+        value: none
   - node: /perception/object_recognition/detection/centerpoint/validation
     parameter_files:
       - obstacle_pointcloud_based_validator_param_path: perception/object_recognition/detection/centerpoint/validation/obstacle_pointcloud_based_validator_param_path.param.yaml
@@ -89,43 +89,43 @@ parameters:
     configurations:
       - name: input/detection01/channel
         type: string
-        value: None
+        value: none
       - name: input/detection02/channel
         type: string
-        value: None
+        value: none
       - name: input/detection03/channel
         type: string
-        value: None
+        value: none
       - name: input/detection04/channel
         type: string
-        value: None
+        value: none
       - name: input/detection05/channel
         type: string
-        value: None
+        value: none
       - name: input/detection06/channel
         type: string
-        value: None
+        value: none
       - name: input/detection07/channel
         type: string
-        value: None
+        value: none
       - name: input/detection08/channel
         type: string
-        value: None
+        value: none
       - name: input/detection09/channel
         type: string
-        value: None
+        value: none
       - name: input/detection10/channel
         type: string
-        value: None
+        value: none
       - name: input/detection11/channel
         type: string
-        value: None
+        value: none
       - name: input/detection12/channel
         type: string
-        value: None
+        value: none
       - name: publish_merged_objects
         type: boolean
-        value: None
+        value: none
   - node: /perception/object_recognition/tracking/radar_object_tracker
     parameter_files:
       - tracker_setting_path: perception/object_recognition/tracking/radar_object_tracker/tracker_setting_path.param.yaml
