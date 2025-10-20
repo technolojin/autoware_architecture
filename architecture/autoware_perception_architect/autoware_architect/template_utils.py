@@ -16,14 +16,23 @@ class TemplateRenderer:
             template_dir: Directory containing template files. If None, uses default.
         """
         if template_dir is None:
-            # Default template directory relative to this file
-            self.template_dir = os.path.join(os.path.dirname(__file__), "../template")
+            # Support both template and template/launcher directories
+            base_dir = os.path.dirname(__file__)
+            self.template_dirs = [
+                os.path.join(base_dir, "../template"),
+                os.path.join(base_dir, "../template/launcher"),
+                os.path.join(base_dir, "../template/visualization"),
+            ]
         else:
-            self.template_dir = template_dir
+            # Accept a single directory or a list of directories
+            if isinstance(template_dir, str):
+                self.template_dirs = [template_dir]
+            else:
+                self.template_dirs = template_dir
             
         # Setup Jinja2 environment with consistent settings
         self.env = Environment(
-            loader=FileSystemLoader(self.template_dir),
+            loader=FileSystemLoader(self.template_dirs),
             trim_blocks=True,           # Remove newlines after block tags
             lstrip_blocks=True,         # Remove leading whitespace before blocks
             keep_trailing_newline=True, # Preserve final newline
