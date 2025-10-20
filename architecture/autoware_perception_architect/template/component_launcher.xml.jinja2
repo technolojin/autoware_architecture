@@ -20,16 +20,9 @@
       <remap from="~/{{ port.direction }}/{{ port.name }}" to="{{ port.topic }}"/>
 {% endfor %}
 
-{% if module.default_param_files %}
-      <!-- Default parameter files -->
-{% for param_file in module.default_param_files %}
-      <param from="{{ param_file.path }}"/>
-{% endfor %}
-{% endif %}
-
-{% if module.override_param_files %}
-      <!-- Overriding parameter files -->
-{% for param_file in module.override_param_files %}
+{% if module.parameter_files %}
+      <!-- Parameter files (defaults and overrides in order) -->
+{% for param_file in module.parameter_files %}
       <param from="{{ param_file.path }}"/>
 {% endfor %}
 {% endif %}
@@ -47,16 +40,9 @@
     <remap from="~/{{ port.direction }}/{{ port.name }}" to="{{ port.topic }}"/>
 {% endfor %}
 
-{% if module.default_param_files %}
-    <!-- Default parameter files -->
-{% for param_file in module.default_param_files %}
-    <param from="{{ param_file.path }}"/>
-{% endfor %}
-{% endif %}
-
-{% if module.override_param_files %}
-    <!-- Overriding parameter files -->
-{% for param_file in module.override_param_files %}
+{% if module.parameter_files %}
+    <!-- Parameter files (defaults and overrides in order) -->
+{% for param_file in module.parameter_files %}
     <param from="{{ param_file.path }}"/>
 {% endfor %}
 {% endif %}
@@ -83,16 +69,9 @@
         <remap from="~/{{ port.direction }}/{{ port.name }}" to="{{ port.topic }}"/>
 {% endfor %}
 
-{% if module.default_param_files %}
-        <!-- Default parameter files -->
-{% for param_file in module.default_param_files %}
-        <param from="{{ param_file.path }}"/>
-{% endfor %}
-{% endif %}
-
-{% if module.override_param_files %}
-        <!-- Overriding parameter files -->
-{% for param_file in module.override_param_files %}
+{% if module.parameter_files %}
+        <!-- Parameter files (defaults and overrides in order) -->
+{% for param_file in module.parameter_files %}
         <param from="{{ param_file.path }}"/>
 {% endfor %}
 {% endif %}
@@ -110,16 +89,9 @@
       <remap from="~/{{ port.direction }}/{{ port.name }}" to="{{ port.topic }}"/>
 {% endfor %}
 
-{% if module.default_param_files %}
-      <!-- Default parameter files -->
-{% for param_file in module.default_param_files %}
-      <param from="{{ param_file.path }}"/>
-{% endfor %}
-{% endif %}
-
-{% if module.override_param_files %}
-      <!-- Overriding parameter files -->
-{% for param_file in module.override_param_files %}
+{% if module.parameter_files %}
+      <!-- Parameter files (defaults and overrides in order) -->
+{% for param_file in module.parameter_files %}
       <param from="{{ param_file.path }}"/>
 {% endfor %}
 {% endif %}

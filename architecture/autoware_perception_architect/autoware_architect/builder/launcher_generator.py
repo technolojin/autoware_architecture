@@ -17,7 +17,6 @@ import logging
 from typing import List, Dict, Any
 from .instances import Instance
 from ..template_utils import TemplateRenderer
-from ..models.parameters import ParameterType
 
 logger = logging.getLogger(__name__)
 
@@ -90,9 +89,12 @@ def _collect_all_modules_recursively(instance: Instance) -> List[Dict[str, Any]]
 
 
 def _extract_module_data(module_instance: Instance, pipeline_path: List[str]) -> Dict[str, Any]:
-    """Extract all necessary data from a module instance for launcher generation."""
+    """Extract all necessary data from a module instance for launcher generation.
+    
+    This function uses the already-parsed parameters from parameter_manager instead of
+    re-parsing the module configuration.
+    """
     launch_config = module_instance.configuration.launch
-    module_config = module_instance.configuration.config
     
     # Extract launch information
     package = launch_config.get("package", "")
@@ -130,82 +132,9 @@ def _extract_module_data(module_instance: Instance, pipeline_path: List[str]) ->
             "topic": topic
         })
     
-    # Collect default parameter_files from module configuration
-    default_param_files = {}
-    if "parameter_files" in module_config:
-        for param in module_config["parameter_files"]:
-            param_name = param.get("name")
-            param_default = param.get("default")
-            if param_name and param_default:
-                default_param_files[param_name] = param_default
-    
-    # Collect default configurations from module configuration
-    default_configurations = {}
-    if "configurations" in module_config:
-        for config in module_config["configurations"]:
-            config_name = config.get("name")
-            config_default = config.get("default")
-            if config_name:
-                default_configurations[config_name] = config_default
-    
-    # Collect parameter overrides from parameter_set (via parameter_manager)
-    parameter_set_params = {}
-    parameter_set_configs = {}
-    
-    parameter_files = module_instance.parameter_manager.get_all_parameter_files()
-    
-    for param in parameter_files:
-        if param.param_type == ParameterType.PARAMETER_FILES:
-            parameter_set_params[param.name] = param.value
-        elif param.param_type == ParameterType.CONFIGURATION:
-            # Only include configurations that are not "none"
-            if param.value != "none":
-                parameter_set_configs[param.name] = param.value
-    
-    # Build final parameter_files list
-    # Group into default files and override files for better organization
-    default_param_file_list = []
-    override_param_file_list = []
-    
-    for name, default_path in default_param_files.items():
-        # Always add the default path first with package prefix
-        # If the path already starts with $( or /, don't add prefix
-        if default_path.startswith('$(') or default_path.startswith('/'):
-            default_full_path = default_path
-        else:
-            default_full_path = f"$(find-pkg-share {package})/{default_path}"
-        
-        default_param_file_list.append({
-            "path": default_full_path
-        })
-        
-        # If parameter_set provides an override file AND it's different from default, add it to override list
-        if name in parameter_set_params:
-            override_path = parameter_set_params[name]
-            # Only add override if it's actually different from the default
-            if override_path != default_path and override_path != default_full_path:
-                override_param_file_list.append({
-                    "path": override_path
-                })
-
-    # Build final configurations list (defaults + parameter_set overrides)
-    final_configurations = []
-    
-    # Merge default configurations with parameter_set overrides
-    all_config_keys = set(default_configurations.keys()) | set(parameter_set_configs.keys())
-    for config_name in sorted(all_config_keys):
-        # Use parameter_set value if available, otherwise use default
-        if config_name in parameter_set_configs:
-            config_value = parameter_set_configs[config_name]
-        else:
-            config_value = default_configurations.get(config_name)
-        
-        # Only include if value is not None and not "none"
-        if config_value is not None and config_value != "none":
-            final_configurations.append({
-                "name": config_name,
-                "value": config_value
-            })
+    # Get parameter files and configurations from parameter_manager (already parsed and ordered)
+    parameter_files = module_instance.parameter_manager.get_parameter_files_for_launch()
+    configurations = module_instance.parameter_manager.get_configurations_for_launch()
     
     return {
         "name": module_instance.name,
@@ -218,9 +147,8 @@ def _extract_module_data(module_instance: Instance, pipeline_path: List[str]) ->
         "namespace_groups": namespace_groups,
         "full_namespace_path": full_namespace_path,
         "ports": ports,
-        "default_param_files": default_param_file_list,
-        "override_param_files": override_param_file_list,
-        "configurations": final_configurations
+        "parameter_files": parameter_files,
+        "configurations": configurations
     }
 
 

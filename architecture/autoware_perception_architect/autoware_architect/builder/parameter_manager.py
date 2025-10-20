@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, List, Dict, Any, Optional
 import os
 import shutil
 
-from ..models.parameters import ParameterList, ParameterType
+from ..models.parameters import ParameterList, ParameterType, Parameter
 
 if TYPE_CHECKING:
     from .instances import Instance
@@ -32,6 +32,7 @@ class ParameterManager:
     1. Applying parameters from parameter sets to target nodes
     2. Initializing module parameters from configuration
     3. Managing parameter values and configurations
+    4. Resolving parameter file paths with package prefixes
     """
     
     def __init__(self, instance: 'Instance'):
@@ -49,6 +50,65 @@ class ParameterManager:
     def get_all_parameter_files(self):
         """Get all parameter_files."""
         return self.parameter_files.list
+    
+    def get_parameter_files_for_launch(self) -> List[Dict[str, str]]:
+        """Get parameter files formatted for launcher generation with resolved paths.
+        
+        Returns list of dicts with 'path' key, in order (defaults first, then overrides).
+        """
+        package_name = None
+        if self.instance.element_type == "module" and self.instance.configuration:
+            launch_config = self.instance.configuration.launch
+            package_name = launch_config.get("package")
+        
+        result = []
+        for param in self.parameter_files.get_parameter_files_ordered():
+            resolved_path = self._resolve_parameter_file_path(param.value, package_name, param.is_default)
+            result.append({"path": resolved_path})
+        
+        return result
+    
+    def get_configurations_for_launch(self) -> List[Dict[str, Any]]:
+        """Get configurations formatted for launcher generation.
+        
+        Returns list of dicts with 'name' and 'value' keys, filtering out 'none' values.
+        """
+        result = []
+        for param in self.parameter_files.get_configurations():
+            # Only include if value is not None and not "none"
+            if param.value is not None and param.value != "none":
+                result.append({
+                    "name": param.name,
+                    "value": param.value
+                })
+        return result
+
+    # =========================================================================
+    # Parameter Path Resolution
+    # =========================================================================
+    
+    def _resolve_parameter_file_path(self, path: str, package_name: Optional[str] = None, 
+                                     is_default: bool = False) -> str:
+        """Resolve parameter file path with package prefix if needed.
+        
+        Args:
+            path: The parameter file path
+            package_name: The ROS package name for default parameters
+            is_default: Whether this is a default parameter file
+            
+        Returns:
+            Resolved path with package prefix if applicable
+        """
+        # If path already starts with $( or /, don't add prefix
+        if path.startswith('$(') or path.startswith('/'):
+            return path
+        
+        # For default parameters, add package prefix if package name is available
+        if is_default and package_name:
+            return f"$(find-pkg-share {package_name})/{path}"
+        
+        # For overrides or when no package name, return as-is
+        return path
 
     # =========================================================================
     # Parameter Application (from parameter sets)
@@ -79,7 +139,7 @@ class ParameterManager:
         
         logger.info(f"Applying parameters to node: {node_namespace}")
             
-        # Apply parameter files first
+        # Apply parameter files first (as overrides, not defaults)
         if parameter_files:
             for param_file_mapping in parameter_files:
                 for param_name, param_path in param_file_mapping.items():
@@ -88,7 +148,8 @@ class ParameterManager:
                         param_path,
                         param_type=ParameterType.PARAMETER_FILES,
                         data_type="path",
-                        allow_substs=True
+                        allow_substs=True,
+                        is_default=False  # Parameter set overrides are not defaults
                     )
         
         # Apply configurations (these override parameter files)
@@ -103,7 +164,8 @@ class ParameterManager:
                     config_value,
                     param_type=ParameterType.CONFIGURATION,
                     data_type=config_type,
-                    allow_substs=True
+                    allow_substs=True,
+                    is_default=False  # Parameter set configurations are not defaults
                 )
 
     # =========================================================================
@@ -168,20 +230,44 @@ class ParameterManager:
     # =========================================================================
     
     def initialize_module_parameters(self):
-        """Initialize parameters for module element during module configuration."""
+        """Initialize parameters for module element during module configuration.
+        
+        This method initializes both default parameter_files and default configurations
+        from the module's configuration file.
+        """
         if self.instance.element_type != "module":
             return
-            
-        # set parameter_files
-        for cfg_param in self.instance.configuration.parameter_files:
-            param_name = cfg_param.get("name")
-            param_value = cfg_param.get("default")
-            param_schema = cfg_param.get("schema")
-            self.parameter_files.set_parameter(
-                param_name, 
-                param_value,
-                param_type=ParameterType.PARAMETER_FILES,
-                data_type="string",
-                schema_path=param_schema,
-                    allow_substs=cfg_param.get("allow_substs", True)
+        
+        # 1. Set default parameter_files from module configuration
+        if hasattr(self.instance.configuration, 'parameter_files') and self.instance.configuration.parameter_files:
+            for cfg_param in self.instance.configuration.parameter_files:
+                param_name = cfg_param.get("name")
+                param_value = cfg_param.get("default")
+                param_schema = cfg_param.get("schema")
+                self.parameter_files.set_parameter(
+                    param_name, 
+                    param_value,
+                    param_type=ParameterType.PARAMETER_FILES,
+                    data_type="string",
+                    schema_path=param_schema,
+                    allow_substs=cfg_param.get("allow_substs", True),
+                    is_default=True  # These are default parameter files
                 )
+        
+        # 2. Set default configurations from module configuration
+        if hasattr(self.instance.configuration, 'configurations') and self.instance.configuration.configurations:
+            for cfg_config in self.instance.configuration.configurations:
+                config_name = cfg_config.get("name")
+                config_value = cfg_config.get("default")
+                config_type = cfg_config.get("type", "string")
+                
+                # Only set if a default value is provided
+                if config_value is not None:
+                    self.parameter_files.set_parameter(
+                        config_name,
+                        config_value,
+                        param_type=ParameterType.CONFIGURATION,
+                        data_type=config_type,
+                        allow_substs=True,
+                        is_default=True  # These are default configurations
+                    )

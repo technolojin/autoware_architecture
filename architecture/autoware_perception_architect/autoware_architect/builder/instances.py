@@ -147,7 +147,10 @@ class Instance:
         self.is_initialized = True
 
     def _apply_parameter_set(self, instance: "Instance", cfg_component: dict, config_registry: ConfigRegistry):
-        """Apply parameter set to an instance using direct node targeting."""
+        """Apply parameter set to an instance using direct node targeting.
+        
+        Only applies parameters to nodes that are descendants of the given instance.
+        """
         parameter_set = cfg_component.get("parameter_set")
         cfg_param_set: ParameterSetConfig = None
         if parameter_set is not None:
@@ -158,14 +161,20 @@ class Instance:
         # apply the parameter set to the instance        
         try:
             if cfg_param_set is not None:
-                param_list = cfg_param_set.parameters
+                node_params = cfg_param_set.parameters
                 logger.info(f"Applying parameter set '{param_set_name}' to component '{instance.name}'")
                 
                 # New parameter set format: direct node targeting
-                for param_config in param_list:
+                for param_config in node_params:
                     if isinstance(param_config, dict) and "node" in param_config:
                         # New format: direct node targeting with absolute namespace
                         node_namespace = param_config.get("node")
+                        
+                        # Only apply if the target node is under this component's namespace
+                        if not node_namespace.startswith(instance.namespace_str + "/"):
+                            logger.debug(f"Skipping node '{node_namespace}' - not under component '{instance.name}' namespace '{instance.namespace_str}'")
+                            continue
+                        
                         parameter_files_raw = param_config.get("parameter_files", [])
                         configurations = param_config.get("configurations", [])
                         
