@@ -206,6 +206,70 @@ class LinkManager:
         link = Link(from_port.msg_type, from_port, to_port, self.instance.namespace, connection_type)
         self.links.append(link)
 
+    def _create_wildcard_links(self, connection: Connection, 
+                              from_port_names: List[str], to_port_names: List[str],
+                              from_instance, to_instance):
+        """Create links for wildcard connections.
+        
+        Args:
+            connection: Connection configuration
+            from_port_names: List of available source port names
+            to_port_names: List of available target port names
+            from_instance: Source instance (or None for external)
+            to_instance: Target instance (or None for external)
+        """
+        matched_from_ports = match_wildcard_ports(connection.from_port_name, from_port_names)
+        matched_to_ports = match_wildcard_ports(connection.to_port_name, to_port_names)
+        
+        # Derive external flags from connection type
+        from_is_external = connection.type == ConnectionType.EXTERNAL_TO_INTERNAL
+        to_is_external = connection.type == ConnectionType.INTERNAL_TO_EXTERNAL
+        
+        # Validate matched ports
+        if not matched_from_ports:
+            context = "from external inputs" if from_is_external else f"{from_instance.name}"
+            raise ValueError(f"No ports found matching pattern '{connection.from_port_name}' in {context}")
+        if not matched_to_ports:
+            context = "external outputs" if to_is_external else f"{to_instance.name}"
+            raise ValueError(f"No ports found matching pattern '{connection.to_port_name}' in {context}")
+        
+        # Determine which side to iterate based on connection type
+        # For EXTERNAL_TO_INTERNAL, iterate on to_ports (internal side)
+        # For INTERNAL_TO_EXTERNAL and INTERNAL_TO_INTERNAL, iterate on from_ports
+        iterate_to = (connection.type == ConnectionType.EXTERNAL_TO_INTERNAL)
+        
+        if iterate_to:
+            # Iterate on to_ports, substitute from_port_name
+            for to_port_name in matched_to_ports:
+                from_port_name = apply_wildcard_substitution(
+                    connection.to_port_name, connection.from_port_name, to_port_name
+                )
+                if from_port_name not in matched_from_ports:
+                    continue
+                
+                # Get or create ports
+                to_port = to_instance.link_manager.get_in_port(to_port_name)
+                from_port = InPort(from_port_name, to_port.msg_type, self.instance.namespace)
+                
+                self._create_link_from_ports(from_port, to_port, connection.type)
+        else:
+            # Iterate on from_ports, substitute to_port_name
+            for from_port_name in matched_from_ports:
+                to_port_name = apply_wildcard_substitution(
+                    connection.from_port_name, connection.to_port_name, from_port_name
+                )
+                if to_port_name not in matched_to_ports:
+                    continue
+                
+                # Get or create ports
+                from_port = from_instance.link_manager.get_out_port(from_port_name)
+                if to_is_external:
+                    to_port = OutPort(to_port_name, from_port.msg_type, self.instance.namespace)
+                else:
+                    to_port = to_instance.link_manager.get_in_port(to_port_name)
+                
+                self._create_link_from_ports(from_port, to_port, connection.type)
+
     def _create_external_to_internal_link(self, connection: Connection):
         """Create link from external input to internal input.
         
@@ -218,24 +282,8 @@ class LinkManager:
         if has_wildcard:
             from_port_names = self._get_external_interface_names("input")
             to_port_names = self._get_non_global_port_names(to_instance.link_manager.in_ports)
-            matched_from_ports = match_wildcard_ports(connection.from_port_name, from_port_names)
-            matched_to_ports = match_wildcard_ports(connection.to_port_name, to_port_names)
-
-            if not matched_from_ports:
-                raise ValueError(f"No ports found matching pattern '{connection.from_port_name}' in from external inputs")
-            if not matched_to_ports:
-                raise ValueError(f"No ports found matching pattern '{connection.to_port_name}' in {to_instance.name}")
-            
-            for to_port_name in matched_to_ports:
-                to_port = to_instance.link_manager.get_in_port(to_port_name)
-                from_port_name = apply_wildcard_substitution(
-                    connection.to_port_name, connection.from_port_name, to_port_name
-                )
-                if from_port_name not in matched_from_ports:
-                    continue
-                
-                from_port = InPort(from_port_name, to_port.msg_type, self.instance.namespace)
-                self._create_link_from_ports(from_port, to_port, connection.type)
+            self._create_wildcard_links(connection, from_port_names, to_port_names,
+                                       None, to_instance)
         else:
             to_port = to_instance.link_manager.get_in_port(connection.to_port_name)
             from_port = InPort(connection.from_port_name, to_port.msg_type, self.instance.namespace)
@@ -254,23 +302,8 @@ class LinkManager:
         if has_wildcard:
             from_port_names = list(from_instance.link_manager.out_ports.keys())
             to_port_names = list(to_instance.link_manager.in_ports.keys())
-            matched_from_ports = match_wildcard_ports(connection.from_port_name, from_port_names)
-            matched_to_ports = match_wildcard_ports(connection.to_port_name, to_port_names)
-            
-            if not matched_from_ports:
-                raise ValueError(f"No ports found matching pattern '{connection.from_port_name}' in {from_instance.name}")
-            if not matched_to_ports:
-                raise ValueError(f"No ports found matching pattern '{connection.to_port_name}' in {to_instance.name}")
-            
-            for from_port_name in matched_from_ports:
-                to_port_name = apply_wildcard_substitution(
-                    connection.from_port_name, connection.to_port_name, from_port_name
-                )
-                
-                if to_port_name in matched_to_ports:
-                    from_port = from_instance.link_manager.get_out_port(from_port_name)
-                    to_port = to_instance.link_manager.get_in_port(to_port_name)
-                    self._create_link_from_ports(from_port, to_port, connection.type)
+            self._create_wildcard_links(connection, from_port_names, to_port_names,
+                                       from_instance, to_instance)
         else:
             from_port = from_instance.link_manager.get_out_port(connection.from_port_name)
             to_port = to_instance.link_manager.get_in_port(connection.to_port_name)
@@ -288,25 +321,8 @@ class LinkManager:
         if has_wildcard:
             from_port_names = self._get_non_global_port_names(from_instance.link_manager.out_ports)
             to_port_names = self._get_external_interface_names("output")
-            matched_from_ports = match_wildcard_ports(connection.from_port_name, from_port_names)
-            matched_to_ports = match_wildcard_ports(connection.to_port_name, to_port_names)
-            
-            if not matched_from_ports:
-                raise ValueError(f"No ports found matching pattern '{connection.from_port_name}' in {from_instance.name}")
-            if not matched_to_ports:
-                raise ValueError(f"No ports found matching pattern '{connection.to_port_name}' in external outputs")
-
-            for from_port_name in matched_from_ports:
-                from_port = from_instance.link_manager.get_out_port(from_port_name)
-                to_port_name = apply_wildcard_substitution(
-                    connection.from_port_name, connection.to_port_name, from_port_name
-                )
-                
-                if to_port_name not in matched_to_ports:
-                    continue
-                
-                to_port = OutPort(to_port_name, from_port.msg_type, self.instance.namespace)
-                self._create_link_from_ports(from_port, to_port, connection.type)
+            self._create_wildcard_links(connection, from_port_names, to_port_names,
+                                       from_instance, None)
         else:
             from_port = from_instance.link_manager.get_out_port(connection.from_port_name)
             to_port = OutPort(connection.to_port_name, from_port.msg_type, self.instance.namespace)
