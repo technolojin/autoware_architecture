@@ -15,6 +15,7 @@
 from typing import List
 import logging
 from .events import Event
+from ..utils.naming import generate_unique_id
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,6 @@ class Port:
         self.name = name
         self.msg_type = msg_type
         self.namespace = namespace
-        self.port_path = generate_port_path(namespace, name)
         self.reference: List["Port"] = []
         self.topic: List[str] = []
         self.event = None
@@ -36,8 +36,11 @@ class Port:
 
     @property
     def unique_id(self):
-        # Remove leading slash, replace remaining slashes with double underscores
-        return self.port_path.lstrip("/").replace("/", "__")
+        return generate_unique_id(self.namespace, self.name)
+    
+    @property
+    def port_path(self):
+        return generate_port_path(self.namespace, self.name)
 
     def set_references(self, port_list: List["Port"]):
         reference_name_list = [p.port_path for p in self.reference]
@@ -61,12 +64,19 @@ class Port:
 class InPort(Port):
     def __init__(self, name, msg_type, namespace: List[str] = []):
         super().__init__(name, msg_type, namespace)
-        self.port_path = generate_port_path(namespace, "input_" + name)
         self.is_required = True
         self.servers: List[Port] = []
         self.event = Event("input_" + name, namespace)
         self.event.set_type("on_input")
 
+    @property
+    def unique_id(self):
+        return generate_unique_id(self.namespace, "input_" + self.name)
+    
+    @property
+    def port_path(self):
+        return generate_port_path(self.namespace, "input/" + self.name)
+    
     def set_servers(self, port_list: List[Port]):
         server_name_list = [p.port_path for p in self.servers]
         added = []
@@ -78,15 +88,23 @@ class InPort(Port):
             logger.debug(f"InPort '{self.port_path}' added servers: {added}")
 
 
+
 class OutPort(Port):
     def __init__(self, name, msg_type, namespace: List[str] = []):
         super().__init__(name, msg_type, namespace)
-        self.port_path = generate_port_path(namespace, "output_" + name)
         self.frequency = 0.0
         self.is_monitored = False
         self.users: List[Port] = []
         self.event = Event("output_" + name, namespace)
         self.event.set_type("to_output")
+
+    @property
+    def unique_id(self):
+        return generate_unique_id(self.namespace, "output_" + self.name)
+
+    @property
+    def port_path(self):
+        return generate_port_path(self.namespace, "output/" + self.name)
 
     def set_users(self, port_list: List[Port]):
         user_name_list = [p.port_path for p in self.users]
