@@ -27,6 +27,73 @@ from .event_manager import EventManager
 
 logger = logging.getLogger(__name__)
 
+def normalize_mode_field(mode_field) -> List[str]:
+    """Normalize mode field to list of mode names.
+    
+    Args:
+        mode_field: Can be None, string, or list of strings
+        
+    Returns:
+        List of mode names (empty list if None)
+    """
+    if mode_field is None:
+        return []
+    if isinstance(mode_field, str):
+        return [mode_field]
+    if isinstance(mode_field, list):
+        return mode_field
+    raise ValidationError(f"Invalid mode field type: {type(mode_field)}")
+
+def filter_components_by_mode(components: List[Dict], mode_name: str, available_modes: List[str]) -> List[Dict]:
+    """Filter components that are enabled for the given mode.
+    
+    Args:
+        components: List of component configurations
+        mode_name: Name of the mode to filter for
+        available_modes: List of all available mode names
+        
+    Returns:
+        Filtered list of components enabled for this mode
+        
+    Raises:
+        ValidationError: If mode references are invalid or components overlap
+    """
+    enabled_components = []
+    component_mode_map = {}  # Track which modes each component name uses
+    
+    for cfg_component in components:
+        component_name = cfg_component.get("component")
+        component_modes = normalize_mode_field(cfg_component.get("mode"))
+        
+        # If no mode specified, enable for all modes
+        if not component_modes:
+            component_modes = available_modes
+        
+        # Validate mode references
+        for mode in component_modes:
+            if mode not in available_modes:
+                raise ValidationError(
+                    f"Component '{component_name}' references undefined mode '{mode}'. "
+                    f"Available modes: {available_modes}"
+                )
+        
+        # Check for mode overlap with same component name
+        if component_name not in component_mode_map:
+            component_mode_map[component_name] = set()
+        
+        for mode in component_modes:
+            if mode in component_mode_map[component_name]:
+                raise ValidationError(
+                    f"Component '{component_name}' is defined multiple times for mode '{mode}'"
+                )
+            component_mode_map[component_name].add(mode)
+        
+        # Add to enabled list if this mode is in component's mode list
+        if mode_name in component_modes:
+            enabled_components.append(cfg_component)
+    
+    return enabled_components
+
 class Instance:
     # Common attributes for node hierarch instance
     def __init__(
@@ -83,8 +150,26 @@ class Instance:
 
     def _set_architecture_instances(self, config_registry: ConfigRegistry):
         """Set instances for architecture element type."""
+        # Determine which components to instantiate based on mode
+        components_to_instantiate = self.configuration.components
+        
+        # If this is a DeploymentInstance with a mode, filter components
+        if hasattr(self, 'mode') and self.mode is not None:
+            # Get available modes from configuration
+            modes_config = self.configuration.modes or []
+            available_modes = [m.get('name') for m in modes_config]
+            
+            # Filter components for this mode
+            components_to_instantiate = filter_components_by_mode(
+                self.configuration.components, 
+                self.mode, 
+                available_modes
+            )
+            logger.info(f"Architecture instance '{self.namespace_str}' mode '{self.mode}': "
+                       f"{len(components_to_instantiate)}/{len(self.configuration.components)} components enabled")
+        
         # First pass: create all component instances
-        for cfg_component in self.configuration.components:
+        for cfg_component in components_to_instantiate:
             compute_unit_name = cfg_component.get("compute_unit")
             instance_name = cfg_component.get("component")
             element_id = cfg_component.get("element")
@@ -110,7 +195,7 @@ class Instance:
         
         # Second pass: apply parameter sets after all instances are created
         # This ensures that parameter_sets can target nodes across different components
-        for cfg_component in self.configuration.components:
+        for cfg_component in components_to_instantiate:
             instance_name = cfg_component.get("component")
             instance = self.children[instance_name]
             self._apply_parameter_set(instance, cfg_component, config_registry)
@@ -301,19 +386,34 @@ class Instance:
             "events": self.event_manager.get_all_events(),
             "parameters": self.parameter_manager.get_all_parameter_files(),
         }
+        
+        # Add mode information if this is a deployment instance
+        if hasattr(self, 'mode') and self.mode is not None:
+            data["mode"] = self.mode
 
         return data
 
 class DeploymentInstance(Instance):
-    def __init__(self, name: str):
+    def __init__(self, name: str, mode: str = None):
         super().__init__(name)
+        self.mode = mode  # Store mode for this deployment instance
 
     def set_architecture(
         self,
         architecture: Config,
         config_registry,
+        mode: str = None,
     ):
-        logger.info(f"Setting architecture {architecture.full_name} for instance {self.name}")
+        """Set architecture for this deployment instance.
+        
+        Args:
+            architecture: Architecture configuration
+            config_registry: Registry of all configurations
+            mode: Optional mode name to filter components (None means no filtering)
+        """
+        self.mode = mode
+        logger.info(f"Setting architecture {architecture.full_name} for instance {self.name}" + 
+                   (f" (mode: {mode})" if mode else ""))
         self.configuration = architecture
         self.element_type = "architecture"
 

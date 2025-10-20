@@ -107,6 +107,7 @@ class ConfigParser:
         elif element_type == ConfigType.ARCHITECTURE:
             return ArchitectureConfig(
                 **base_data,
+                modes=config.get('modes'),
                 components=config.get('components'),
                 connections=config.get('connections')
             )

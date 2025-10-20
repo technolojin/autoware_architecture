@@ -179,6 +179,7 @@ class ArchitectureValidator(BaseValidator):
     def get_schema_properties(self) -> Dict[str, Dict[str, str]]:
         return {
             'name': {'type': 'string'},
+            'modes': {'type': 'nullable_array'},
             'components': {'type': 'array'},
             'connections': {'type': 'array'},
         }

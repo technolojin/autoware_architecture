@@ -68,5 +68,6 @@ class ParameterSetConfig(Config):
 @dataclass
 class ArchitectureConfig(Config):
     """Data structure for architecture elements."""
+    modes: List[Dict[str, Any]] = None
     components: List[Dict[str, Any]] = None
     connections: List[Dict[str, Any]] = None
