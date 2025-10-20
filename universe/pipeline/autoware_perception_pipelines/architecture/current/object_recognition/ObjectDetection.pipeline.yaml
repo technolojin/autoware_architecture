@@ -81,41 +81,14 @@ connections:
     to: clustering.input.pointcloud
   - from: input.pointcloud_map
     to: clustering.input.pointcloud_map
-  - from: input.rois0
-    to: clustering.input.rois0
-  - from: input.rois1
-    to: clustering.input.rois1
-  - from: input.rois2
-    to: clustering.input.rois2
-  - from: input.rois3
-    to: clustering.input.rois3
-  - from: input.rois4
-    to: clustering.input.rois4
-  - from: input.rois5
-    to: clustering.input.rois5
-  - from: input.rois6
-    to: clustering.input.rois6
-  - from: input.rois7
-    to: clustering.input.rois7
-  - from: input.camera_info0
-    to: clustering.input.camera_info0
-  - from: input.camera_info1
-    to: clustering.input.camera_info1
-  - from: input.camera_info2
-    to: clustering.input.camera_info2
-  - from: input.camera_info3
-    to: clustering.input.camera_info3
-  - from: input.camera_info4
-    to: clustering.input.camera_info4
-  - from: input.camera_info5
-    to: clustering.input.camera_info5
-  - from: input.camera_info6
-    to: clustering.input.camera_info6
-  - from: input.camera_info7
-    to: clustering.input.camera_info7
+  - from: input.*
+    to: clustering.input.*
+
   # detection by tracker
   - from: input.tracked_objects
     to: detection_by_tracker.input.tracked_objects
+  - from: input.*
+    to: detection_by_tracker.input.*
   - from: clustering.output.cluster_objects
     to: detection_by_tracker.input.initial_objects
   # roi detected object fusion
@@ -172,9 +145,10 @@ connections:
     to: output.detected_objects
   - from: input.radar_objects
     to: radar_object_filter.input.objects
-  - from: radar_object_filter.output.filtered_objects
-    to: output.radar_filtered_objects
-
+  - from: radar_object_filter.output.filtered_*
+    to: output.radar_filtered_*
+#  - from: radar_object_filter.output.filtered_objects
+#    to: output.radar_filtered_objects
 parameter_files: []
 
 configurations: []
