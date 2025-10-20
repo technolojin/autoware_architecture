@@ -48,3 +48,25 @@ def snake_to_pascal(name: str) -> str:
     
     components = name.split('_')
     return ''.join(word.capitalize() for word in components)
+
+def generate_unique_id(namespace: list[str], *components: str) -> str:
+    """Generate a unique identifier string from a namespace and optional suffix components.
+
+    The unique id format concatenates namespace segments and extra components with double underscores
+    and replaces any remaining slashes with double underscores for consistency.
+
+    Args:
+        namespace: Ordered list of namespace segments (already split, no leading slash).
+        *components: Optional additional name parts to append for specificity.
+
+    Returns:
+        A sanitized unique identifier string stable across modules.
+    """
+    parts: list[str] = []
+    if namespace:
+        parts.extend(namespace)
+    for comp in components:
+        if comp:
+            parts.append(comp)
+    raw = "__".join(parts)
+    return raw.replace("/", "__")

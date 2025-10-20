@@ -19,6 +19,7 @@ from ..models.config import Config, ModuleConfig, PipelineConfig, ParameterSetCo
 from ..parsers.data_parser import element_name_decode
 from ..config import config
 from ..exceptions import ValidationError
+from ..utils.naming import generate_unique_id
 from .config_registry import ConfigRegistry
 from .parameter_manager import ParameterManager
 from .link_manager import LinkManager
@@ -36,8 +37,6 @@ class Instance:
         # add the instance name to the namespace
         self.namespace.append(name)
         self.namespace_str: str = "/" + "/".join(self.namespace)
-        # create unique ID
-        self.unique_id = ("__".join(self.namespace) + "__" + name).replace("/", "__")
 
         self.compute_unit: str = compute_unit
         self.layer: int = layer
@@ -64,6 +63,10 @@ class Instance:
 
         # status
         self.is_initialized = False
+
+    @property
+    def unique_id(self):
+        return generate_unique_id(self.namespace, self.name)
 
     def set_instances(self, element_id: str, config_registry: ConfigRegistry):
 
@@ -103,6 +106,7 @@ class Instance:
                 raise ValidationError(f"Error in setting component instance '{instance_name}', at {self.configuration.file_path}")
 
             self.children[instance_name] = instance
+            logger.debug(f"Architecture instance '{self.namespace_str}' added component '{instance_name}' (uid={instance.unique_id})")
         
         # Second pass: apply parameter sets after all instances are created
         # This ensures that parameter_sets can target nodes across different components
@@ -172,7 +176,7 @@ class Instance:
                         
                         # Only apply if the target node is under this component's namespace
                         if not node_namespace.startswith(instance.namespace_str + "/"):
-                            logger.debug(f"Skipping node '{node_namespace}' - not under component '{instance.name}' namespace '{instance.namespace_str}'")
+                            logger.debug(f"Parameter set '{param_set_name}' skip node '{node_namespace}' (component namespace '{instance.namespace_str}')")
                             continue
                         
                         parameter_files_raw = param_config.get("parameter_files", [])
@@ -191,6 +195,7 @@ class Instance:
                         instance.parameter_manager.apply_node_parameters(
                             node_namespace, parameter_files, configurations
                         )
+                        logger.debug(f"Applied parameters to node '{node_namespace}' from set '{param_set_name}' files={len(parameter_files)} configs={len(configurations)}")
         except Exception as e:
             raise ValidationError(f"Error in applying parameter set '{param_set_name}' to instance '{instance.name}': {e}")
 

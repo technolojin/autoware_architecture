@@ -13,13 +13,16 @@
 # limitations under the License. 
 
 from typing import List
+import logging
+from ..utils.naming import generate_unique_id
+
+logger = logging.getLogger(__name__)
 
 # classes for deployment
 class Event:
     def __init__(self, name: str, namespace: List[str], is_process_event=False):
         self.name = name
         self.namespace = namespace
-        self.unique_id = ("__".join(namespace) + "__" + name).replace("/", "__")
         self.type_list = [
             "on_input",
             "on_trigger",
@@ -45,10 +48,15 @@ class Event:
         self.timeout: float = None
         self.is_set: bool = False
 
+    @property
+    def unique_id(self):
+        return generate_unique_id(self.namespace, self.name)
+
     def set_type(self, type_str):
         if type_str not in self.type_list:
             raise ValueError(f"Invalid event type: {type_str}")
         self.type = type_str
+        logger.debug(f"Event '{self.unique_id}' set type '{type_str}'")
 
     def check_trigger_root_ids(self, trigger_root_id):
         if trigger_root_id in self.trigger_root_ids:
@@ -60,40 +68,37 @@ class Event:
     def add_trigger_event(self, event, vise_versa=True):
         if event.unique_id == self.unique_id:
             raise ValueError(f"Event cannot trigger itself: {self.unique_id}")
-        # check if the event is already in the list
         for e in self.triggers:
             if e.unique_id == event.unique_id:
                 return
-        # relationship is established
         self.triggers.append(event)
+        logger.debug(f"Event '{self.unique_id}' added trigger '{event.unique_id}'")
         if vise_versa:
             event.add_action_event(self, False)
 
     def add_action_event(self, event, vise_versa=True):
         if event.unique_id == self.unique_id:
             raise ValueError(f"Event cannot trigger itself: {self.unique_id}")
-        # check if the event is already in the list
         for e in self.actions:
             if e.unique_id == event.unique_id:
                 return
-        # relationship is established
         self.actions.append(event)
+        logger.debug(f"Event '{self.unique_id}' added action '{event.unique_id}'")
         if vise_versa:
             event.add_trigger_event(self, False)
 
     def determine_type(self, config_yaml):
         if len(config_yaml) == 0:
             raise ValueError("Config is empty")
-        # check the first element
         first_config = list(config_yaml)[0]
         if isinstance(first_config, str):
-            # if the first element is string, it is the type
             type_key = first_config
             value = config_yaml.get(type_key)
         elif isinstance(first_config, dict):
-            # in case of dict, the first key is the type
             type_key = list(first_config.keys())[0]
             value = first_config[type_key]
+        else:
+            raise ValueError("Invalid config format for event type determination")
         return type_key, value
 
     def set_trigger(
@@ -155,9 +160,9 @@ class Event:
             if "timeout" in config_yaml.keys():
                 self.timeout = config_yaml.get("timeout")
 
-            # debug
-            # print(f"Event '{self.name}' is set as {self.type}, {config_key}")
-            # print(f" triggers: {[t.name for t in self.triggers]}, input_list: {[e.name for e in on_input_list]}, process_list: {[e.name for e in process_list]}")
+            logger.debug(
+                f"Event '{self.unique_id}' configured as '{self.type}' ({config_key}); triggers={[t.unique_id for t in self.triggers]}"
+            )
         else:
             raise ValueError(f"Invalid event type: {config_key}")
 
@@ -169,35 +174,27 @@ class Event:
         error_rate: float,
         timeout: float,
     ):
-        # debug
-        # print(f"Event '{self.name}' set_event_frequency: {frequency}, {warn_rate}, {error_rate}, {timeout}")
-
-        # if the event is already set, update the values and do not propagate
-        # it is for loop prevention
         if self.check_trigger_root_ids(trigger_root_id):
+            logger.debug(f"Event '{self.unique_id}' already processed for root '{trigger_root_id}', skipping propagation")
             return
 
-        # update the frequency, take higher value
         if frequency is not None:
             if self.frequency is None or frequency > self.frequency:
                 self.frequency = frequency
-        # update the warn_rate, take higher value
         if warn_rate is not None:
             if self.warn_rate is None or warn_rate > self.warn_rate:
                 self.warn_rate = warn_rate
-        # update the error_rate, take higher value
         if error_rate is not None:
             if self.error_rate is None or error_rate > self.error_rate:
                 self.error_rate = error_rate
-        # update the timeout, take higher value
         if timeout is not None:
             if self.timeout is None or timeout > self.timeout:
                 self.timeout = timeout
 
-        # set the flag
         self.is_set = True
-
-        # propagate the frequency to the children
+        logger.debug(
+            f"Event '{self.unique_id}' frequency set: freq={self.frequency}, warn={self.warn_rate}, error={self.error_rate}, timeout={self.timeout}"
+        )
         for action in self.actions:
             action.set_event_frequency(trigger_root_id, frequency, warn_rate, error_rate, timeout)
 
@@ -220,18 +217,14 @@ class Event:
 class EventChain(Event):
     def __init__(self, name: str, namespace: List[str] = [], is_process_event=True):
         super().__init__(name, namespace, is_process_event)
-        self.chain_list = [
-            "and",
-            "or",
-        ]
-        # and: all children triggers are activated, this event is activated
-        # or: any of the children triggers are activated, this event is activated
+        self.chain_list = ["and", "or"]
         self.children: List[Event] = []
 
     def set_type(self, type_str):
         if type_str not in self.chain_list + self.type_list:
             raise ValueError(f"Invalid event chain type: {type_str}")
         self.type = type_str
+        logger.debug(f"EventChain '{self.unique_id}' set type '{type_str}'")
 
     def set_chain(
         self,
@@ -240,9 +233,7 @@ class EventChain(Event):
         on_input_list: List[Event],
         child_idx=0,
     ):
-        # debug
-        # print(f"EventChain '{self.name}' set_chain: {config_yaml}")
-
+        logger.debug(f"EventChain '{self.unique_id}' parsing chain config: {config_yaml}")
         if isinstance(config_yaml, dict):
             config_key, config_value = self.determine_type(config_yaml)
             if config_key in self.type_list:
@@ -250,11 +241,9 @@ class EventChain(Event):
                 self.set_trigger(config_yaml, process_list, on_input_list)
             elif config_key in self.chain_list:
                 if len(config_value) == 1:
-                    # this is an event
                     self.set_chain(config_value[0], process_list, on_input_list)
                 else:
-                    self.set_type(config_key)  # and/or
-                    # recursively set the triggers
+                    self.set_type(config_key)
                     for chain in config_value:
                         chain_key, chain_value = self.determine_type(chain)
                         if chain_key in ["periodic"] + self.chain_list:
@@ -268,13 +257,10 @@ class EventChain(Event):
                         else:
                             raise ValueError(f"Invalid trigger condition type: {chain_key}")
         elif isinstance(config_yaml, list):
-            # check the length
             length = len(config_yaml)
             if length == 1:
-                # this is a dictionary
                 self.set_chain(config_yaml[0], process_list, on_input_list)
             else:
-                # make a dictionary that the key is "or" and the value is the list
                 config_dict = {"or": config_yaml}
                 self.set_chain(config_dict, process_list, on_input_list)
 
@@ -292,43 +278,35 @@ class Process:
         self.namespace = namespace
         self.config_yaml = config_yaml
         self.event: EventChain = EventChain(name, namespace)
-        self.unique_id = ("__".join(namespace) + "__process__" + name).replace("/", "__")
+        self.unique_id = generate_unique_id(namespace, "process", name)
 
     def set_condition(self, process_list, on_input_list):
         trigger_condition_config = self.config_yaml.get("trigger_conditions")
-
-        # debug
-        # print(f"Process {self.name} trigger condition: {trigger_condition_config}")
+        logger.debug(f"Process '{self.unique_id}' setting trigger condition: {trigger_condition_config}")
         self.event.set_chain(trigger_condition_config, process_list, on_input_list)
 
     def set_outcomes(self, process_list, to_output_events):
         outcome_config = self.config_yaml.get("outcomes")
         for outcome in outcome_config:
-            # parse the outcome type
             outcome_type = list(outcome.keys())[0]
             outcome_value = outcome[outcome_type]
             if outcome_type == "to_output":
-                # search the event in the to_output_events
                 for event in to_output_events:
                     if event.name == ("output_" + outcome_value):
                         self.event.add_action_event(event)
                         break
-                # if not found, warn
                 if self.event.actions == []:
                     raise ValueError(f"Output event not found: {outcome_value}")
             elif outcome_type == "to_trigger":
-                # search the event in the process_list
                 for event in process_list:
                     if event.name == outcome_value:
                         self.event.add_action_event(event)
                         break
-                # if not found, warn
                 if self.event.actions == []:
                     raise ValueError(f"Trigger event not found: {outcome_value}")
-
-        # debug
-        # print(f"Process '{self.name}' outcomes: {outcome_config}")
-        # print(f"  actions: {[t.unique_id for t in self.event.actions]}, to_output: {[e.name for e in to_output_events]}")
+        logger.debug(
+            f"Process '{self.unique_id}' outcomes configured: actions={[a.unique_id for a in self.event.actions]}"
+        )
 
     def get_event_list(self):
         return self.event.get_children() + [self.event]

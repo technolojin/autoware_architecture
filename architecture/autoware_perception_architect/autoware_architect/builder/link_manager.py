@@ -63,7 +63,7 @@ class LinkManager:
             # check if the message type is the same
             if port.msg_type != in_port.msg_type:
                 raise ValueError(
-                    f"Message type mismatch: '{port.full_name}' {port.msg_type} != {in_port.msg_type}"
+                    f"Message type mismatch: '{port.port_path}' {port.msg_type} != {in_port.msg_type}"
                 )
             # same port name is found, update reference
             port.set_references(in_port.reference)
@@ -87,7 +87,7 @@ class LinkManager:
             # check if the message type is the same
             if port.msg_type != out_port.msg_type:
                 raise ValueError(
-                    f"Message type mismatch: '{port.full_name}' {port.msg_type} != {out_port.msg_type}"
+                    f"Message type mismatch: '{port.port_path}' {port.msg_type} != {out_port.msg_type}"
                 )
             # same port name is found, update reference
             port.set_references(out_port.reference)
@@ -221,23 +221,23 @@ class LinkManager:
 
         # check ports
         for in_port in self.in_ports.values():
-            logger.debug(f"  In port: {in_port.full_name}")
+            logger.debug(f"  In port: {in_port.port_path}")
             logger.debug(f"    Subscribing topic: {in_port.topic}")
             server_port_list = in_port.servers
             if server_port_list == []:
                 logger.debug("    Server port not found")
                 continue
             for server_port in server_port_list:
-                logger.debug(f"    server: {server_port.full_name}, topic: {server_port.topic}")
+                logger.debug(f"    server: {server_port.port_path}, topic: {server_port.topic}")
 
         for out_port in self.out_ports.values():
-            logger.debug(f"  Out port: {out_port.full_name}")
+            logger.debug(f"  Out port: {out_port.port_path}")
             user_port_list = out_port.users
             if user_port_list == []:
                 logger.debug("    User port not found")
                 continue
             for user_port in user_port_list:
-                logger.debug(f"    user: {user_port.full_name}")
+                logger.debug(f"    user: {user_port.port_path}")
 
     def log_pipeline_configuration(self):
         """Log pipeline configuration details."""
@@ -245,12 +245,12 @@ class LinkManager:
             f"Instance '{self.instance.name}' pipeline configuration: {len(self.links)} links established"
         )
         for link in self.links:
-            logger.debug(f"  Link: {link.from_port.full_name} -> {link.to_port.full_name}")
+            logger.debug(f"  Link: {link.from_port.port_path} -> {link.to_port.port_path}")
         # new ports
         for in_port in self.in_ports.values():
-            logger.debug(f"  New in port: {in_port.full_name}")
+            logger.debug(f"  New in port: {in_port.port_path}")
         for out_port in self.out_ports.values():
-            logger.debug(f"  New out port: {out_port.full_name}")
+            logger.debug(f"  New out port: {out_port.port_path}")
 
     def get_all_in_ports(self):
         """Get all input ports."""
