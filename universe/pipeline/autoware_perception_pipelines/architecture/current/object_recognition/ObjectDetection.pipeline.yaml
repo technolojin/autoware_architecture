@@ -121,6 +121,3 @@ connections:
     to: output.radar_filtered_*
 #  - from: radar_object_filter.output.filtered_objects
 #    to: output.radar_filtered_objects
-parameter_files: []
-
-configurations: []

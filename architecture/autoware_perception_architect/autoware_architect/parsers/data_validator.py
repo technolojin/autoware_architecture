@@ -147,7 +147,7 @@ class PipelineValidator(BaseValidator):
     """Validator for pipeline elements."""
     
     def get_required_fields(self) -> List[str]:
-        return ["name", "depends", "nodes", "external_interfaces", "connections", "parameter_files", "configurations"]
+        return ["name", "depends", "nodes", "external_interfaces", "connections"]
     
     def get_schema_properties(self) -> Dict[str, Dict[str, str]]:
         return {
@@ -156,8 +156,6 @@ class PipelineValidator(BaseValidator):
             'nodes': {'type': 'array'},
             'external_interfaces': {'type': 'object_or_array'},
             'connections': {'type': 'array'},
-            'parameter_files': {'type': 'object_or_array'},
-            'configurations': {'type': 'object_or_array'},
         }
 
 class ParameterSetValidator(BaseValidator):

@@ -25,7 +25,3 @@ connections:
     to: map_based_prediction.input.traffic_signals_topic
   - from: map_based_prediction.output.output_topic
     to: output.objects
-
-parameter_files: []
-
-configurations: []

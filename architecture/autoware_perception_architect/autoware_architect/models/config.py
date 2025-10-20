@@ -59,8 +59,6 @@ class PipelineConfig(Config):
     nodes: List[Dict[str, Any]] = None
     external_interfaces: Any = None  # Can be dict or list
     connections: List[Dict[str, Any]] = None
-    parameter_files: Any = None  # Can be dict or list
-    configurations: Any = None  # Can be dict or list
 
 @dataclass
 class ParameterSetConfig(Config):

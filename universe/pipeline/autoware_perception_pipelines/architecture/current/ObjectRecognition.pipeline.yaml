@@ -79,7 +79,3 @@ connections:
     to: prediction.input.traffic_lights
   - from: prediction.output.objects
     to: output.objects
-
-parameter_files: []
-
-configurations: []

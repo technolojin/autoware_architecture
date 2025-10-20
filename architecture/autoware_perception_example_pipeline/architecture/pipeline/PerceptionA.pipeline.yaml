@@ -45,19 +45,3 @@ connections:
     to: node_predictor.input.objects
   - from: node_predictor.output.objects
     to: output.objects
-
-parameter_files:
-  - from: parameter.detector_a
-    to: detector_a1.parameter.detector
-  - from: parameter.detector_b
-    to: detector_a2.parameter.detector
-  - from: parameter.filter_a
-    to: detector_a1.parameter.filter
-  - from: parameter.filter_a
-    to: detector_a2.parameter.filter
-  - from: parameter.tracker
-    to: node_tracker
-
-configurations:
-  - name: model_a.build_only
-    to: detector_a1.configuration.build_only

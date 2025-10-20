@@ -15,7 +15,3 @@ external_interfaces:
 connections:
   - from: lidar_top.output.pointcloud
     to: output.concatenated/pointcloud
-
-parameter_files: []
-
-configurations: []

@@ -32,7 +32,3 @@ connections:
     to: occupancy_grid_map_node.input.obstacle_pointcloud
   - from: occupancy_grid_map_node.output.occupancy_grid_map
     to: output.map
-
-parameter_files: []
-
-configurations: []

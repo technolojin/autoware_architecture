@@ -35,7 +35,3 @@ connections:
     to: decorative_tracker_merger.input.sub_object
   - from: decorative_tracker_merger.output.merged_object
     to: output.objects
-
-parameter_files: []
-
-configurations: []

@@ -97,9 +97,7 @@ class ConfigParser:
                 depends=config.get('depends'),
                 nodes=config.get('nodes'),
                 external_interfaces=config.get('external_interfaces'),
-                connections=config.get('connections'),
-                parameter_files=config.get('parameter_files'),
-                configurations=config.get('configurations')
+                connections=config.get('connections')
             )
         elif element_type == ConfigType.PARAMETER_SET:
             return ParameterSetConfig(
