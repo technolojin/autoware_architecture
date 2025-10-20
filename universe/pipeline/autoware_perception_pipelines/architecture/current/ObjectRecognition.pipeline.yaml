@@ -55,28 +55,10 @@ connections:
     to: detection.input.vector_map
   - from: input.obstacle_pointcloud
     to: detection.input.obstacle_pointcloud
-
   - from: input.rois*
     to: detection.input.rois*
-
-  - from: input.camera_info0
-    to: detection.input.camera_info0
-  - from: input.camera_info1
-    to: detection.input.camera_info1
-  - from: input.camera_info2
-    to: detection.input.camera_info2
-  - from: input.camera_info3
-    to: detection.input.camera_info3
-  - from: input.camera_info4
-    to: detection.input.camera_info4
-  - from: input.camera_info5
-    to: detection.input.camera_info5
-  - from: input.camera_info6
-    to: detection.input.camera_info6
-  - from: input.camera_info7
-    to: detection.input.camera_info7
-  - from: input.radar_objects
-    to: detection.input.radar_objects
+  - from: input.camera_info*
+    to: detection.input.camera_info*
 
   # tracking
   - from: input.vector_map

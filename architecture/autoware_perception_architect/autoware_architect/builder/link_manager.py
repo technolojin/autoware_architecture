@@ -26,31 +26,69 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def match_wildcard_ports(pattern: str, port_names: List[str]) -> List[str]:
-    """Match port names against a wildcard pattern.
+def match_and_pair_wildcard_ports(
+    source_pattern: str, 
+    target_pattern: str, 
+    source_port_names: List[str], 
+    target_port_names: List[str]
+) -> List[tuple[str, str]]:
+    """Match port names against wildcard patterns and return paired port names.
+    
+    This function matches port names from source and target lists against their respective
+    patterns, then pairs them based on wildcard substitution. The pairing is done by
+    iterating over the source ports and deriving corresponding target port names.
     
     Args:
-        pattern: Port name pattern that may contain wildcards (*, rois*, etc.)
-        port_names: List of available port names to match against
+        source_pattern: Source port name pattern that may contain wildcards (*, image*, etc.)
+        target_pattern: Target port name pattern that may contain wildcards
+        source_port_names: List of available source port names to match against
+        target_port_names: List of available target port names to match against
         
     Returns:
-        List of port names that match the pattern
+        List of tuples (source_port_name, target_port_name) that match and can be paired
         
     Examples:
-        match_wildcard_ports("*", ["rois0", "rois1", "camera_info0"]) 
-            -> ["rois0", "rois1", "camera_info0"]
-        match_wildcard_ports("rois*", ["rois0", "rois1", "camera_info0"]) 
-            -> ["rois0", "rois1"]
+        match_and_pair_wildcard_ports("*", "*", ["image0", "image1"], ["image0", "image1"])
+            -> [("image0", "image0"), ("image1", "image1")]
+        match_and_pair_wildcard_ports("image*", "camera*", ["image0", "image1"], ["camera0", "camera1"])
+            -> [("image0", "camera0"), ("image1", "camera1")]
+        match_and_pair_wildcard_ports("filtered_*", "detected_*", ["filtered_obj"], ["detected_obj"])
+            -> [("filtered_obj", "detected_obj")]
     """
-    if pattern == "*":
-        return port_names
-    return [name for name in port_names if fnmatch.fnmatch(name, pattern)]
+    # Match source and target ports against their patterns
+    if source_pattern == "*":
+        matched_source_ports = source_port_names
+    else:
+        matched_source_ports = [name for name in source_port_names if fnmatch.fnmatch(name, source_pattern)]
+    
+    if target_pattern == "*":
+        matched_target_ports = target_port_names
+    else:
+        matched_target_ports = [name for name in target_port_names if fnmatch.fnmatch(name, target_pattern)]
+    
+    # Return empty list if no matches
+    if not matched_source_ports or not matched_target_ports:
+        return []
+    
+    # Build pairs by iterating source ports and deriving target names
+    pairs = []
+    
+    for source_name in matched_source_ports:
+        # Derive target name using wildcard substitution
+        target_name = _apply_wildcard_substitution(source_pattern, target_pattern, source_name)
+        
+        # Only include the pair if the derived target name exists in matched targets
+        if target_name in matched_target_ports:
+            pairs.append((source_name, target_name))
+    
+    return pairs
 
 
-def apply_wildcard_substitution(source_pattern: str, target_pattern: str, matched_name: str) -> str:
+def _apply_wildcard_substitution(source_pattern: str, target_pattern: str, matched_name: str) -> str:
     """Apply wildcard substitution from source pattern to target pattern.
     
-    This function extracts the wildcard-matched portion from the source and applies it to the target.
+    This is a helper function that extracts the wildcard-matched portion from the source 
+    and applies it to the target pattern.
     
     Args:
         source_pattern: The pattern with wildcard used for matching (e.g., "filtered_*")
@@ -59,25 +97,9 @@ def apply_wildcard_substitution(source_pattern: str, target_pattern: str, matche
         
     Returns:
         The target name with wildcard substitution applied (e.g., "radar_filtered_objects")
-        
-    Examples:
-        apply_wildcard_substitution("filtered_*", "radar_filtered_*", "filtered_objects")
-            -> "radar_filtered_objects"
-        apply_wildcard_substitution("rois*", "rois*", "rois0")
-            -> "rois0"
-        apply_wildcard_substitution("*", "*", "any_name")
-            -> "any_name"
     """
-    # If both patterns are just "*", return the matched name
-    if source_pattern == "*" and target_pattern == "*":
-        return matched_name
-    
-    # If target pattern is just "*", return the matched name
-    if target_pattern == "*":
-        return matched_name
-    
-    # If source pattern is just "*", return the matched name (no transformation needed)
-    if source_pattern == "*":
+    # If either pattern is just "*", no substitution needed
+    if source_pattern == "*" or target_pattern == "*":
         return matched_name
     
     # Convert wildcard pattern to regex pattern
@@ -90,10 +112,8 @@ def apply_wildcard_substitution(source_pattern: str, target_pattern: str, matche
         # If it doesn't match (shouldn't happen), return the matched name as-is
         return matched_name
     
-    # Extract the wildcard-matched portions
+    # Extract the wildcard-matched portions and apply to target pattern
     wildcard_parts = match.groups()
-    
-    # Replace wildcards in target pattern with extracted parts
     result = target_pattern
     for part in wildcard_parts:
         result = result.replace('*', part, 1)  # Replace one * at a time
@@ -218,57 +238,35 @@ class LinkManager:
             from_instance: Source instance (or None for external)
             to_instance: Target instance (or None for external)
         """
-        matched_from_ports = match_wildcard_ports(connection.from_port_name, from_port_names)
-        matched_to_ports = match_wildcard_ports(connection.to_port_name, to_port_names)
-        
-        # Derive external flags from connection type
-        from_is_external = connection.type == ConnectionType.EXTERNAL_TO_INTERNAL
-        to_is_external = connection.type == ConnectionType.INTERNAL_TO_EXTERNAL
+        # Match and pair ports based on wildcard patterns
+        port_pairs = match_and_pair_wildcard_ports(
+            connection.from_port_name, connection.to_port_name,
+            from_port_names, to_port_names
+        )
         
         # Validate matched ports
-        if not matched_from_ports:
-            context = "from external inputs" if from_is_external else f"{from_instance.name}"
-            raise ValueError(f"No ports found matching pattern '{connection.from_port_name}' in {context}")
-        if not matched_to_ports:
-            context = "external outputs" if to_is_external else f"{to_instance.name}"
-            raise ValueError(f"No ports found matching pattern '{connection.to_port_name}' in {context}")
-        
-        # Determine which side to iterate based on connection type
-        # For EXTERNAL_TO_INTERNAL, iterate on to_ports (internal side)
-        # For INTERNAL_TO_EXTERNAL and INTERNAL_TO_INTERNAL, iterate on from_ports
-        iterate_to = (connection.type == ConnectionType.EXTERNAL_TO_INTERNAL)
-        
-        if iterate_to:
-            # Iterate on to_ports, substitute from_port_name
-            for to_port_name in matched_to_ports:
-                from_port_name = apply_wildcard_substitution(
-                    connection.to_port_name, connection.from_port_name, to_port_name
-                )
-                if from_port_name not in matched_from_ports:
-                    continue
-                
-                # Get or create ports
+        if not port_pairs:
+            raise ValueError(
+                f"No matching port pairs found: '{connection.from_port_name}' -> '{connection.to_port_name}'"
+            )
+
+        # Create links for each matched pair
+        for from_port_name, to_port_name in port_pairs:
+            # Get or create from_port
+            if connection.type == ConnectionType.EXTERNAL_TO_INTERNAL:
+                # For external->internal, create InPort based on target's message type
                 to_port = to_instance.link_manager.get_in_port(to_port_name)
                 from_port = InPort(from_port_name, to_port.msg_type, self.instance.namespace)
-                
-                self._create_link_from_ports(from_port, to_port, connection.type)
-        else:
-            # Iterate on from_ports, substitute to_port_name
-            for from_port_name in matched_from_ports:
-                to_port_name = apply_wildcard_substitution(
-                    connection.from_port_name, connection.to_port_name, from_port_name
-                )
-                if to_port_name not in matched_to_ports:
-                    continue
-                
-                # Get or create ports
+            else:
                 from_port = from_instance.link_manager.get_out_port(from_port_name)
-                if to_is_external:
-                    to_port = OutPort(to_port_name, from_port.msg_type, self.instance.namespace)
-                else:
-                    to_port = to_instance.link_manager.get_in_port(to_port_name)
-                
-                self._create_link_from_ports(from_port, to_port, connection.type)
+            
+            # Get or create to_port
+            if connection.type == ConnectionType.INTERNAL_TO_EXTERNAL:
+                to_port = OutPort(to_port_name, from_port.msg_type, self.instance.namespace)
+            else:
+                to_port = to_instance.link_manager.get_in_port(to_port_name)
+            
+            self._create_link_from_ports(from_port, to_port, connection.type)
 
     def _create_external_to_internal_link(self, connection: Connection):
         """Create link from external input to internal input.
