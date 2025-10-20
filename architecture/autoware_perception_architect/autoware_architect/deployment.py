@@ -20,6 +20,7 @@ from .models.config import Config
 from .builder.config_registry import ConfigRegistry
 from .builder.instances import DeploymentInstance
 from .builder.launcher_generator import generate_pipeline_launch_file
+from .builder.parameter_template_generator import ParameterTemplateGenerator
 from .parsers.data_validator import element_name_decode
 from .parsers.yaml_parser import yaml_parser
 from .exceptions import ValidationError
@@ -153,7 +154,7 @@ class Deployment:
         # integrated all the module launch directly
 
     def generate_parameter_set_template(self):
-        """Generate parameter set template using ParameterManager functionality."""
+        """Generate parameter set template using ParameterTemplateGenerator."""
         if not self.deploy_instance:
             raise ValidationError("Deployment instance is not initialized")
         
@@ -163,8 +164,9 @@ class Deployment:
         # Initialize template renderer
         renderer = TemplateRenderer()
         
-        # Use the deployment instance's parameter manager to generate the template
-        output_path = self.deploy_instance.parameter_manager.generate_parameter_set_template(
+        # Create parameter template generator and generate the template
+        generator = ParameterTemplateGenerator(self.deploy_instance)
+        output_path = generator.generate_parameter_set_template(
             self.name, 
             renderer, 
             self.parameter_set_dir

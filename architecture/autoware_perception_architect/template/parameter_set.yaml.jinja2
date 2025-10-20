@@ -2,10 +2,14 @@ name: {{ name }}
 parameters:
 {% for module in parameters %}
   - node: {{ module.node }}
+{% if module.parameter_files %}
     parameter_files:
 {% for param_name, param_path in module.parameter_files.items() %}
       - {{ param_name }}: {{ param_path }}
 {% endfor %}
+{% else %}
+    parameter_files: []
+{% endif %}
 {% if module.configurations %}
     configurations:
 {% for config in module.configurations %}
