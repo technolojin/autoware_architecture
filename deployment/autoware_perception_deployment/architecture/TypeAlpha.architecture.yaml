@@ -25,7 +25,10 @@ components:
     element: PerceptionA.pipeline
     namespace: perception
     compute_unit: main_ecu
-    parameter_set: PerceptionPipelineA.parameter_set
+    parameter_set: [
+      PerceptionPipelineA.parameter_set,  
+      PerceptionPipelineABuild.parameter_set,
+    ]
   - component: planner
     element: PlanningDummy.module
     namespace: planning

@@ -151,20 +151,29 @@ class Instance:
         self.is_initialized = True
 
     def _apply_parameter_set(self, instance: "Instance", cfg_component: dict, config_registry: ConfigRegistry):
-        """Apply parameter set to an instance using direct node targeting.
+        """Apply parameter set(s) to an instance using direct node targeting.
+        
+        Supports both single parameter_set (str) and multiple parameter_sets (list of str).
+        When multiple parameter_sets are provided, they are applied sequentially, allowing
+        later sets to overwrite earlier ones.
         
         Only applies parameters to nodes that are descendants of the given instance.
         """
         parameter_set = cfg_component.get("parameter_set")
-        cfg_param_set: ParameterSetConfig = None
-        if parameter_set is not None:
-            param_set_name, element_type = element_name_decode(parameter_set)
-            if element_type != "parameter_set":
-                raise ValidationError(f"Invalid parameter set type: {element_type}, at {self.configuration.file_path}")
-            cfg_param_set = config_registry.get_parameter_set(param_set_name)
-        # apply the parameter set to the instance        
-        try:
-            if cfg_param_set is not None:
+        if parameter_set is None:
+            return
+        
+        # Normalize to list for uniform processing
+        parameter_set_list = parameter_set if isinstance(parameter_set, list) else [parameter_set]
+        
+        # Apply each parameter set sequentially
+        for param_set_id in parameter_set_list:
+            try:
+                param_set_name, element_type = element_name_decode(param_set_id)
+                if element_type != "parameter_set":
+                    raise ValidationError(f"Invalid parameter set type: {element_type}, at {self.configuration.file_path}")
+                
+                cfg_param_set = config_registry.get_parameter_set(param_set_name)
                 node_params = cfg_param_set.parameters
                 logger.info(f"Applying parameter set '{param_set_name}' to component '{instance.name}'")
                 
@@ -196,8 +205,8 @@ class Instance:
                             node_namespace, parameter_files, configurations
                         )
                         logger.debug(f"Applied parameters to node '{node_namespace}' from set '{param_set_name}' files={len(parameter_files)} configs={len(configurations)}")
-        except Exception as e:
-            raise ValidationError(f"Error in applying parameter set '{param_set_name}' to instance '{instance.name}': {e}")
+            except Exception as e:
+                raise ValidationError(f"Error in applying parameter set '{param_set_name}' to instance '{instance.name}': {e}")
 
     def _create_pipeline_children(self, config_registry: ConfigRegistry):
         """Create child instances for pipeline elements."""
