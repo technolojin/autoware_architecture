@@ -9,25 +9,28 @@ launch:
   use_container: true
   container_name: pointcloud_container
 
-# interface
+# interfaces
 inputs:
   - name: ros_transform
     message_type: tf2_msgs/msg/TFMessage
     global: /tf
   - name: pointcloud
     message_type: sensor_msgs/msg/PointCloud2
+
 outputs:
   - name: pointcloud
     message_type: sensor_msgs/msg/PointCloud2
     qos:
       reliability: best_effort
       durability: volatile
-parameters:
+
+# configurations
+parameter_files:
   - name: ground_segmentation_param_file
     default: config/scan_ground_filter.param.yaml
   - name: vehicle_info_param_file
     default: $(find-pkg-share autoware_vehicle_info_utils)/config/vehicle_info.param.yaml
-# configurations
+
 configurations: []
 
 # processes

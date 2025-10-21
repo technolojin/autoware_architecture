@@ -27,7 +27,3 @@ connections:
     to: validation.input.obstacle_pointcloud
   - from: validation.output.objects
     to: output.detected_objects
-
-parameters: []
-
-configurations: []

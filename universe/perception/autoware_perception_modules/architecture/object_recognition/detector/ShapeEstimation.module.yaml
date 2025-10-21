@@ -7,24 +7,27 @@ launch:
   executable: shape_estimation_node
   node_output: screen
 
-# interface
+# interfaces
 inputs:
   - name: ros_transform
     message_type: tf2_msgs/msg/TFMessage
     global: /tf
   - name: objects
     message_type: tier4_perception_msgs/msg/DetectedObjectsWithFeature
+
 outputs:
   - name: objects
     message_type: tier4_perception_msgs/msg/DetectedObjectsWithFeature
     qos:
       reliability: reliable
       durability: transient_local
-parameters:
+
+# configurations
+
+parameter_files:
   - name: config_file
     default: config/shape_estimation.param.yaml
 
-# configurations
 configurations: []
 
 # processes

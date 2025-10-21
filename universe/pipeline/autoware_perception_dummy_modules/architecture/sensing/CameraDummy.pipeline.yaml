@@ -74,7 +74,3 @@ connections:
     to: output.camera7/image
   - from: camera_7.output.camera_info
     to: output.camera7/camera_info
-
-parameters: []
-
-configurations: []

@@ -7,7 +7,7 @@ launch:
   executable: object_lanelet_filter_node
   node_output: screen
 
-# interface
+# interfaces
 inputs:
   - name: ros_transform
     message_type: tf2_msgs/msg/TFMessage
@@ -16,18 +16,21 @@ inputs:
     message_type: autoware_map_msgs/msg/LaneletMapBin
   - name: object
     message_type: autoware_perception_msgs/msg/DetectedObjects
+
 outputs:
   - name: object
     message_type: autoware_perception_msgs/msg/DetectedObjects
     qos:
       reliability: reliable
       durability: transient_local
-parameters:
+
+# configurations
+
+parameter_files:
   - name: filtering_range_param
     default: config/object_lanelet_filter.param.yaml
     schema: schema/object_lanelet_filter.schema.json
 
-# configurations
 configurations: []
 
 # processes

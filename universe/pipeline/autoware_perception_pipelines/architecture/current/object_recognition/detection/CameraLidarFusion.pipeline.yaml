@@ -92,7 +92,3 @@ connections:
     to: detected_object_feature_remover.input.input
   - from: detected_object_feature_remover.output.output
     to: output.objects
-
-parameters: []
-
-configurations: []

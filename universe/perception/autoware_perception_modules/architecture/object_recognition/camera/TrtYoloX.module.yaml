@@ -7,20 +7,22 @@ launch:
   executable: autoware_tensorrt_yolox_node_exe
   node_output: screen
 
-# interface
+# interfaces
 inputs:
   - name: image
     message_type: sensor_msgs/msg/Image
+
 outputs:
   - name: objects
     message_type: tier4_perception_msgs/msg/DetectedObjectsWithFeature
   - name: mask
     message_type: sensor_msgs/msg/Image
-parameters: 
+
+# configurations
+parameter_files: 
   - name: yolox_param_path
     default: config/yolox_s_plus_opt.param.yaml
 
-# configurations
 configurations: []
 
 # processes

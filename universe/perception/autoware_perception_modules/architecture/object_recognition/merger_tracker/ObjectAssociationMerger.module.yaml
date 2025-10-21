@@ -7,7 +7,7 @@ launch:
   executable: object_association_merger_node
   node_output: screen
 
-# interface
+# interfaces
 inputs:
   - name: ros_transform
     message_type: tf2_msgs/msg/TFMessage
@@ -16,13 +16,16 @@ inputs:
     message_type: autoware_perception_msgs/msg/DetectedObjects
   - name: object1
     message_type: autoware_perception_msgs/msg/DetectedObjects
+
 outputs:
   - name: merged_object
     message_type: autoware_perception_msgs/msg/DetectedObjects
     qos:
       reliability: reliable
       durability: transient_local
-parameters:
+
+# configurations
+parameter_files:
   - name: data_association_matrix_path
     default: config/data_association_matrix.param.yaml
   - name: distance_threshold_list_path
@@ -30,7 +33,6 @@ parameters:
   - name: object_association_merger_param_path
     default: config/object_association_merger.param.yaml
 
-# configurations
 configurations: []
 
 # processes

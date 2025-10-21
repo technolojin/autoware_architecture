@@ -15,13 +15,17 @@ inputs:
     message_type: autoware_map_msgs/msg/LaneletMapBin
   - name: input
     message_type: autoware_perception_msgs/msg/DetectedObjects
+
 outputs:
   - name: output
     message_type: autoware_perception_msgs/msg/TrackedObjects
     qos:
       reliability: reliable
       durability: transient_local
-parameters:
+
+# configurations
+
+parameter_files:
   - name: tracker_setting_path
     default: config/multi_object_tracker_node.param.yaml
   - name: data_association_matrix_path
@@ -29,7 +33,6 @@ parameters:
   - name: radar_object_tracker_param_path
     default: config/radar_object_tracker.param.yaml
 
-# configurations
 configurations: []
 
 # processes

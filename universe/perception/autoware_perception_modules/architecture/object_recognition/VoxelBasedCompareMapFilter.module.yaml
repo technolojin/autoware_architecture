@@ -9,7 +9,7 @@ launch:
   use_container: true
   container_name: pointcloud_container
 
-# interface
+# interfaces
 inputs:
   - name: ros_transform
     message_type: tf2_msgs/msg/TFMessage
@@ -18,18 +18,20 @@ inputs:
     message_type: sensor_msgs/msg/PointCloud2
   - name: input_map
     message_type: sensor_msgs/msg/PointCloud2
+
 outputs:
   - name: output
     message_type: sensor_msgs/msg/PointCloud2
     qos:
       reliability: reliable
       durability: transient_local
-parameters:
+
+# configurations
+parameter_files:
   - name: voxel_based_compare_map_filter_param_file
     default: config/voxel_based_compare_map_filter.param.yaml
     schema: schema/voxel_based_compare_map_filter.schema.json
 
-# configurations
 configurations: []
 
 # processes

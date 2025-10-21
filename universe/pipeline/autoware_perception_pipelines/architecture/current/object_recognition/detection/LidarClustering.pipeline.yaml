@@ -126,7 +126,3 @@ connections:
 
   - from: camera_lidar_fusion.output.objects
     to: output.detected_objects
-
-parameters: []
-
-configurations: []

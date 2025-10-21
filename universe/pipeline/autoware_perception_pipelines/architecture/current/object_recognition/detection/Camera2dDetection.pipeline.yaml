@@ -75,7 +75,3 @@ connections:
     to: tensorrt_yolox7.input.image
   - from: tensorrt_yolox7.output.objects
     to: output.rois7
-
-parameters: []
-
-configurations: []

@@ -13,12 +13,14 @@ launch:
 inputs:
   - name: input
     message_type: sensor_msgs/msg/PointCloud2
+
 outputs:
   - name: output
     message_type: sensor_msgs/msg/PointCloud2
 
-parameters: []
 # configurations
+parameter_files: []
+
 configurations: []
 
 # processes
