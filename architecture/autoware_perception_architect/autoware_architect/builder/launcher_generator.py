@@ -42,25 +42,6 @@ def _render_template_to_file(template_name: str, output_file_path: str, template
         raise
 
 
-def _resolve_absolute_topic(port) -> str:
-    """Resolve the absolute topic path from a port."""
-    if hasattr(port, 'topic') and port.topic:
-        if isinstance(port.topic, list):
-            return "/" + "/".join(port.topic)
-        else:
-            return port.topic if port.topic.startswith('/') else '/' + port.topic
-    
-    # Fallback to constructing from namespace and name
-    if hasattr(port, 'namespace') and hasattr(port, 'name'):
-        if port.namespace:
-            return "/" + "/".join(port.namespace + [port.name])
-        else:
-            return "/" + port.name
-    
-    # Last resort fallback
-    return f"/default/{port.name}"
-
-
 def _collect_all_modules_recursively(instance: Instance) -> List[Dict[str, Any]]:
     """Recursively collect all modules within a component, tracking their namespace paths."""
     modules = []
@@ -116,7 +97,9 @@ def _extract_module_data(module_instance: Instance, pipeline_path: List[str]) ->
     
     # Add input ports
     for port in module_instance.link_manager.get_all_in_ports():
-        topic = _resolve_absolute_topic(port)
+        topic = port.get_topic()
+        if topic == "":
+            continue
         ports.append({
             "direction": "input",
             "name": port.name,
@@ -125,7 +108,9 @@ def _extract_module_data(module_instance: Instance, pipeline_path: List[str]) ->
     
     # Add output ports
     for port in module_instance.link_manager.get_all_out_ports():
-        topic = _resolve_absolute_topic(port)
+        topic = port.get_topic()
+        if topic == "":
+            continue
         ports.append({
             "direction": "output",
             "name": port.name,

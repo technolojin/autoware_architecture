@@ -15,6 +15,7 @@
 from typing import List
 
 from .ports import Port, InPort, OutPort
+from ..exceptions import ValidationError, DeploymentError
 
 from enum import Enum
 
@@ -53,10 +54,10 @@ class Link:
             # check the message type is the same
             for from_port in from_port_list:
                 if from_port.msg_type != self.msg_type:
-                    raise ValueError(f"Invalid connection: {from_port.name} -> {self.to_port.name}")
+                    raise ValidationError(f"Invalid connection: {from_port.name} -> {self.to_port.name}")
             for to_port in to_port_list:
                 if to_port.msg_type != self.msg_type:
-                    raise ValueError(
+                    raise ValidationError(
                         f"Type mismatch: {self.msg_type}({self.from_port.name}) -> {to_port.msg_type}({to_port.name})"
                     )
 
@@ -95,7 +96,7 @@ class Link:
         # case 4: from-port is InPort and to-port is OutPort
         #   bypass connection, which is invalid
         else:
-            raise ValueError(f"Invalid connection: {self.from_port.name} -> {self.to_port.name}")
+            raise ValidationError(f"Invalid connection: {self.from_port.name} -> {self.to_port.name}")
 
 
 class Connection:
@@ -108,16 +109,16 @@ class Connection:
 
         connection_from = connection_dict.get("from")
         if connection_from is None:
-            raise ValueError(f"Connection couldn't found : {connection_dict}")
+            raise DeploymentError(f"Connection couldn't found : {connection_dict}")
         connection_to = connection_dict.get("to")
         if connection_to is None:
-            raise ValueError(f"Connection couldn't found : {connection_dict}")
+            raise DeploymentError(f"Connection couldn't found : {connection_dict}")
 
         from_instance, from_port_name = self.parse_port_name(connection_from)
         to_instance, to_port_name = self.parse_port_name(connection_to)
 
         if from_instance == "" and to_instance == "":
-            raise ValueError(f"Invalid connection: {connection_dict}")
+            raise DeploymentError(f"Invalid connection: {connection_dict}")
         elif from_instance == "" and to_instance != "":
             self.type = ConnectionType.EXTERNAL_TO_INTERNAL
         elif from_instance != "" and to_instance == "":
@@ -137,12 +138,12 @@ class Connection:
                 return "", name_splitted[1]  # external input
             if name_splitted[0] == "output":
                 return "", name_splitted[1]  # external output
-            raise ValueError(f"Invalid port name: {port_name}")
+            raise DeploymentError(f"Invalid port name: {port_name}")
         elif len(name_splitted) == 3:
             if name_splitted[1] == "input":
                 return name_splitted[0], name_splitted[2]  # internal input
             if name_splitted[1] == "output":
                 return name_splitted[0], name_splitted[2]  # internal output
-            raise ValueError(f"Invalid port name: {port_name}")
+            raise DeploymentError(f"Invalid port name: {port_name}")
         else:
-            raise ValueError(f"Invalid port name: {port_name}")
+            raise DeploymentError(f"Invalid port name: {port_name}")

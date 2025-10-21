@@ -59,7 +59,11 @@ class Port:
 
     def set_topic(self, topic_namespace: List[str], topic_name: str):
         self.topic = topic_namespace + [topic_name]
-
+    
+    def get_topic(self) -> str:
+        if self.topic == []:
+            return ""
+        return "/" + "/".join(self.topic)
 
 class InPort(Port):
     def __init__(self, name, msg_type, namespace: List[str] = []):
