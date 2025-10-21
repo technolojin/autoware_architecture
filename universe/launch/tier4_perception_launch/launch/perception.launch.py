@@ -62,9 +62,32 @@ def launch_generated_launch_file():
     )
 
 def generate_launch_description():
-    """Launch file that says hello world."""
+    """ Generate autoware architecture and launch the generated launch file. """
+
+    # set launch arguments 
+    launch_arguments = []
+
+    # 1. pipeline junctions: switches to change SW architecture 
+
+
+
+    # 2. parameter set arguments: get parameter file directories
+
+
+
+
+    # determine the architecture to generate
+    # if the combination of pipeline junctions does not support any architecture, raise an error
+
+
+
+
+
     # First generate the architecture (this is just for setup, returns None)
     generate_autoware_architecture()
+
+
+
     
     # Then launch the generated launch file
     return LaunchDescription(

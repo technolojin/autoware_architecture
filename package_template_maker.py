@@ -39,6 +39,7 @@ def create_package_xml(package_name: str, author_name: str, author_email: str) -
   <buildtool_depend>ament_cmake_auto</buildtool_depend>
   <buildtool_depend>autoware_cmake</buildtool_depend>
 
+  <depend>rclcpp</depend>
   <depend>autoware_architect</depend>
 
   <export>
@@ -55,6 +56,19 @@ project({package_name})
 
 find_package(autoware_cmake REQUIRED)
 autoware_package()
+
+set(${{PROJECT_NAME}}_src
+  src/node.cpp
+)
+
+ament_auto_add_library(${{PROJECT_NAME}} SHARED
+  ${{${{PROJECT_NAME}}_src}}
+)
+
+# Add executable node
+ament_auto_add_executable({package_name.replace("autoware_", "")}_node
+  ${{${{PROJECT_NAME}}_src}}
+)
 
 ament_auto_package(
   INSTALL_TO_SHARE
@@ -157,6 +171,47 @@ def create_schema_json(node_name: str, class_name: str) -> str:
 '''
 
 
+def create_node_cpp(class_name: str, node_name: str) -> str:
+    """Create C++ ROS2 node source file."""
+    return f'''#include <rclcpp/rclcpp.hpp>
+#include <chrono>
+
+class {class_name}Node : public rclcpp::Node
+{{
+public:
+  {class_name}Node()
+  : Node("{node_name}")
+  {{
+    // Create a timer that calls the callback every 2 seconds (1/2 Hz)
+    timer_ = this->create_wall_timer(
+      std::chrono::seconds(2),
+      std::bind(&{class_name}Node::timer_callback, this));
+    
+    RCLCPP_INFO(this->get_logger(), "{class_name}Node started");
+  }}
+
+private:
+  void timer_callback()
+  {{
+    // Publish node namespace with node name
+    std::string node_namespace = this->get_namespace();
+    std::string node_name = this->get_name();
+    RCLCPP_INFO(this->get_logger(), "Node %s %s", node_namespace.c_str(), node_name.c_str());
+  }}
+
+  rclcpp::TimerBase::SharedPtr timer_;
+}};
+
+int main(int argc, char * argv[])
+{{
+  rclcpp::init(argc, argv);
+  rclcpp::spin(std::make_shared<{class_name}Node>());
+  rclcpp::shutdown();
+  return 0;
+}}
+'''
+
+
 def create_package_template(target_dir: str, package_name: str, 
                            author_name: str = "Taekjin Lee", 
                            author_email: str = "taekjin.lee@tier4.jp") -> bool:
@@ -190,6 +245,7 @@ def create_package_template(target_dir: str, package_name: str,
     package_dir.mkdir(parents=True, exist_ok=True)
     (package_dir / "architecture").mkdir(exist_ok=True)
     (package_dir / "schema").mkdir(exist_ok=True)
+    (package_dir / "src").mkdir(exist_ok=True)
     
     # Create package.xml
     package_xml_path = package_dir / "package.xml"
@@ -200,6 +256,11 @@ def create_package_template(target_dir: str, package_name: str,
     cmake_path = package_dir / "CMakeLists.txt"
     cmake_path.write_text(create_cmakelists(full_package_name))
     print(f"  ✅ Created {cmake_path.relative_to(Path(target_dir).parent)}")
+    
+    # Create node.cpp
+    node_cpp_path = package_dir / "src" / "node.cpp"
+    node_cpp_path.write_text(create_node_cpp(class_name, node_name))
+    print(f"  ✅ Created {node_cpp_path.relative_to(Path(target_dir).parent)}")
     
     # Create module.yaml
     module_yaml_path = package_dir / "architecture" / f"{class_name}.module.yaml"
