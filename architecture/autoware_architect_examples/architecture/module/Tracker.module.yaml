@@ -7,7 +7,7 @@ launch:
   package: autoware_perception_dummy_nodes
   plugin: autoware::perception_dummy_nodes::Tracker
 
-# interface
+# interfaces
 inputs:
   - name: objects1
     message_type: autoware_perception_msgs/msg/DetectedObjects
@@ -22,6 +22,8 @@ outputs:
     qos:
       reliability: reliable
       durability: transient_local
+
+# configurations
 parameter_files:
   - name: tracker_setting_path
     default: path/to/tracker_setting_path.yaml
@@ -30,7 +32,6 @@ parameter_files:
   - name: input_channels_path
     default: path/to/input_channels_path.yaml
 
-# configurations
 configurations: []
 
 # processes

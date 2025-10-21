@@ -39,7 +39,7 @@ def create_package_xml(package_name: str, author_name: str, author_email: str) -
   <buildtool_depend>ament_cmake_auto</buildtool_depend>
   <buildtool_depend>autoware_cmake</buildtool_depend>
 
-  <depend>autoware_perception_architect</depend>
+  <depend>autoware_architect</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

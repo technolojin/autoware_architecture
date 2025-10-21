@@ -18,7 +18,7 @@ macro(autoware_architect_parameter)
   
   if(EXISTS ${SCHEMA_DIR})
     # Set up paths - use absolute path to the script
-    set(PARAMETER_PROCESS_SCRIPT "${CMAKE_BINARY_DIR}/../autoware_perception_architect/script/parameter_process.py")
+    set(PARAMETER_PROCESS_SCRIPT "${CMAKE_BINARY_DIR}/../autoware_architect/script/parameter_process.py")
     set(CONFIG_OUTPUT_DIR "${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}/config")
     
     # Set up logging

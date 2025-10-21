@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# copied from autoware_perception_architect/autoware_architect-extras.cmake
+# copied from autoware_architect/autoware_architect-extras.cmake
 
 find_package(ament_cmake QUIET REQUIRED)
 
-include("${autoware_perception_architect_DIR}/autoware_architect_configure.cmake")
-include("${autoware_perception_architect_DIR}/autoware_architect_get_module_list.cmake")
-include("${autoware_perception_architect_DIR}/autoware_architect_build_deploy.cmake")
-include("${autoware_perception_architect_DIR}/autoware_architect_generate_launcher.cmake")
-include("${autoware_perception_architect_DIR}/autoware_architect_parameter.cmake")
+include("${autoware_architect_DIR}/autoware_architect_configure.cmake")
+include("${autoware_architect_DIR}/autoware_architect_get_module_list.cmake")
+include("${autoware_architect_DIR}/autoware_architect_build_deploy.cmake")
+include("${autoware_architect_DIR}/autoware_architect_generate_launcher.cmake")
+include("${autoware_architect_DIR}/autoware_architect_parameter.cmake")

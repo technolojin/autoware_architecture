@@ -1,9 +1,26 @@
 cmake_minimum_required(VERSION 3.14)
-project(autoware_perception_architect)
+project(autoware_architect)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_python REQUIRED)
+
+# Install Python package
+ament_python_install_package(${PROJECT_NAME})
+
+# Install template files to share directory (accessible via get_package_share_directory)
+install(
+  DIRECTORY template/
+  DESTINATION share/${PROJECT_NAME}/template
+)
+
+# Install scripts to share directory
+install(
+  DIRECTORY script/
+  DESTINATION share/${PROJECT_NAME}/script
+  USE_SOURCE_PERMISSIONS
+)
 
 ament_package(
   CONFIG_EXTRAS "autoware_architect-extras.cmake"

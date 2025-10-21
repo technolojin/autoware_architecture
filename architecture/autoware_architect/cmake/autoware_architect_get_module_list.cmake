@@ -2,7 +2,7 @@
 
 function(autoware_architect_get_module_list)
   # define the path to the shared file
-  set(shared_file "${CMAKE_BINARY_DIR}/../autoware_perception_architect/autoware_architect_config_file_list.txt")
+  set(shared_file "${CMAKE_BINARY_DIR}/../autoware_architect/autoware_architect_config_file_list.txt")
 
   # check if the shared file exists
   if(EXISTS ${shared_file})

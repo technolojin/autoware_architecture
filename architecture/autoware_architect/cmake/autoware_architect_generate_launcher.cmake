@@ -18,7 +18,7 @@ macro(autoware_architect_generate_launcher)
   
   if(EXISTS ${ARCHITECTURE_DIR})
     # Set up paths - use absolute path to the script
-    set(GENERATE_LAUNCHER_PY_SCRIPT "${CMAKE_BINARY_DIR}/../autoware_perception_architect/script/component_process.py")
+    set(GENERATE_LAUNCHER_PY_SCRIPT "${CMAKE_BINARY_DIR}/../autoware_architect/script/component_process.py")
     set(LAUNCHER_FILE_DIR "${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}/launcher/")
     
     # Set up logging
