@@ -53,7 +53,7 @@ def launch_generated_launch_file():
     print("Launching generated Autoware Architecture launch file...")
 
     launcher_pkg_install_dir = get_package_share_directory('tier4_perception_launch')
-    launcher_file = os.path.join(launcher_pkg_install_dir, "exports/universe_perception.deployment/launcher/camera_lidar/main_ecu/perception/perception.launch.xml")
+    launcher_file = os.path.join(launcher_pkg_install_dir, "exports/universe_perception.deployment/launcher/default/main_ecu/perception/perception.launch.xml")
 
     print("Including launcher file:", launcher_file)
 

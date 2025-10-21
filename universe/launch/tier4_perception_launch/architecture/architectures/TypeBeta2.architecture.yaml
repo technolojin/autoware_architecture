@@ -14,14 +14,6 @@ depends:
   - Camera2dDetection.pipeline
   - OccupancyGridMap.pipeline
 
-modes:
-  - name: lidar_radar
-    description: Lidar and Radar mode
-  - name: camera_lidar
-    description: Camera and Lidar mode
-  - name: camera_lidar_radar
-    description: Camera, Lidar, and Radar mode
-
 components:
   - component: lidar
     element: LidarDummy.pipeline

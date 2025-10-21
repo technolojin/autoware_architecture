@@ -16,10 +16,9 @@
 
   <depend>autoware_architect</depend>
 
-  <exec_depend>autoware_perception_dummy_modules</exec_depend>
-  <exec_depend>autoware_perception_example_pipeline</exec_depend>
-  <exec_depend>autoware_perception_modules</exec_depend>
-  <exec_depend>autoware_perception_pipelines</exec_depend>
+  <depend>autoware_perception_dummy_modules</depend>
+  <depend>autoware_perception_modules</depend>
+  <depend>autoware_perception_pipelines</depend>
 
   <export>
     <build_type>ament_cmake</build_type>
