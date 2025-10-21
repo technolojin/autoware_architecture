@@ -14,6 +14,14 @@ depends:
   - Camera2dDetection.pipeline
   - OccupancyGridMap.pipeline
 
+modes:
+  - name: lidar_radar
+    description: Lidar and Radar mode
+  - name: camera_lidar
+    description: Camera and Lidar mode
+  - name: camera_lidar_radar
+    description: Camera, Lidar, and Radar mode
+
 components:
   - component: lidar
     element: LidarDummy.pipeline
@@ -22,21 +30,21 @@ components:
   - component: camera
     element: CameraDummy.pipeline
     namespace: sensing
-    compute_unit: perception_ecu_2
+    compute_unit: perception_ecu_1
   - component: map_loader
     element: MapDummy.module
     namespace: map
-    compute_unit: dummy_ecu_1
+    compute_unit: dummy_ecu
   - component: localizer
     element: LocalizationDummy.module
     namespace: localization
-    compute_unit: dummy_ecu_1
+    compute_unit: dummy_ecu
 
   # perception
   - component: camera_2d_detection
     element: Camera2dDetection.pipeline
     namespace: perception/object_recognition/detection
-    compute_unit: perception_ecu_2
+    compute_unit: perception_ecu_1
     parameter_set: TypeBeta2PerceptionCamera2dDetection.parameter_set
   - component: object_segmentation
     element: ObjectSegmentation.pipeline
@@ -58,7 +66,7 @@ components:
   - component: planner
     element: PlanningDummy.module
     namespace: planning
-    compute_unit: dummy_ecu_2
+    compute_unit: dummy_ecu
 
 connections:
   - from: lidar.output.concatenated/pointcloud
