@@ -6,7 +6,7 @@ launch:
   plugin: autoware::map_based_prediction::MapBasedPredictionNode
   executable: map_based_prediction
 
-# interface
+# interfaces
 inputs:
   - name: ros_transform
     message_type: tf2_msgs/msg/TFMessage
@@ -17,15 +17,17 @@ inputs:
     message_type: autoware_perception_msgs/msg/TrackedObjects
   - name: traffic_signals_topic
     message_type: autoware_perception_msgs/msg/TrafficLightGroupArray
+
 outputs:
   - name: output_topic
     message_type: autoware_perception_msgs/msg/PredictedObjects
     qos:
       reliability: reliable
       durability: transient_local
-parameter_files: []
 
 # configurations
+parameter_files: []
+
 configurations: []
 
 # processes

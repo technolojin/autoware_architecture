@@ -18,6 +18,7 @@ inputs:
     message_type: sensor_msgs/msg/PointCloud2
   - name: raw_pointcloud
     message_type: sensor_msgs/msg/PointCloud2
+
 outputs:
   - name: occupancy_grid_map
     message_type: nav_msgs/msg/OccupancyGrid
@@ -25,6 +26,7 @@ outputs:
       reliability: reliable
       durability: transient_local
 
+# configurations
 parameter_files:
   - name: occupancy_grid_map
     default: config/pointcloud_based_occupancy_grid_map.param.yaml
@@ -33,7 +35,6 @@ parameter_files:
     default: config/binary_bayes_filter_updater.param.yaml
     schema: schema/binary_bayes_filter_updater.schema.json
 
-# configurations
 configurations: []
 
 # processes

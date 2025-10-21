@@ -9,7 +9,7 @@ launch:
   use_container: true
   container_name: pointcloud_container
 
-# interface
+# interfaces
 inputs:
   - name: ros_transform
     message_type: tf2_msgs/msg/TFMessage
@@ -55,6 +55,8 @@ outputs:
     qos:
       reliability: reliable
       durability: transient_local
+
+# configurations
 parameter_files:
   - name: sync_param_path
     default: config/fusion_common.param.yaml
@@ -70,7 +72,6 @@ parameter_files:
   - name: class_remapper_param_path
     default: config/detection_class_remapper.param.yaml
 
-# configurations
 configurations:
   - name: build_only
     type: bool

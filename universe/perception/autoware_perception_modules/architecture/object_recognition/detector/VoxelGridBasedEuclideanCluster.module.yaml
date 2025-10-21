@@ -7,7 +7,7 @@ launch:
   executable: voxel_grid_based_euclidean_cluster_node
   node_output: screen
 
-# interface
+# interfaces
 inputs:
   - name: ros_transform
     message_type: tf2_msgs/msg/TFMessage
@@ -16,17 +16,19 @@ inputs:
     message_type: sensor_msgs/msg/PointCloud2
   - name: input_map
     message_type: sensor_msgs/msg/PointCloud2
+
 outputs:
   - name: output_clusters
     message_type: tier4_perception_msgs/msg/DetectedObjectsWithFeature
     qos:
       reliability: reliable
       durability: transient_local
+
+# configurations
 parameter_files:
   - name: voxel_grid_based_euclidean_param_path
     default: config/voxel_grid_based_euclidean_cluster.param.yaml
 
-# configurations
 configurations: []
 
 # processes

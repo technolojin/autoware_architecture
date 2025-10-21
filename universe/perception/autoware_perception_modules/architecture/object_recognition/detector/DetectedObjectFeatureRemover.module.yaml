@@ -7,18 +7,21 @@ launch:
   executable: detected_object_feature_remover_node
   node_output: screen
 
-# interface
+# interfaces
 inputs:
   - name: input
     message_type: tier4_perception_msgs/msg/DetectedObjectsWithFeature
+
 outputs:
   - name: output
     message_type: autoware_perception_msgs/msg/DetectedObjects
     qos:
       reliability: reliable
       durability: transient_local
-parameter_files: []
+
 # configurations
+parameter_files: []
+
 configurations: []
 
 # processes

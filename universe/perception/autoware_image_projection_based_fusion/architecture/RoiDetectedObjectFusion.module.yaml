@@ -9,7 +9,7 @@ launch:
   use_container: true
   container_name: pointcloud_container
 
-# interface
+# interfaces
 inputs:
   - name: ros_transform
     message_type: tf2_msgs/msg/TFMessage
@@ -55,6 +55,8 @@ outputs:
     qos:
       reliability: reliable
       durability: transient_local
+
+# configurations
 parameter_files:
   - name: sync_param_path
     default: config/fusion_common.param.yaml
@@ -63,7 +65,6 @@ parameter_files:
     default: config/roi_cluster_fusion.param.yaml
     schema: schema/roi_cluster_fusion.schema.json
 
-# configurations
 configurations: []
 
 # processes

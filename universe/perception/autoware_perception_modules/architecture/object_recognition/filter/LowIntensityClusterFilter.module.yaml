@@ -7,7 +7,7 @@ launch:
   executable: low_intensity_cluster_filter_node
   node_output: screen
 
-# interface
+# interfaces
 inputs:
   - name: objects
     message_type: tier4_perception_msgs/msg/DetectedObjectsWithFeature
@@ -17,11 +17,13 @@ outputs:
     qos:
       reliability: reliable
       durability: transient_local
+
+# configurations
+
 parameter_files:
   - name: low_intensity_cluster_filter_param_path
     default: config/low_intensity_cluster_filter.param.yaml
 
-# configurations
 configurations: []
 
 # processes

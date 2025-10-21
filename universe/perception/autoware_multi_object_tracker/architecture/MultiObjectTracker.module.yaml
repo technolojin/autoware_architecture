@@ -6,7 +6,7 @@ launch:
   plugin: autoware::multi_object_tracker::MultiObjectTracker
   executable: multi_object_tracker_node
 
-# interface
+# interfaces
 inputs:
   - name: ros_transform
     message_type: tf2_msgs/msg/TFMessage
@@ -46,6 +46,8 @@ outputs:
     qos:
       reliability: reliable
       durability: transient_local
+
+# configurations
 parameter_files:
   - name: tracker_setting_path
     default: config/multi_object_tracker_node.param.yaml
@@ -54,7 +56,6 @@ parameter_files:
   - name: input_channels_path
     default: config/input_channels.param.yaml
 
-# configurations
 configurations:
   - name: input/detection01/channel
     type: string

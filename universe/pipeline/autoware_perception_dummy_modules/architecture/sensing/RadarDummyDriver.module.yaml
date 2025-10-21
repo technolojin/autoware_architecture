@@ -7,15 +7,16 @@ launch:
 
 # interfaces
 inputs: []
+
 outputs:
   - name: tracked_objects
     message_type: autoware_perception_msgs/msg/TrackedObjects
   - name: detected_objects
     message_type: autoware_perception_msgs/msg/DetectedObjects
 
+# configurations
 parameter_files: []
 
-# configurations
 configurations:
   - name: composable_node
     type: bool

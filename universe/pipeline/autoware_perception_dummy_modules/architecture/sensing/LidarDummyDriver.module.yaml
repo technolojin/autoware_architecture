@@ -7,15 +7,17 @@ launch:
 
 # interfaces
 inputs: []
+
 outputs:
   - name: pointcloud
     message_type: sensor_msgs/msg/PointCloud2
     qos:
       reliability: best_effort
       durability: volatile
-parameter_files: []
 
 # configurations
+parameter_files: []
+
 configurations:
   - name: composable_node
     type: bool

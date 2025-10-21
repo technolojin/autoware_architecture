@@ -7,7 +7,7 @@ launch:
   executable: cluster_merger_node
   node_output: screen
 
-# interface
+# interfaces
 inputs:
   - name: ros_transform
     message_type: tf2_msgs/msg/TFMessage
@@ -16,17 +16,19 @@ inputs:
     message_type: tier4_perception_msgs/msg/DetectedObjectsWithFeature
   - name: cluster1
     message_type: tier4_perception_msgs/msg/DetectedObjectsWithFeature
+
 outputs:
   - name: clusters
     message_type: tier4_perception_msgs/msg/DetectedObjectsWithFeature
     qos:
       reliability: reliable
       durability: transient_local
+
+# configurations
 parameter_files:
   - name: param_path
     default: config/cluster_merger.param.yaml
 
-# configurations
 configurations: []
 
 # processes
