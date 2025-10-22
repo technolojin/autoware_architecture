@@ -13,6 +13,14 @@ rclcpp_components_register_node(detected_object_validation_cpp
   EXECUTABLE "object_lanelet_filter_node"
 )
 
+ament_auto_add_library(obstacle_pointcloud_based_validator_cpp SHARED
+  src/obstacle_pointcloud_based_validator_node.cpp
+)
+rclcpp_components_register_node(obstacle_pointcloud_based_validator_cpp
+  PLUGIN "autoware::detected_object_validation::ObstaclePointCloudBasedValidator"
+  EXECUTABLE "obstacle_pointcloud_based_validator_node"
+)
+
 ament_auto_package(
   INSTALL_TO_SHARE
   architecture
