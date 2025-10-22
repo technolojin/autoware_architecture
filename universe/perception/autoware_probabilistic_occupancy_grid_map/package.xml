@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="3">
-  <name>autoware_perception_modules</name>
+  <name>autoware_probabilistic_occupancy_grid_map</name>
   <version>0.40.0</version>
-  <description>The autoware_perception_modules package</description>
+  <description>The autoware_probabilistic_occupancy_grid_map package</description>
 
   <maintainer email="taekjin.lee@tier4.jp">Taekjin Lee</maintainer>
   <license>Apache License 2.0</license>
@@ -11,6 +11,8 @@
   <buildtool_depend>ament_cmake_auto</buildtool_depend>
   <buildtool_depend>autoware_cmake</buildtool_depend>
 
+  <depend>rclcpp</depend>
+  <depend>rclcpp_components</depend>
   <depend>autoware_architect</depend>
 
   <export>

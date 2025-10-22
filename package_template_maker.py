@@ -295,7 +295,8 @@ def main():
         "autoware_compare_map_segmentation",
         "autoware_detection_by_tracker",
         "autoware_object_merger",
-        "autoware_radar_object_tracker"
+        "autoware_radar_object_tracker",
+        "autoware_probabilistic_occupancy_grid_map"
     ]
     
     # Optional: Override from command line arguments

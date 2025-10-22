@@ -13,7 +13,6 @@
 
   <depend>autoware_architect</depend>
   <depend>autoware_architecture_dummy_modules</depend>
-  <depend>autoware_perception_modules</depend>
   <depend>tier4_perception_launch</depend>
 
   <export>

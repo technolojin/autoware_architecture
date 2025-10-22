@@ -17,7 +17,6 @@
   <depend>autoware_architect</depend>
 
   <depend>autoware_architecture_dummy_modules</depend>
-  <depend>autoware_perception_modules</depend>
   <depend>autoware_tensorrt_yolox</depend>
   <depend>autoware_euclidean_cluster</depend>
   <depend>autoware_detected_object_feature_remover</depend>
