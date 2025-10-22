@@ -197,7 +197,8 @@ private:
     // Publish node namespace with node name
     std::string node_namespace = this->get_namespace();
     std::string node_name = this->get_name();
-    RCLCPP_INFO(this->get_logger(), "Node %s %s", node_namespace.c_str(), node_name.c_str());
+    std::string full_name = (node_namespace == "/") ? "/" + node_name : node_namespace + "/" + node_name;
+    RCLCPP_INFO(this->get_logger(), "Node %s", full_name.c_str());
   }}
 
   rclcpp::TimerBase::SharedPtr timer_;
@@ -290,7 +291,8 @@ def main():
         "autoware_object_sorter",
         "autoware_raindrop_cluster_filter",
         "autoware_cluster_merger",
-        "autoware_tracking_object_merger"
+        "autoware_tracking_object_merger",
+        "autoware_compare_map_segmentation"
     ]
     
     # Optional: Override from command line arguments
