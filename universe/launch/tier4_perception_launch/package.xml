@@ -29,6 +29,7 @@
   <depend>autoware_detected_object_validation</depend>
   <depend>autoware_ground_segmentation</depend>
   <depend>autoware_raindrop_cluster_filter</depend>
+  <depend>autoware_cluster_merger</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

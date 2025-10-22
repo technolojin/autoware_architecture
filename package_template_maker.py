@@ -288,7 +288,8 @@ def main():
         "autoware_detected_object_validation",
         "autoware_ground_segmentation",
         "autoware_object_sorter",
-        "autoware_raindrop_cluster_filter"
+        "autoware_raindrop_cluster_filter",
+        "autoware_cluster_merger"
     ]
     
     # Optional: Override from command line arguments
