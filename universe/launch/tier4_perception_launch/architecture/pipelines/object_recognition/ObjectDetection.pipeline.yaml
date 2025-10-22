@@ -8,7 +8,7 @@ depends:
   # filter
   - VoxelBasedCompareMapFilter.module
   - ObjectLaneletFilter.module
-  - RadarObjectFilter.module
+  - DetectedObjectSorter.module
   # merger
   - RoiDetectedObjectFusion.module
   - ObjectAssociationMerger.module
@@ -34,7 +34,7 @@ nodes:
   - node: object_lanelet_filter
     element: ObjectLaneletFilter.module
   - node: radar_object_filter
-    element: RadarObjectFilter.module
+    element: DetectedObjectSorter.module
 
 external_interfaces:
   input:
@@ -117,7 +117,6 @@ connections:
     to: output.detected_objects
   - from: input.radar_objects
     to: radar_object_filter.input.objects
-  - from: radar_object_filter.output.filtered_*
-    to: output.radar_filtered_*
-#  - from: radar_object_filter.output.filtered_objects
-#    to: output.radar_filtered_objects
+  - from: radar_object_filter.output.objects
+    to: output.radar_filtered_objects
+

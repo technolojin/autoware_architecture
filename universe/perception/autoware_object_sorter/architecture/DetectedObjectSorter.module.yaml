@@ -1,29 +1,31 @@
 # module information
-name: RadarObjectFilter.module
+name: DetectedObjectSorter.module
 
 launch:
-  package: autoware_radar_object_filter
-  plugin: autoware::radar_object_filter::RadarObjectFilterNode
-  executable: radar_object_filter_node
+  package: autoware_object_sorter
+  plugin: autoware::object_sorter::DetectedObjectSorterNode
+  executable: detected_object_sorter_node
   node_output: screen
+  use_container: false
+  container_name: pointcloud_container
 
 # interfaces
 inputs:
-  - name: ros_transform
-    message_type: tf2_msgs/msg/TFMessage
-    global: /tf
   - name: objects
     message_type: autoware_perception_msgs/msg/DetectedObjects
 
 outputs:
-  - name: filtered_objects
+  - name: objects
     message_type: autoware_perception_msgs/msg/DetectedObjects
     qos:
       reliability: reliable
       durability: transient_local
 
 # configurations
-parameter_files: []
+parameter_files:
+  - name: param_path
+    schema: schema/object_sorter.schema.json
+    default: config/object_sorter.param.yaml
 
 configurations: []
 
@@ -33,4 +35,4 @@ processes:
     trigger_conditions:
       - on_input: objects
     outcomes:
-      - to_output: filtered_objects
+      - to_output: objects
