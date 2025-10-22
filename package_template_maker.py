@@ -293,7 +293,8 @@ def main():
         "autoware_cluster_merger",
         "autoware_tracking_object_merger",
         "autoware_compare_map_segmentation",
-        "autoware_detection_by_tracker"
+        "autoware_detection_by_tracker",
+        "autoware_object_merger"
     ]
     
     # Optional: Override from command line arguments
