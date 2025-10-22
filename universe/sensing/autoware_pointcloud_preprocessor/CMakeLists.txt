@@ -1,12 +1,16 @@
 cmake_minimum_required(VERSION 3.14)
-project(autoware_detected_object_feature_remover)
+project(autoware_pointcloud_preprocessor)
 
 find_package(autoware_cmake REQUIRED)
 autoware_package()
 
 # Add executable node
-ament_auto_add_executable(detected_object_feature_remover_node
-  src/node.cpp
+ament_auto_add_executable(crop_box_filter_node
+  src/crop_box_filter.cpp
+)
+
+ament_auto_add_executable(concatenate_pointcloud_node
+  src/concatenate_pointclouds.cpp
 )
 
 ament_auto_package(

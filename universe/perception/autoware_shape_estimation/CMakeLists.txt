@@ -4,17 +4,9 @@ project(autoware_shape_estimation)
 find_package(autoware_cmake REQUIRED)
 autoware_package()
 
-set(${PROJECT_NAME}_src
-  src/node.cpp
-)
-
-ament_auto_add_library(${PROJECT_NAME} SHARED
-  ${${PROJECT_NAME}_src}
-)
-
 # Add executable node
 ament_auto_add_executable(shape_estimation_node
-  ${${PROJECT_NAME}_src}
+  src/node.cpp
 )
 
 ament_auto_package(

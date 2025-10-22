@@ -57,17 +57,9 @@ project({package_name})
 find_package(autoware_cmake REQUIRED)
 autoware_package()
 
-set(${{PROJECT_NAME}}_src
-  src/node.cpp
-)
-
-ament_auto_add_library(${{PROJECT_NAME}} SHARED
-  ${{${{PROJECT_NAME}}_src}}
-)
-
 # Add executable node
 ament_auto_add_executable({package_name.replace("autoware_", "")}_node
-  ${{${{PROJECT_NAME}}_src}}
+  src/node.cpp
 )
 
 ament_auto_package(
@@ -97,6 +89,8 @@ launch:
   plugin: autoware::{node_name}::{class_name}Node
   executable: {node_name}_node
   node_output: screen
+  use_container: false
+  container_name: pointcloud_container
 
 # interfaces
 inputs:
@@ -285,6 +279,7 @@ def main():
         "autoware_euclidean_cluster",
         "autoware_detected_object_feature_remover",
         "autoware_shape_estimation",
+        "autoware_pointcloud_preprocessor",
     ]
     
     # Optional: Override from command line arguments

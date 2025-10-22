@@ -1,12 +1,12 @@
 # module information
-name: CropBoxFilter.module
+name: ConcatenatePointcloud.module
 
 launch:
   package: autoware_pointcloud_preprocessor
-  plugin: autoware::pointcloud_preprocessor::CropBoxFilterComponent
-  executable: crop_box_filter_node
+  plugin: autoware::pointcloud_preprocessor::ConcatenatePointcloudComponent
+  executable: concatenate_pointcloud_node
   node_output: screen
-  use_container: true
+  use_container: false
   container_name: pointcloud_container
 
 # interfaces
@@ -19,7 +19,9 @@ outputs:
     message_type: sensor_msgs/msg/PointCloud2
 
 # configurations
-parameter_files: []
+parameter_files:
+  - name: param_file
+    default: config/concatenate_pointclouds.param.yaml
 
 configurations: []
 
