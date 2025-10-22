@@ -24,6 +24,8 @@
   <depend>autoware_shape_estimation</depend>
   <depend>autoware_pointcloud_preprocessor</depend>
   <depend>autoware_image_projection_based_fusion</depend>
+  <depend>autoware_lidar_centerpoint</depend>
+  <depend>autoware_map_based_prediction</depend>
 
   <export>
     <build_type>ament_cmake</build_type>
