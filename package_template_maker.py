@@ -286,6 +286,7 @@ def main():
         "autoware_map_based_prediction",
         "autoware_lidar_centerpoint",
         "autoware_detected_object_validation",
+        "autoware_ground_segmentation",
     ]
     
     # Optional: Override from command line arguments
