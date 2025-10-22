@@ -282,9 +282,9 @@ def main():
     target_dir = "./universe/perception"
     package_names = [
         "autoware_tensorrt_yolox",
-        "autoware_object_merger",
-        "autoware_object_sorter",
-        "autoware_euclidean_cluster"
+        "autoware_euclidean_cluster",
+        "autoware_detected_object_feature_remover",
+        "autoware_shape_estimation",
     ]
     
     # Optional: Override from command line arguments

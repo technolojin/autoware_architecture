@@ -25,10 +25,10 @@ parameter_files:
 
 configurations:
   - name: model_path
-    type: string
+    type: directory
     value: $(var data_path)/tensorrt_yolox/yolox-sPlus-opt-pseudoV2-T4-960x960-T4-seg16cls.onnx
   - name: label_path
-    type: string
+    type: directory
     value: $(var data_path)/tensorrt_yolox/label.txt
   - name: build_only
     type: bool

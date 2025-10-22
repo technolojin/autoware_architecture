@@ -23,12 +23,14 @@ outputs:
       durability: transient_local
 
 # configurations
-
 parameter_files:
   - name: config_file
     default: config/shape_estimation.param.yaml
 
-configurations: []
+configurations:
+  - name: model_path
+    type: directory
+    default: $(var data_path)/shape_estimation/pointnet.onnx
 
 # processes
 processes:
