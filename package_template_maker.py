@@ -292,7 +292,8 @@ def main():
         "autoware_raindrop_cluster_filter",
         "autoware_cluster_merger",
         "autoware_tracking_object_merger",
-        "autoware_compare_map_segmentation"
+        "autoware_compare_map_segmentation",
+        "autoware_detection_by_tracker"
     ]
     
     # Optional: Override from command line arguments
