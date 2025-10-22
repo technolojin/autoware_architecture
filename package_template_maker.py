@@ -98,7 +98,7 @@ launch:
   executable: {node_name}_node
   node_output: screen
 
-# interface
+# interfaces
 inputs:
   - name: message_in
     message_type: autoware_perception_msgs/msg/DummyMessage
@@ -110,12 +110,12 @@ outputs:
       reliability: reliable
       durability: transient_local
 
-# configuration
-configurations: []
-
+# configurations
 parameter_files:
   - name: parameters
     default: config/{node_name}.param.yaml
+
+configurations: []
 
 # processes
 processes:
@@ -281,6 +281,7 @@ def main():
     # Configuration
     target_dir = "./universe/perception"
     package_names = [
+        "autoware_tensorrt_yolox",
         "autoware_object_merger",
         "autoware_object_sorter",
         "autoware_euclidean_cluster"

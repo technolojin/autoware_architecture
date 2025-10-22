@@ -50,7 +50,7 @@ def create_module_launcher_xml(module_yaml) -> str:
     output_list = module_yaml.get("outputs", [])
 
     # Extract parameter information
-    param_path_list = module_yaml.get("parameters", [])
+    param_path_list = module_yaml.get("parameter_files", [])
 
     # Extract configuration information
     configuration_list = module_yaml.get("configurations", [])

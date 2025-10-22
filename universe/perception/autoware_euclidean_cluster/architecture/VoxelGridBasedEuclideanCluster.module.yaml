@@ -6,6 +6,8 @@ launch:
   plugin: autoware::euclidean_cluster::VoxelGridBasedEuclideanClusterNode
   executable: voxel_grid_based_euclidean_cluster_node
   node_output: screen
+  use_container: false
+  container_name: pointcloud_container
 
 # interfaces
 inputs:
@@ -24,7 +26,7 @@ outputs:
       reliability: reliable
       durability: transient_local
 
-# configurations
+# configuration
 parameter_files:
   - name: voxel_grid_based_euclidean_param_path
     default: config/voxel_grid_based_euclidean_cluster.param.yaml

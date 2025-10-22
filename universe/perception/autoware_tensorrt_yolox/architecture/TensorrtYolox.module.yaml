@@ -1,5 +1,5 @@
 # module information
-name: TrtYoloX.module
+name: TensorrtYolox.module
 
 launch:
   package: autoware_tensorrt_yolox
@@ -7,7 +7,7 @@ launch:
   executable: autoware_tensorrt_yolox_node_exe
   node_output: screen
 
-# interfaces
+# interface
 inputs:
   - name: image
     message_type: sensor_msgs/msg/Image
@@ -19,11 +19,20 @@ outputs:
     message_type: sensor_msgs/msg/Image
 
 # configurations
-parameter_files: 
+parameter_files:
   - name: yolox_param_path
     default: config/yolox_s_plus_opt.param.yaml
 
-configurations: []
+configurations:
+  - name: model_path
+    type: string
+    value: $(var data_path)/tensorrt_yolox/yolox-sPlus-opt-pseudoV2-T4-960x960-T4-seg16cls.onnx
+  - name: label_path
+    type: string
+    value: $(var data_path)/tensorrt_yolox/label.txt
+  - name: build_only
+    type: bool
+    value: false
 
 # processes
 processes:
@@ -33,3 +42,4 @@ processes:
     outcomes:
       - to_output: objects
       - to_output: mask
+
