@@ -40,6 +40,7 @@ def create_package_xml(package_name: str, author_name: str, author_email: str) -
   <buildtool_depend>autoware_cmake</buildtool_depend>
 
   <depend>rclcpp</depend>
+  <depend>rclcpp_components</depend>
   <depend>autoware_architect</depend>
 
   <export>
@@ -49,7 +50,7 @@ def create_package_xml(package_name: str, author_name: str, author_email: str) -
 '''
 
 
-def create_cmakelists(package_name: str) -> str:
+def create_cmakelists(package_name: str, node_name: str, class_name: str) -> str:
     """Create CMakeLists.txt content."""
     return f'''cmake_minimum_required(VERSION 3.14)
 project({package_name})
@@ -58,8 +59,12 @@ find_package(autoware_cmake REQUIRED)
 autoware_package()
 
 # Add executable node
-ament_auto_add_executable({package_name.replace("autoware_", "")}_node
+ament_auto_add_executable({node_name}_cpp
   src/node.cpp
+)
+rclcpp_components_register_node({node_name}_cpp
+  PLUGIN "autoware::{node_name}::{class_name}Node"
+  EXECUTABLE {node_name}_node
 )
 
 ament_auto_package(
@@ -196,13 +201,9 @@ private:
   rclcpp::TimerBase::SharedPtr timer_;
 }};
 
-int main(int argc, char * argv[])
-{{
-  rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<{class_name}Node>());
-  rclcpp::shutdown();
-  return 0;
-}}
+#include <rclcpp_components/register_node_macro.hpp>
+
+RCLCPP_COMPONENTS_REGISTER_NODE(autoware::{node_name}::{class_name}Node)
 '''
 
 
@@ -248,7 +249,7 @@ def create_package_template(target_dir: str, package_name: str,
     
     # Create CMakeLists.txt
     cmake_path = package_dir / "CMakeLists.txt"
-    cmake_path.write_text(create_cmakelists(full_package_name))
+    cmake_path.write_text(create_cmakelists(full_package_name, node_name, class_name))
     print(f"  ✅ Created {cmake_path.relative_to(Path(target_dir).parent)}")
     
     # Create node.cpp
@@ -279,7 +280,7 @@ def main():
         "autoware_euclidean_cluster",
         "autoware_detected_object_feature_remover",
         "autoware_shape_estimation",
-        "autoware_pointcloud_preprocessor",
+        "autoware_map_based_prediction",
     ]
     
     # Optional: Override from command line arguments

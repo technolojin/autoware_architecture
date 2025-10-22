@@ -26,6 +26,18 @@ clean build
 rm build -r ; rm install -r ; colcon build
 ```
 
+
+# launch
+
+```
+```
+
+
+* launch component container
+```sh
+ros2 run rclcpp_components component_container --ros-args -r __node:=pointcloud_container --log-level info
+```
+
 ## visualize
 
 generated files: install/autoware_perception_deployment/share/autoware_perception_deployment/visualization/*.puml
