@@ -287,7 +287,8 @@ def main():
         "autoware_lidar_centerpoint",
         "autoware_detected_object_validation",
         "autoware_ground_segmentation",
-        "autoware_object_sorter"
+        "autoware_object_sorter",
+        "autoware_raindrop_cluster_filter"
     ]
     
     # Optional: Override from command line arguments

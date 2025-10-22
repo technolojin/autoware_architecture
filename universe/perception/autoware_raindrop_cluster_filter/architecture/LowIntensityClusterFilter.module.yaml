@@ -3,9 +3,11 @@ name: LowIntensityClusterFilter.module
 
 launch:
   package: autoware_raindrop_cluster_filter
-  plugin: autoware::low_intensity_cluster_filter::LowIntensityClusterFilter
+  plugin: autoware::raindrop_cluster_filter::LowIntensityClusterFilterNode
   executable: low_intensity_cluster_filter_node
   node_output: screen
+  use_container: false
+  container_name: pointcloud_container
 
 # interfaces
 inputs:
