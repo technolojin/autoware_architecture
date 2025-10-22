@@ -5,6 +5,9 @@ launch:
   package: autoware_radar_object_tracker
   plugin: autoware::radar_object_tracker::RadarObjectTrackerNode
   executable: radar_object_tracker_node
+  node_output: screen
+  use_container: false
+  container_name: pointcloud_container
 
 # interface
 inputs:
@@ -24,7 +27,6 @@ outputs:
       durability: transient_local
 
 # configurations
-
 parameter_files:
   - name: tracker_setting_path
     default: config/multi_object_tracker_node.param.yaml
@@ -32,6 +34,7 @@ parameter_files:
     default: config/data_association_matrix.param.yaml
   - name: radar_object_tracker_param_path
     default: config/radar_object_tracker.param.yaml
+    allow_substs: true
 
 configurations: []
 
