@@ -5,6 +5,9 @@ launch:
   package: autoware_map_based_prediction
   plugin: autoware::map_based_prediction::MapBasedPredictionNode
   executable: map_based_prediction
+  node_output: screen
+  use_container: false
+  container_name: pointcloud_container
 
 # interfaces
 inputs:
