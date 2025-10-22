@@ -30,6 +30,7 @@
   <depend>autoware_ground_segmentation</depend>
   <depend>autoware_raindrop_cluster_filter</depend>
   <depend>autoware_cluster_merger</depend>
+  <depend>autoware_tracking_object_merger</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

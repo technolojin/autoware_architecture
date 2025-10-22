@@ -1,0 +1,298 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Parameters for Data Association Matrix",
+  "type": "object",
+  "properties": {
+    "/**": {
+      "type": "object",
+      "properties": {
+        "ros__parameters": {
+          "type": "object",
+          "properties": {
+            "lidar-lidar": {
+              "type": "object",
+              "properties": {
+                "can_assign_matrix": {
+                  "type": "array",
+                  "description": "Assignment table for data association. 1 = can assign, 0 = cannot assign.",
+                  "items": {
+                    "type": "integer",
+                    "enum": [0, 1]
+                  },
+                  "default": [1, 0, 0, 0, 0, 0, 0, 0, 
+                              0, 1, 1, 1, 1, 0, 0, 0, 
+                              0, 1, 1, 1, 1, 0, 0, 0, 
+                              0, 1, 1, 1, 1, 0, 0, 0, 
+                              0, 1, 1, 1, 1, 0, 0, 0, 
+                              0, 0, 0, 0, 0, 1, 1, 1, 
+                              0, 0, 0, 0, 0, 1, 1, 1, 
+                              0, 0, 0, 0, 0, 1, 1, 1]
+                },
+                "max_dist_matrix": {
+                  "type": "array",
+                  "description": "Maximum distance table for data association.",
+                  "items": {
+                    "type": "number",
+                    "minimum": 0.0
+                  },
+                  "default": [4.0, 4.0, 5.0, 5.0, 5.0, 2.0, 2.0, 2.0,
+                              4.0, 2.0, 5.0, 5.0, 5.0, 1.0, 1.0, 1.0, 
+                              5.0, 5.0, 5.0, 5.0, 5.0, 1.0, 1.0, 1.0, 
+                              5.0, 5.0, 5.0, 5.0, 5.0, 1.0, 1.0, 1.0, 
+                              5.0, 5.0, 5.0, 5.0, 5.0, 1.0, 1.0, 1.0, 
+                              2.0, 1.0, 1.0, 1.0, 1.0, 3.0, 3.0, 3.0, 
+                              2.0, 1.0, 1.0, 1.0, 1.0, 3.0, 3.0, 3.0, 
+                              2.0, 1.0, 1.0, 1.0, 1.0, 3.0, 3.0, 2.0]
+                },
+                "max_rad_matrix": {
+                  "type": "array",
+                  "description": "Maximum angle (radian) table for data association. If value is greater than pi, it will be ignored.",
+                  "items": {
+                    "type": "number",
+                    "minimum": 0.0
+                  },
+                  "default": [3.150, 3.150, 3.150, 3.150, 3.150, 3.150, 3.150, 3.150,
+                              3.150, 1.047, 1.047, 1.047, 1.047, 3.150, 3.150, 3.150, 
+                              3.150, 1.047, 1.047, 1.047, 1.047, 3.150, 3.150, 3.150, 
+                              3.150, 1.047, 1.047, 1.047, 1.047, 3.150, 3.150, 3.150, 
+                              3.150, 1.047, 1.047, 1.047, 1.047, 3.150, 3.150, 3.150, 
+                              3.150, 3.150, 3.150, 3.150, 3.150, 3.150, 3.150, 3.150, 
+                              3.150, 3.150, 3.150, 3.150, 3.150, 3.150, 3.150, 3.150, 
+                              3.150, 3.150, 3.150, 3.150, 3.150, 3.150, 3.150, 3.150]
+                },
+                "max_velocity_diff_matrix": {
+                  "type": "array",
+                  "description": "Maximum velocity difference table for data association. Ignored when value is larger than 100.0.",
+                  "items": {
+                    "type": "number",
+                    "minimum": 0.0
+                  },
+                  "default": [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 
+                              100.0, 8.0, 8.0, 8.0, 8.0, 100.0, 100.0, 100.0, 
+                              100.0, 8.0, 8.0, 8.0, 8.0, 100.0, 100.0, 100.0, 
+                              100.0, 8.0, 8.0, 8.0, 8.0, 100.0, 100.0, 100.0, 
+                              100.0, 8.0, 8.0, 8.0, 8.0, 100.0, 100.0, 100.0, 
+                              100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 
+                              100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 
+                              100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0]
+                },
+                "min_iou_matrix": {
+                  "type": "array",
+                  "description": "Minimum Intersection over Union (IoU) table for data association. If value is negative, it will be ignored.",
+                  "items": {
+                    "type": "number"
+                  },
+                  "default": [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 
+                              0.1, 0.3, 0.2, 0.2, 0.2, 0.1, 0.1, 0.1, 
+                              0.1, 0.2, 0.3, 0.3, 0.3, 0.1, 0.1, 0.1, 
+                              0.1, 0.2, 0.3, 0.3, 0.3, 0.1, 0.1, 0.1, 
+                              0.1, 0.2, 0.3, 0.3, 0.3, 0.1, 0.1, 0.1, 
+                              0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 
+                              0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 
+                              0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+                }
+              },
+              "required": [
+                "can_assign_matrix",
+                "max_dist_matrix",
+                "max_rad_matrix",
+                "max_velocity_diff_matrix",
+                "min_iou_matrix"
+              ],
+              "additionalProperties": false
+            },
+            "lidar-radar": {
+              "type": "object",
+              "properties": {
+                "can_assign_matrix": {
+                  "type": "array",
+                  "description": "Assignment table for data association. 1 = can assign, 0 = cannot assign.",
+                  "items": {
+                    "type": "integer",
+                    "enum": [0, 1]
+                  },
+                  "default": [1, 0, 0, 0, 0, 0, 0, 0, 
+                              0, 1, 1, 1, 1, 0, 0, 0, 
+                              0, 1, 1, 1, 1, 0, 0, 0, 
+                              0, 1, 1, 1, 1, 0, 0, 0, 
+                              0, 1, 1, 1, 1, 0, 0, 0, 
+                              0, 0, 0, 0, 0, 1, 1, 1, 
+                              0, 0, 0, 0, 0, 1, 1, 1, 
+                              0, 0, 0, 0, 0, 1, 1, 1]
+                },
+                "max_dist_matrix": {
+                  "type": "array",
+                  "description": "Maximum distance table for data association.",
+                  "items": {
+                    "type": "number",
+                    "minimum": 0.0
+                  },
+                  "default": [4.0, 4.0, 5.0, 5.0, 5.0, 3.5, 3.5, 3.5,
+                              4.0, 5.5, 6.0, 6.0, 6.0, 1.0, 1.0, 1.0, 
+                              5.0, 6.0, 6.5, 6.5, 6.5, 1.0, 1.0, 1.0, 
+                              5.0, 6.0, 6.5, 6.5, 6.5, 1.0, 1.0, 1.0, 
+                              5.0, 6.0, 6.5, 6.5, 6.5, 1.0, 1.0, 1.0, 
+                              3.5, 1.0, 1.0, 1.0, 1.0, 3.0, 3.0, 3.0, 
+                              3.5, 1.0, 1.0, 1.0, 1.0, 3.0, 3.0, 3.0, 
+                              3.5, 1.0, 1.0, 1.0, 1.0, 3.0, 3.0, 3.5]
+                },
+                "max_rad_matrix": {
+                  "type": "array",
+                  "description": "Maximum angle (radian) table for data association. If value is greater than pi, it will be ignored.",
+                  "items": {
+                    "type": "number",
+                    "minimum": 0.0
+                  },
+                  "default": [3.150, 3.150, 3.150, 3.150, 3.150, 3.150, 3.150, 3.150,
+                              3.150, 1.047, 1.047, 1.047, 1.047, 3.150, 3.150, 3.150, 
+                              3.150, 1.047, 1.047, 1.047, 1.047, 3.150, 3.150, 3.150, 
+                              3.150, 1.047, 1.047, 1.047, 1.047, 3.150, 3.150, 3.150, 
+                              3.150, 1.047, 1.047, 1.047, 1.047, 3.150, 3.150, 3.150, 
+                              3.150, 3.150, 3.150, 3.150, 3.150, 3.150, 3.150, 3.150, 
+                              3.150, 3.150, 3.150, 3.150, 3.150, 3.150, 3.150, 3.150, 
+                              3.150, 3.150, 3.150, 3.150, 3.150, 3.150, 3.150, 3.150]
+                },
+                "max_velocity_diff_matrix": {
+                  "type": "array",
+                  "description": "Maximum velocity difference table for data association. Ignored when value is larger than 100.0.",
+                  "items": {
+                    "type": "number",
+                    "minimum": 0.0
+                  },
+                  "default": [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 
+                              100.0, 8.0, 8.0, 8.0, 8.0, 100.0, 100.0, 100.0, 
+                              100.0, 8.0, 8.0, 8.0, 8.0, 100.0, 100.0, 100.0, 
+                              100.0, 8.0, 8.0, 8.0, 8.0, 100.0, 100.0, 100.0, 
+                              100.0, 8.0, 8.0, 8.0, 8.0, 100.0, 100.0, 100.0, 
+                              100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 
+                              100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 
+                              100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0]
+                },
+                "min_iou_matrix": {
+                  "type": "array",
+                  "description": "Minimum Intersection over Union (IoU) table for data association. If value is negative, it will be ignored.",
+                  "items": {
+                    "type": "number"
+                  },
+                  "default": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+                }
+              },
+              "required": [
+                "can_assign_matrix",
+                "max_dist_matrix",
+                "max_rad_matrix",
+                "max_velocity_diff_matrix",
+                "min_iou_matrix"
+              ],
+              "additionalProperties": false
+            },
+            "radar-radar": {
+              "type": "object",
+              "properties": {
+                "can_assign_matrix": {
+                  "type": "array",
+                  "description": "Assignment table for data association. 1 = can assign, 0 = cannot assign.",
+                  "items": {
+                    "type": "integer",
+                    "enum": [0, 1]
+                  },
+                  "default": [1, 0, 0, 0, 0, 0, 0, 0, 
+                              0, 1, 1, 1, 1, 0, 0, 0, 
+                              0, 1, 1, 1, 1, 0, 0, 0, 
+                              0, 1, 1, 1, 1, 0, 0, 0, 
+                              0, 1, 1, 1, 1, 0, 0, 0, 
+                              0, 0, 0, 0, 0, 1, 1, 1, 
+                              0, 0, 0, 0, 0, 1, 1, 1, 
+                              0, 0, 0, 0, 0, 1, 1, 1]
+                },
+                "max_dist_matrix": {
+                  "type": "array",
+                  "description": "Maximum distance table for data association.",
+                  "items": {
+                    "type": "number",
+                    "minimum": 0.0
+                  },
+                  "default": [4.0, 4.0, 5.0, 5.0, 5.0, 3.5, 3.5, 3.5,
+                              4.0, 7.0, 7.5, 7.5, 7.5, 1.0, 1.0, 1.0, 
+                              5.0, 7.5, 7.5, 7.5, 7.5, 1.0, 1.0, 1.0, 
+                              5.0, 7.5, 7.5, 7.5, 7.5, 1.0, 1.0, 1.0, 
+                              5.0, 7.5, 7.5, 7.5, 7.5, 1.0, 1.0, 1.0, 
+                              3.5, 1.0, 1.0, 1.0, 1.0, 3.0, 3.0, 3.0, 
+                              3.5, 1.0, 1.0, 1.0, 1.0, 3.0, 3.0, 3.0, 
+                              3.5, 1.0, 1.0, 1.0, 1.0, 3.0, 3.0, 3.5]
+                },
+                "max_rad_matrix": {
+                  "type": "array",
+                  "description": "Maximum angle (radian) table for data association. If value is greater than pi, it will be ignored.",
+                  "items": {
+                    "type": "number",
+                    "minimum": 0.0
+                  },
+                  "default": [3.150, 3.150, 3.150, 3.150, 3.150, 3.150, 3.150, 3.150,
+                              3.150, 1.047, 1.047, 1.047, 1.047, 3.150, 3.150, 3.150, 
+                              3.150, 1.047, 1.047, 1.047, 1.047, 3.150, 3.150, 3.150, 
+                              3.150, 1.047, 1.047, 1.047, 1.047, 3.150, 3.150, 3.150, 
+                              3.150, 1.047, 1.047, 1.047, 1.047, 3.150, 3.150, 3.150, 
+                              3.150, 3.150, 3.150, 3.150, 3.150, 3.150, 3.150, 3.150, 
+                              3.150, 3.150, 3.150, 3.150, 3.150, 3.150, 3.150, 3.150, 
+                              3.150, 3.150, 3.150, 3.150, 3.150, 3.150, 3.150, 3.150]
+                },
+                "max_velocity_diff_matrix": {
+                  "type": "array",
+                  "description": "Maximum velocity difference table for data association. Ignored when value is larger than 100.0.",
+                  "items": {
+                    "type": "number",
+                    "minimum": 0.0
+                  },
+                  "default": [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 
+                              100.0, 8.0, 8.0, 8.0, 8.0, 100.0, 100.0, 100.0, 
+                              100.0, 8.0, 8.0, 8.0, 8.0, 100.0, 100.0, 100.0, 
+                              100.0, 8.0, 8.0, 8.0, 8.0, 100.0, 100.0, 100.0, 
+                              100.0, 8.0, 8.0, 8.0, 8.0, 100.0, 100.0, 100.0, 
+                              100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 
+                              100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 
+                              100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0]
+                },
+                "min_iou_matrix": {
+                  "type": "array",
+                  "description": "Minimum Intersection over Union (IoU) table for data association. If value is negative, it will be ignored.",
+                  "items": {
+                    "type": "number"
+                  },
+                  "default": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+                }
+              },
+              "required": [
+                "can_assign_matrix",
+                "max_dist_matrix",
+                "max_rad_matrix",
+                "max_velocity_diff_matrix",
+                "min_iou_matrix"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["ros__parameters"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["/**"],
+  "additionalProperties": false
+}

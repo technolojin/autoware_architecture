@@ -4,7 +4,7 @@ name: DecorativeTrackerMerger.module
 launch:
   package: autoware_tracking_object_merger
   plugin: autoware::tracking_object_merger::DecorativeTrackerMergerNode
-  executable: decorative_tracker_merger_node
+  executable: decorative_object_merger_node
   node_output: screen
 
 # interfaces
