@@ -4,18 +4,18 @@
 namespace autoware::autoware_pointcloud_preprocessor
 {
 
-class CropBoxFilterComponent : public rclcpp::Node
+class PickupBasedVoxelGridDownsampleFilterComponent : public rclcpp::Node
 {
 public:
-  explicit CropBoxFilterComponent(const rclcpp::NodeOptions & options)
-  : Node("CropBoxFilterComponent", options)
+  explicit PickupBasedVoxelGridDownsampleFilterComponent(const rclcpp::NodeOptions & options)
+  : Node("PickupBasedVoxelGridDownsampleFilterComponent", options)
   {
     // Create a timer that calls the callback every 2 seconds (1/2 Hz)
     timer_ = this->create_wall_timer(
       std::chrono::seconds(2),
-      std::bind(&CropBoxFilterComponent::timer_callback, this));
+      std::bind(&PickupBasedVoxelGridDownsampleFilterComponent::timer_callback, this));
     
-    RCLCPP_INFO(this->get_logger(), "CropBoxFilterComponent started");
+    RCLCPP_INFO(this->get_logger(), "PickupBasedVoxelGridDownsampleFilterComponent started");
   }
 
 private:
@@ -35,4 +35,4 @@ private:
 
 #include <rclcpp_components/register_node_macro.hpp>
 
-RCLCPP_COMPONENTS_REGISTER_NODE(autoware::autoware_pointcloud_preprocessor::CropBoxFilterComponent)
+RCLCPP_COMPONENTS_REGISTER_NODE(autoware::autoware_pointcloud_preprocessor::PickupBasedVoxelGridDownsampleFilterComponent)

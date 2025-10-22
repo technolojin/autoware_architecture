@@ -1,18 +1,21 @@
 #include <rclcpp/rclcpp.hpp>
 #include <chrono>
 
-class PointCloudConcatenationComponent : public rclcpp::Node
+namespace autoware::autoware_pointcloud_preprocessor
+{
+
+class ConcatenatePointcloudComponent : public rclcpp::Node
 {
 public:
-  PointCloudConcatenationComponent()
-  : Node("point_cloud_concatenator_component")
+  explicit ConcatenatePointcloudComponent(const rclcpp::NodeOptions & options)
+  : Node("ConcatenatePointcloudComponent", options)
   {
     // Create a timer that calls the callback every 2 seconds (1/2 Hz)
     timer_ = this->create_wall_timer(
       std::chrono::seconds(2),
-      std::bind(&PointCloudConcatenationComponent::timer_callback, this));
+      std::bind(&ConcatenatePointcloudComponent::timer_callback, this));
     
-    RCLCPP_INFO(this->get_logger(), "PointCloudConcatenationComponent started");
+    RCLCPP_INFO(this->get_logger(), "ConcatenatePointcloudComponent started");
   }
 
 private:
@@ -28,10 +31,8 @@ private:
   rclcpp::TimerBase::SharedPtr timer_;
 };
 
-int main(int argc, char * argv[])
-{
-  rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<PointCloudConcatenationComponent>());
-  rclcpp::shutdown();
-  return 0;
-}
+}  // namespace autoware::autoware_pointcloud_preprocessor
+
+#include <rclcpp_components/register_node_macro.hpp>
+
+RCLCPP_COMPONENTS_REGISTER_NODE(autoware::autoware_pointcloud_preprocessor::ConcatenatePointcloudComponent)
