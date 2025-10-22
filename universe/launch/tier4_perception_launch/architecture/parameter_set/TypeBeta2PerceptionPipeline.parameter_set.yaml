@@ -3,7 +3,6 @@ parameters:
   - node: /perception/object_segmentation/common_ground_filter
     parameter_files:
       - ground_segmentation_param_file: perception/object_segmentation/common_ground_filter/ground_segmentation_param_file.param.yaml
-      - vehicle_info_param_file: perception/object_segmentation/common_ground_filter/vehicle_info_param_file.param.yaml
     configurations: []
   - node: /perception/object_recognition/detection/compare_map_filter
     parameter_files:
@@ -38,7 +37,10 @@ parameters:
   - node: /perception/object_recognition/detection/clustering/shape_estimation
     parameter_files:
       - config_file: perception/object_recognition/detection/clustering/shape_estimation/config_file.param.yaml
-    configurations: []
+    configurations:
+      - name: model_path
+        type: directory
+        value: $(var data_path)/shape_estimation/pointnet.onnx
   - node: /perception/object_recognition/detection/clustering/camera_lidar_fusion/roi_cluster_fusion
     parameter_files:
       - sync_param_path: perception/object_recognition/detection/clustering/camera_lidar_fusion/roi_cluster_fusion/sync_param_path.param.yaml
@@ -55,6 +57,13 @@ parameters:
   - node: /perception/object_recognition/detection/clustering/camera_lidar_fusion/shape_estimation
     parameter_files:
       - config_file: perception/object_recognition/detection/clustering/camera_lidar_fusion/shape_estimation/config_file.param.yaml
+    configurations:
+      - name: model_path
+        type: directory
+        value: $(var data_path)/shape_estimation/pointnet.onnx
+  - node: /perception/object_recognition/detection/clustering/camera_lidar_fusion/detected_object_feature_remover
+    parameter_files:
+      - parameters: perception/object_recognition/detection/clustering/camera_lidar_fusion/detected_object_feature_remover/parameters.param.yaml
     configurations: []
   - node: /perception/object_recognition/detection/detection_by_tracker
     parameter_files:
@@ -80,6 +89,10 @@ parameters:
   - node: /perception/object_recognition/detection/object_lanelet_filter
     parameter_files:
       - filtering_range_param: perception/object_recognition/detection/object_lanelet_filter/filtering_range_param.param.yaml
+    configurations: []
+  - node: /perception/object_recognition/detection/radar_object_filter
+    parameter_files:
+      - param_path: perception/object_recognition/detection/radar_object_filter/param_path.param.yaml
     configurations: []
   - node: /perception/object_recognition/tracking/multi_object_tracker
     parameter_files:
@@ -140,6 +153,6 @@ parameters:
     configurations: []
   - node: /perception/occupancy_grid_map/occupancy_grid_map_node
     parameter_files:
-      - param_file: perception/occupancy_grid_map/occupancy_grid_map_node/param_file.param.yaml
-      - updater_param_file: perception/occupancy_grid_map/occupancy_grid_map_node/updater_param_file.param.yaml
+      - occupancy_grid_map: perception/occupancy_grid_map/occupancy_grid_map_node/occupancy_grid_map.param.yaml
+      - binary_bayes_filter_updater: perception/occupancy_grid_map/occupancy_grid_map_node/binary_bayes_filter_updater.param.yaml
     configurations: []
