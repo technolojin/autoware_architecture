@@ -58,13 +58,13 @@ project({package_name})
 find_package(autoware_cmake REQUIRED)
 autoware_package()
 
-# Add executable node
-ament_auto_add_executable({node_name}_cpp
+# Add component library
+ament_auto_add_library({node_name}_cpp SHARED
   src/node.cpp
 )
 rclcpp_components_register_node({node_name}_cpp
   PLUGIN "autoware::{node_name}::{class_name}Node"
-  EXECUTABLE {node_name}_node
+  EXECUTABLE "{node_name}_node"
 )
 
 ament_auto_package(
@@ -175,11 +175,13 @@ def create_node_cpp(class_name: str, node_name: str) -> str:
     return f'''#include <rclcpp/rclcpp.hpp>
 #include <chrono>
 
+namespace autoware::{node_name}
+{{
 class {class_name}Node : public rclcpp::Node
 {{
 public:
-  {class_name}Node()
-  : Node("{node_name}")
+  explicit {class_name}Node(const rclcpp::NodeOptions & options)
+  : Node("{node_name}", options)
   {{
     // Create a timer that calls the callback every 2 seconds (1/2 Hz)
     timer_ = this->create_wall_timer(
@@ -200,6 +202,7 @@ private:
 
   rclcpp::TimerBase::SharedPtr timer_;
 }};
+}}
 
 #include <rclcpp_components/register_node_macro.hpp>
 
@@ -281,6 +284,7 @@ def main():
         "autoware_detected_object_feature_remover",
         "autoware_shape_estimation",
         "autoware_map_based_prediction",
+        "autoware_lidar_centerpoint",
     ]
     
     # Optional: Override from command line arguments
