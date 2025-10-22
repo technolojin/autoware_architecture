@@ -23,6 +23,7 @@
   <depend>autoware_detected_object_feature_remover</depend>
   <depend>autoware_shape_estimation</depend>
   <depend>autoware_pointcloud_preprocessor</depend>
+  <depend>autoware_image_projection_based_fusion</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

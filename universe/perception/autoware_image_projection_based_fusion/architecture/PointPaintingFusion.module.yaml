@@ -66,11 +66,11 @@ parameter_files:
     schema: schema/pointpainting.schema.json
     allow_substs: true
   - name: ml_package_param_path
-    default: /data/pointpainting_ml_package.param.yaml
+    default: config/pointpainting_ml_package.param.yaml
     schema: schema/pointpainting_ml_package.schema.json
     allow_substs: true
   - name: class_remapper_param_path
-    default: config/detection_class_remapper.param.yaml
+    default: $(find-pkg-share autoware_lidar_centerpoint)/config/detection_class_remapper.param.yaml
 
 configurations:
   - name: build_only
