@@ -2,6 +2,10 @@ import os
 
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch_ros.actions import ComposableNodeContainer
+from launch_ros.descriptions import ComposableNode
+from launch.substitutions import LaunchConfiguration
 from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
 
 from ament_index_python.packages import get_package_share_directory, get_package_prefix
@@ -45,7 +49,17 @@ def generate_autoware_architecture():
 
     return
 
-def launch_generated_launch_file():
+def create_pointcloud_container():
+    """Create the pointcloud_container composable node container."""
+    return ComposableNodeContainer(
+        name="pointcloud_container",
+        namespace="",
+        package="rclcpp_components",
+        executable="component_container",
+        output="screen",
+    )
+
+def launch_generated_launch_file(launch_arguments_names):
     """Launch the generated Autoware Architecture launch file."""
     # Here we would normally load and execute the generated launch file.
     # For simplicity, we will just print a message.
@@ -56,8 +70,12 @@ def launch_generated_launch_file():
 
     print("Including launcher file:", launcher_file)
 
+    # Build launch arguments dictionary using LaunchConfiguration for each argument
+    launch_args_dict = {name: LaunchConfiguration(name) for name in launch_arguments_names}
+
     return IncludeLaunchDescription(
-        XMLLaunchDescriptionSource(launcher_file)
+        XMLLaunchDescriptionSource(launcher_file),
+        launch_arguments=launch_args_dict.items()
     )
 
 def generate_launch_description():
@@ -65,9 +83,16 @@ def generate_launch_description():
 
     # set launch arguments 
     launch_arguments = []
+    launch_argument_names = []
+    def add_launch_arg(name: str, default_value=None, **kwargs):
+        launch_arguments.append(DeclareLaunchArgument(name, default_value=default_value, **kwargs))
+        launch_argument_names.append(name)
 
+    add_launch_arg("data_path", default_value="$(env HOME)/autoware_data")
+    add_launch_arg("config_path", default_value="install/autoware_configs/share/autoware_configs/config/default")
+    
     # 1. pipeline junctions: switches to change SW architecture 
-
+    add_launch_arg("mode", default_value="camera_lidar_fusion")
 
 
     # 2. parameter set arguments: get parameter file directories
@@ -85,10 +110,11 @@ def generate_launch_description():
     # First generate the architecture (this is just for setup, returns None)
     generate_autoware_architecture()
 
-
-
     
+    # Create the pointcloud container
+    pointcloud_container = create_pointcloud_container()
+
     # Then launch the generated launch file
     return LaunchDescription(
-        [launch_generated_launch_file()]
+        launch_arguments + [pointcloud_container, launch_generated_launch_file(launch_argument_names)]
     )
