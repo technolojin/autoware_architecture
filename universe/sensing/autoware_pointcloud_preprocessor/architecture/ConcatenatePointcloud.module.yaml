@@ -1,0 +1,34 @@
+# module information
+name: ConcatenatePointcloud.module
+
+launch:
+  package: autoware_pointcloud_preprocessor
+  plugin: autoware::pointcloud_preprocessor::ConcatenatePointcloudComponent
+  executable: concatenate_pointcloud_node
+  node_output: screen
+  use_container: false
+  container_name: pointcloud_container
+
+# interfaces
+inputs:
+  - name: input
+    message_type: sensor_msgs/msg/PointCloud2
+
+outputs:
+  - name: output
+    message_type: sensor_msgs/msg/PointCloud2
+
+# configurations
+parameter_files:
+  - name: param_file
+    default: config/concatenate_pointclouds.param.yaml
+
+configurations: []
+
+# processes
+processes:
+  - name: filter
+    trigger_conditions:
+      - on_input: input
+    outcomes:
+      - to_output: output

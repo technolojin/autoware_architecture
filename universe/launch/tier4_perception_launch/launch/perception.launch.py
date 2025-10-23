@@ -13,10 +13,11 @@ def generate_autoware_architecture():
     """Generate Autoware Architecture deployment."""
     # Load architecture configuration from YAML file
 
-
     architecture_config = ArchitectureConfig()
     architecture_config.debug_mode = True
     architecture_config.log_level = "INFO"
+
+    logger = architecture_config.set_logging()
 
     workspace_root = os.path.dirname(get_package_prefix('autoware_architect')).rsplit('/', 1)[0]
     architect_pkg_build_dir = os.path.join(workspace_root, 'build', 'autoware_architect')
@@ -26,11 +27,9 @@ def generate_autoware_architecture():
     architecture_config.deployment_file = os.path.join(launcher_pkg_install_dir, "deployment/universe_perception.deployment.yaml")
     architecture_config.output_root_dir = os.path.join(launcher_pkg_install_dir)
 
-    print("Architecture YAML List File:", architecture_config.architecture_yaml_list_file)
-    print("Deployment File:", architecture_config.deployment_file)
-    print("Output Root Dir:", architecture_config.output_root_dir)
-
-    logger = architecture_config.set_logging()
+    logger.info("Architecture YAML List File: %s", architecture_config.architecture_yaml_list_file)
+    logger.info("Deployment File: %s", architecture_config.deployment_file)
+    logger.info("Output Root Dir: %s", architecture_config.output_root_dir)
 
     # load and build the deployment
     logger.info("autoware architect: Building deployment...")
@@ -62,9 +61,32 @@ def launch_generated_launch_file():
     )
 
 def generate_launch_description():
-    """Launch file that says hello world."""
+    """ Generate autoware architecture and launch the generated launch file. """
+
+    # set launch arguments 
+    launch_arguments = []
+
+    # 1. pipeline junctions: switches to change SW architecture 
+
+
+
+    # 2. parameter set arguments: get parameter file directories
+
+
+
+
+    # determine the architecture to generate
+    # if the combination of pipeline junctions does not support any architecture, raise an error
+
+
+
+
+
     # First generate the architecture (this is just for setup, returns None)
     generate_autoware_architecture()
+
+
+
     
     # Then launch the generated launch file
     return LaunchDescription(

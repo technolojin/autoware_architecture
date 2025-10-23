@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "autoware_object_sorter parameter",
+  "type": "object",
+  "definitions": {
+    "object_sorter": {
+      "type": "object",
+      "properties": {
+        "range_calc_frame_id": {
+          "type": "string",
+          "description": "The frame ID used to calculate the range of objects.",
+          "default": "base_link"
+        },
+        "min_velocity_threshold": {
+          "type": "number",
+          "description": "Velocity threshold (in m/s) used to split objects.",
+          "default": 3.0
+        },
+        "min_range_threshold": {
+          "type": "number",
+          "description": "Range threshold (in m) used to split objects.",
+          "default": 30.0
+        }
+      },
+      "required": ["range_calc_frame_id", "min_velocity_threshold", "min_range_threshold"],
+      "additionalProperties": false
+    }
+  },
+  "properties": {
+    "/**": {
+      "type": "object",
+      "properties": {
+        "ros__parameters": {
+          "$ref": "#/definitions/object_sorter"
+        }
+      },
+      "required": ["ros__parameters"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["/**"],
+  "additionalProperties": false
+}

@@ -26,6 +26,19 @@ clean build
 rm build -r ; rm install -r ; colcon build
 ```
 
+
+# launch
+
+```sh
+ros2 launch tier4_perception_launch perception.launch.py data_path:=/datapath node_name:=nodenode config_path:=install/tier4_perception_launch/share/tier4_perception_launch/exports/universe_perception.deployment/parameter_set/default/universe_perception.deployment.parameter_set
+```
+
+
+* launch component container
+```sh
+ros2 run rclcpp_components component_container --ros-args -r __node:=pointcloud_container --log-level info
+```
+
 ## visualize
 
 generated files: install/autoware_perception_deployment/share/autoware_perception_deployment/visualization/*.puml

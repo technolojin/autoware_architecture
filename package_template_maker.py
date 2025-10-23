@@ -39,6 +39,8 @@ def create_package_xml(package_name: str, author_name: str, author_email: str) -
   <buildtool_depend>ament_cmake_auto</buildtool_depend>
   <buildtool_depend>autoware_cmake</buildtool_depend>
 
+  <depend>rclcpp</depend>
+  <depend>rclcpp_components</depend>
   <depend>autoware_architect</depend>
 
   <export>
@@ -48,13 +50,22 @@ def create_package_xml(package_name: str, author_name: str, author_email: str) -
 '''
 
 
-def create_cmakelists(package_name: str) -> str:
+def create_cmakelists(package_name: str, node_name: str, class_name: str) -> str:
     """Create CMakeLists.txt content."""
     return f'''cmake_minimum_required(VERSION 3.14)
 project({package_name})
 
 find_package(autoware_cmake REQUIRED)
 autoware_package()
+
+# Add component library
+ament_auto_add_library({node_name}_cpp SHARED
+  src/node.cpp
+)
+rclcpp_components_register_node({node_name}_cpp
+  PLUGIN "autoware::{node_name}::{class_name}Node"
+  EXECUTABLE "{node_name}_node"
+)
 
 ament_auto_package(
   INSTALL_TO_SHARE
@@ -83,8 +94,10 @@ launch:
   plugin: autoware::{node_name}::{class_name}Node
   executable: {node_name}_node
   node_output: screen
+  use_container: false
+  container_name: pointcloud_container
 
-# interface
+# interfaces
 inputs:
   - name: message_in
     message_type: autoware_perception_msgs/msg/DummyMessage
@@ -96,12 +109,12 @@ outputs:
       reliability: reliable
       durability: transient_local
 
-# configuration
-configurations: []
-
+# configurations
 parameter_files:
   - name: parameters
     default: config/{node_name}.param.yaml
+
+configurations: []
 
 # processes
 processes:
@@ -157,6 +170,47 @@ def create_schema_json(node_name: str, class_name: str) -> str:
 '''
 
 
+def create_node_cpp(class_name: str, node_name: str) -> str:
+    """Create C++ ROS2 node source file."""
+    return f'''#include <rclcpp/rclcpp.hpp>
+#include <chrono>
+
+namespace autoware::{node_name}
+{{
+class {class_name}Node : public rclcpp::Node
+{{
+public:
+  explicit {class_name}Node(const rclcpp::NodeOptions & options)
+  : Node("{node_name}", options)
+  {{
+    // Create a timer that calls the callback every 2 seconds (1/2 Hz)
+    timer_ = this->create_wall_timer(
+      std::chrono::seconds(2),
+      std::bind(&{class_name}Node::timer_callback, this));
+    
+    RCLCPP_INFO(this->get_logger(), "{class_name}Node started");
+  }}
+
+private:
+  void timer_callback()
+  {{
+    // Publish node namespace with node name
+    std::string node_namespace = this->get_namespace();
+    std::string node_name = this->get_name();
+    std::string full_name = (node_namespace == "/") ? "/" + node_name : node_namespace + "/" + node_name;
+    RCLCPP_INFO(this->get_logger(), "Node %s", full_name.c_str());
+  }}
+
+  rclcpp::TimerBase::SharedPtr timer_;
+}};
+}}
+
+#include <rclcpp_components/register_node_macro.hpp>
+
+RCLCPP_COMPONENTS_REGISTER_NODE(autoware::{node_name}::{class_name}Node)
+'''
+
+
 def create_package_template(target_dir: str, package_name: str, 
                            author_name: str = "Taekjin Lee", 
                            author_email: str = "taekjin.lee@tier4.jp") -> bool:
@@ -190,6 +244,7 @@ def create_package_template(target_dir: str, package_name: str,
     package_dir.mkdir(parents=True, exist_ok=True)
     (package_dir / "architecture").mkdir(exist_ok=True)
     (package_dir / "schema").mkdir(exist_ok=True)
+    (package_dir / "src").mkdir(exist_ok=True)
     
     # Create package.xml
     package_xml_path = package_dir / "package.xml"
@@ -198,8 +253,13 @@ def create_package_template(target_dir: str, package_name: str,
     
     # Create CMakeLists.txt
     cmake_path = package_dir / "CMakeLists.txt"
-    cmake_path.write_text(create_cmakelists(full_package_name))
+    cmake_path.write_text(create_cmakelists(full_package_name, node_name, class_name))
     print(f"  ✅ Created {cmake_path.relative_to(Path(target_dir).parent)}")
+    
+    # Create node.cpp
+    node_cpp_path = package_dir / "src" / "node.cpp"
+    node_cpp_path.write_text(create_node_cpp(class_name, node_name))
+    print(f"  ✅ Created {node_cpp_path.relative_to(Path(target_dir).parent)}")
     
     # Create module.yaml
     module_yaml_path = package_dir / "architecture" / f"{class_name}.module.yaml"
@@ -220,9 +280,23 @@ def main():
     # Configuration
     target_dir = "./universe/perception"
     package_names = [
-        "autoware_object_merger",
+        "autoware_tensorrt_yolox",
+        "autoware_euclidean_cluster",
+        "autoware_detected_object_feature_remover",
+        "autoware_shape_estimation",
+        "autoware_map_based_prediction",
+        "autoware_lidar_centerpoint",
+        "autoware_detected_object_validation",
+        "autoware_ground_segmentation",
         "autoware_object_sorter",
-        "autoware_euclidean_cluster"
+        "autoware_raindrop_cluster_filter",
+        "autoware_cluster_merger",
+        "autoware_tracking_object_merger",
+        "autoware_compare_map_segmentation",
+        "autoware_detection_by_tracker",
+        "autoware_object_merger",
+        "autoware_radar_object_tracker",
+        "autoware_probabilistic_occupancy_grid_map"
     ]
     
     # Optional: Override from command line arguments

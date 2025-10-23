@@ -196,6 +196,7 @@ def _build_namespace_tree(modules: List[Dict[str, Any]], base_namespace: List[st
             tree['__root__']['modules'].append(module)
         else:
             # Navigate/create the tree structure and add module at the end
+            # Start with the root tree, then navigate through children
             current = tree
             for i, ns in enumerate(full_namespace):
                 if ns not in current:
@@ -205,7 +206,7 @@ def _build_namespace_tree(modules: List[Dict[str, Any]], base_namespace: List[st
                 if i == len(full_namespace) - 1:
                     current[ns]['modules'].append(module)
                 else:
-                    # Otherwise, continue navigating down
+                    # Otherwise, continue navigating down into children
                     current = current[ns]['children']
     
     return tree
