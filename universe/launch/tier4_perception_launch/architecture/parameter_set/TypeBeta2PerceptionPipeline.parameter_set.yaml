@@ -1,2 +1,158 @@
 name: TypeBeta2PerceptionPipeline.parameter_set
-parameters: []
+parameters:
+  - node: /perception/object_segmentation/common_ground_filter
+    parameter_files:
+      - ground_segmentation_param_file: perception/object_segmentation/common_ground_filter/ground_segmentation_param_file.param.yaml
+    configurations: []
+  - node: /perception/object_recognition/detection/compare_map_filter
+    parameter_files:
+      - voxel_based_compare_map_filter_param_file: perception/object_recognition/detection/compare_map_filter/voxel_based_compare_map_filter_param_file.param.yaml
+    configurations: []
+  - node: /perception/object_recognition/detection/centerpoint/lidar_centerpoint
+    parameter_files:
+      - common_param_path: perception/object_recognition/detection/centerpoint/lidar_centerpoint/common_param_path.param.yaml
+      - model_param_path: perception/object_recognition/detection/centerpoint/lidar_centerpoint/model_param_path.param.yaml
+      - ml_package_param_path: perception/object_recognition/detection/centerpoint/lidar_centerpoint/ml_package_param_path.param.yaml
+      - class_remapper_param_path: perception/object_recognition/detection/centerpoint/lidar_centerpoint/class_remapper_param_path.param.yaml
+    configurations:
+      - name: build_only
+        type: bool
+        value: false
+      - name: logger_name
+        type: str
+        value: none
+  - node: /perception/object_recognition/detection/centerpoint/validation
+    parameter_files:
+      - obstacle_pointcloud_based_validator_param_path: perception/object_recognition/detection/centerpoint/validation/obstacle_pointcloud_based_validator_param_path.param.yaml
+    configurations: []
+  - node: /perception/object_recognition/detection/clustering/voxel_grid_based_euclidean_cluster
+    parameter_files:
+      - voxel_grid_based_euclidean_param_path: perception/object_recognition/detection/clustering/voxel_grid_based_euclidean_cluster/voxel_grid_based_euclidean_param_path.param.yaml
+    configurations: []
+  - node: /perception/object_recognition/detection/clustering/roi_pointcloud_fusion
+    parameter_files:
+      - sync_param_path: perception/object_recognition/detection/clustering/roi_pointcloud_fusion/sync_param_path.param.yaml
+      - param_path: perception/object_recognition/detection/clustering/roi_pointcloud_fusion/param_path.param.yaml
+    configurations: []
+  - node: /perception/object_recognition/detection/clustering/shape_estimation
+    parameter_files:
+      - config_file: perception/object_recognition/detection/clustering/shape_estimation/config_file.param.yaml
+    configurations:
+      - name: model_path
+        type: directory
+        value: $(var data_path)/shape_estimation/pointnet.onnx
+  - node: /perception/object_recognition/detection/clustering/camera_lidar_fusion/roi_cluster_fusion
+    parameter_files:
+      - sync_param_path: perception/object_recognition/detection/clustering/camera_lidar_fusion/roi_cluster_fusion/sync_param_path.param.yaml
+      - param_path: perception/object_recognition/detection/clustering/camera_lidar_fusion/roi_cluster_fusion/param_path.param.yaml
+    configurations: []
+  - node: /perception/object_recognition/detection/clustering/camera_lidar_fusion/low_intensity_cluster_filter
+    parameter_files:
+      - low_intensity_cluster_filter_param_path: perception/object_recognition/detection/clustering/camera_lidar_fusion/low_intensity_cluster_filter/low_intensity_cluster_filter_param_path.param.yaml
+    configurations: []
+  - node: /perception/object_recognition/detection/clustering/camera_lidar_fusion/cluster_merger
+    parameter_files:
+      - param_path: perception/object_recognition/detection/clustering/camera_lidar_fusion/cluster_merger/param_path.param.yaml
+    configurations: []
+  - node: /perception/object_recognition/detection/clustering/camera_lidar_fusion/shape_estimation
+    parameter_files:
+      - config_file: perception/object_recognition/detection/clustering/camera_lidar_fusion/shape_estimation/config_file.param.yaml
+    configurations:
+      - name: model_path
+        type: directory
+        value: $(var data_path)/shape_estimation/pointnet.onnx
+  - node: /perception/object_recognition/detection/clustering/camera_lidar_fusion/detected_object_feature_remover
+    parameter_files:
+      - parameters: perception/object_recognition/detection/clustering/camera_lidar_fusion/detected_object_feature_remover/parameters.param.yaml
+    configurations: []
+  - node: /perception/object_recognition/detection/detection_by_tracker
+    parameter_files:
+      - detection_by_tracker_param_path: perception/object_recognition/detection/detection_by_tracker/detection_by_tracker_param_path.param.yaml
+    configurations: []
+  - node: /perception/object_recognition/detection/roi_detected_object_fusion
+    parameter_files:
+      - sync_param_path: perception/object_recognition/detection/roi_detected_object_fusion/sync_param_path.param.yaml
+      - param_path: perception/object_recognition/detection/roi_detected_object_fusion/param_path.param.yaml
+    configurations: []
+  - node: /perception/object_recognition/detection/object_association_merger_alpha
+    parameter_files:
+      - data_association_matrix_path: perception/object_recognition/detection/object_association_merger_alpha/data_association_matrix_path.param.yaml
+      - distance_threshold_list_path: perception/object_recognition/detection/object_association_merger_alpha/distance_threshold_list_path.param.yaml
+      - object_association_merger_param_path: perception/object_recognition/detection/object_association_merger_alpha/object_association_merger_param_path.param.yaml
+    configurations: []
+  - node: /perception/object_recognition/detection/object_association_merger_beta
+    parameter_files:
+      - data_association_matrix_path: perception/object_recognition/detection/object_association_merger_beta/data_association_matrix_path.param.yaml
+      - distance_threshold_list_path: perception/object_recognition/detection/object_association_merger_beta/distance_threshold_list_path.param.yaml
+      - object_association_merger_param_path: perception/object_recognition/detection/object_association_merger_beta/object_association_merger_param_path.param.yaml
+    configurations: []
+  - node: /perception/object_recognition/detection/object_lanelet_filter
+    parameter_files:
+      - filtering_range_param: perception/object_recognition/detection/object_lanelet_filter/filtering_range_param.param.yaml
+    configurations: []
+  - node: /perception/object_recognition/detection/radar_object_filter
+    parameter_files:
+      - param_path: perception/object_recognition/detection/radar_object_filter/param_path.param.yaml
+    configurations: []
+  - node: /perception/object_recognition/tracking/multi_object_tracker
+    parameter_files:
+      - tracker_setting_path: perception/object_recognition/tracking/multi_object_tracker/tracker_setting_path.param.yaml
+      - data_association_matrix_path: perception/object_recognition/tracking/multi_object_tracker/data_association_matrix_path.param.yaml
+      - input_channels_path: perception/object_recognition/tracking/multi_object_tracker/input_channels_path.param.yaml
+    configurations:
+      - name: input/detection01/channel
+        type: string
+        value: none
+      - name: input/detection02/channel
+        type: string
+        value: none
+      - name: input/detection03/channel
+        type: string
+        value: none
+      - name: input/detection04/channel
+        type: string
+        value: none
+      - name: input/detection05/channel
+        type: string
+        value: none
+      - name: input/detection06/channel
+        type: string
+        value: none
+      - name: input/detection07/channel
+        type: string
+        value: none
+      - name: input/detection08/channel
+        type: string
+        value: none
+      - name: input/detection09/channel
+        type: string
+        value: none
+      - name: input/detection10/channel
+        type: string
+        value: none
+      - name: input/detection11/channel
+        type: string
+        value: none
+      - name: input/detection12/channel
+        type: string
+        value: none
+      - name: publish_merged_objects
+        type: boolean
+        value: false
+  - node: /perception/object_recognition/tracking/radar_object_tracker
+    parameter_files:
+      - tracker_setting_path: perception/object_recognition/tracking/radar_object_tracker/tracker_setting_path.param.yaml
+      - data_association_matrix_path: perception/object_recognition/tracking/radar_object_tracker/data_association_matrix_path.param.yaml
+      - radar_object_tracker_param_path: perception/object_recognition/tracking/radar_object_tracker/radar_object_tracker_param_path.param.yaml
+    configurations: []
+  - node: /perception/object_recognition/tracking/decorative_tracker_merger
+    parameter_files:
+      - data_association_matrix_path: perception/object_recognition/tracking/decorative_tracker_merger/data_association_matrix_path.param.yaml
+      - merge_options_path: perception/object_recognition/tracking/decorative_tracker_merger/merge_options_path.param.yaml
+      - node_param_file_path: perception/object_recognition/tracking/decorative_tracker_merger/node_param_file_path.param.yaml
+    configurations: []
+  - node: /perception/occupancy_grid_map/occupancy_grid_map_node
+    parameter_files:
+      - occupancy_grid_map: perception/occupancy_grid_map/occupancy_grid_map_node/occupancy_grid_map.param.yaml
+      - binary_bayes_filter_updater: perception/occupancy_grid_map/occupancy_grid_map_node/binary_bayes_filter_updater.param.yaml
+    configurations: []

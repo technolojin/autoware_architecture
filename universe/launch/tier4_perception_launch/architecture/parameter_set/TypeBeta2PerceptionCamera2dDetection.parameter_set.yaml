@@ -1,2 +1,34 @@
 name: TypeBeta2PerceptionCamera2dDetection.parameter_set
-parameters: []
+parameters:
+  - node: /perception/object_recognition/detection/camera_2d_detection/tensorrt_yolox0
+    parameter_files:
+      - yolox_param_path: perception/object_recognition/detection/camera_2d_detection/tensorrt_yolox0/yolox_param_path.param.yaml
+    configurations: []
+  - node: /perception/object_recognition/detection/camera_2d_detection/tensorrt_yolox1
+    parameter_files:
+      - yolox_param_path: perception/object_recognition/detection/camera_2d_detection/tensorrt_yolox1/yolox_param_path.param.yaml
+    configurations: []
+  - node: /perception/object_recognition/detection/camera_2d_detection/tensorrt_yolox2
+    parameter_files:
+      - yolox_param_path: perception/object_recognition/detection/camera_2d_detection/tensorrt_yolox2/yolox_param_path.param.yaml
+    configurations: []
+  - node: /perception/object_recognition/detection/camera_2d_detection/tensorrt_yolox3
+    parameter_files:
+      - yolox_param_path: perception/object_recognition/detection/camera_2d_detection/tensorrt_yolox3/yolox_param_path.param.yaml
+    configurations: []
+  - node: /perception/object_recognition/detection/camera_2d_detection/tensorrt_yolox4
+    parameter_files:
+      - yolox_param_path: perception/object_recognition/detection/camera_2d_detection/tensorrt_yolox4/yolox_param_path.param.yaml
+    configurations: []
+  - node: /perception/object_recognition/detection/camera_2d_detection/tensorrt_yolox5
+    parameter_files:
+      - yolox_param_path: perception/object_recognition/detection/camera_2d_detection/tensorrt_yolox5/yolox_param_path.param.yaml
+    configurations: []
+  - node: /perception/object_recognition/detection/camera_2d_detection/tensorrt_yolox6
+    parameter_files:
+      - yolox_param_path: perception/object_recognition/detection/camera_2d_detection/tensorrt_yolox6/yolox_param_path.param.yaml
+    configurations: []
+  - node: /perception/object_recognition/detection/camera_2d_detection/tensorrt_yolox7
+    parameter_files:
+      - yolox_param_path: perception/object_recognition/detection/camera_2d_detection/tensorrt_yolox7/yolox_param_path.param.yaml
+    configurations: []
