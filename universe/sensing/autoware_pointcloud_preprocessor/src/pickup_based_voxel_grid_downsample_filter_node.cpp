@@ -1,7 +1,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <chrono>
 
-namespace autoware::autoware_pointcloud_preprocessor
+namespace autoware::pointcloud_preprocessor
 {
 
 class PickupBasedVoxelGridDownsampleFilterComponent : public rclcpp::Node
@@ -31,8 +31,8 @@ private:
   rclcpp::TimerBase::SharedPtr timer_;
 };
 
-}  // namespace autoware::autoware_pointcloud_preprocessor
+}  // namespace autoware::pointcloud_preprocessor
 
 #include <rclcpp_components/register_node_macro.hpp>
 
-RCLCPP_COMPONENTS_REGISTER_NODE(autoware::autoware_pointcloud_preprocessor::PickupBasedVoxelGridDownsampleFilterComponent)
+RCLCPP_COMPONENTS_REGISTER_NODE(autoware::pointcloud_preprocessor::PickupBasedVoxelGridDownsampleFilterComponent)
