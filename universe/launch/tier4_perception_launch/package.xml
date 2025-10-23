@@ -17,6 +17,8 @@
   <depend>autoware_architect</depend>
 
   <depend>autoware_architecture_dummy_modules</depend>
+  <depend>autoware_configs</depend>
+
   <depend>autoware_tensorrt_yolox</depend>
   <depend>autoware_euclidean_cluster</depend>
   <depend>autoware_detected_object_feature_remover</depend>
@@ -30,6 +32,13 @@
   <depend>autoware_raindrop_cluster_filter</depend>
   <depend>autoware_cluster_merger</depend>
   <depend>autoware_tracking_object_merger</depend>
+  <depend>autoware_compare_map_segmentation</depend>
+  <depend>autoware_detection_by_tracker</depend>
+  <depend>autoware_object_merger</depend>
+  <depend>autoware_radar_object_tracker</depend>
+  <depend>autoware_probabilistic_occupancy_grid_map</depend>
+  <depend>autoware_multi_object_tracker</depend>
+  <depend>autoware_object_sorter</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

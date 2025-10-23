@@ -30,7 +30,7 @@ rm build -r ; rm install -r ; colcon build
 # launch
 
 ```
-ros2 launch tier4_perception_launch perception.launch.py node_name:=nodename data_path:=/datapath
+ros2 launch tier4_perception_launch perception.launch.py data_path:=/datapath config_path:=install/tier4_perception_launch/share/tier4_perception_launch/exports/universe_perception.deployment/parameter_set/default/universe_perception.deployment.parameter_set
 ```
 
 
