@@ -30,7 +30,7 @@ rm build -r ; rm install -r ; colcon build
 # launch
 
 ```
-ros2 launch tier4_perception_launch perception.launch.py node_name:=nodename data_path:=/datapath
+ros2 launch tier4_perception_launch perception.launch.py data_path:=/datapath config_path:=$(find pkg autoware_configs)/config/default
 ```
 
 
