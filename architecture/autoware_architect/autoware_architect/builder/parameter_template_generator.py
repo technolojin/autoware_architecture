@@ -219,6 +219,7 @@ class ParameterTemplateGenerator:
             # Create basic ROS parameter file structure
             empty_config_content = """/**:
   ros__parameters:
+    []
     # TODO: Add parameters for {}
 """.format(param_name)
             
