@@ -248,8 +248,7 @@ class ParameterTemplateGenerator:
             
             # Update path to be relative to parameter set root
             relative_path = os.path.relpath(dest_path, parameter_set_root)
-            variable_path = "$(var config_path)" + "/" + relative_path.replace("\\", "/")
-            updated_parameter_files[param_name] = variable_path
+            updated_parameter_files[param_name] = relative_path
         
         # Update module data with new paths
         module_data["parameter_files"] = updated_parameter_files
