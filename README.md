@@ -30,6 +30,7 @@ rm build -r ; rm install -r ; colcon build
 # launch
 
 ```
+ros2 launch tier4_perception_launch perception.launch.py node_name:=nodename data_path:=/datapath
 ```
 
 
