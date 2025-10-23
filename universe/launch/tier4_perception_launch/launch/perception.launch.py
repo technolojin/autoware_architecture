@@ -59,16 +59,11 @@ def create_pointcloud_container():
         output="screen",
     )
 
-def launch_generated_launch_file(launch_arguments_names):
+def launch_generated_launch_file(launch_arguments_names, launcher_file: str):
     """Launch the generated Autoware Architecture launch file."""
     # Here we would normally load and execute the generated launch file.
     # For simplicity, we will just print a message.
     print("Launching generated Autoware Architecture launch file...")
-
-    launcher_pkg_install_dir = get_package_share_directory('tier4_perception_launch')
-    launcher_file = os.path.join(launcher_pkg_install_dir, "exports/universe_perception.deployment/launcher/default/main_ecu/perception/perception.launch.xml")
-
-    print("Including launcher file:", launcher_file)
 
     # Build launch arguments dictionary using LaunchConfiguration for each argument
     launch_args_dict = {name: LaunchConfiguration(name) for name in launch_arguments_names}
@@ -109,12 +104,14 @@ def generate_launch_description():
 
     # First generate the architecture (this is just for setup, returns None)
     generate_autoware_architecture()
+    launcher_pkg_install_dir = get_package_share_directory('tier4_perception_launch')
+    launcher_path = "exports/universe_perception.deployment/launcher/default/main_ecu/perception/perception.launch.xml"
+    launcher_file = os.path.join(launcher_pkg_install_dir, launcher_path)
 
-    
     # Create the pointcloud container
     pointcloud_container = create_pointcloud_container()
 
     # Then launch the generated launch file
     return LaunchDescription(
-        launch_arguments + [pointcloud_container, launch_generated_launch_file(launch_argument_names)]
+        launch_arguments + [pointcloud_container, launch_generated_launch_file(launch_argument_names, launcher_file)]
     )

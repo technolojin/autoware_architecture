@@ -220,7 +220,7 @@ class ParameterTemplateGenerator:
             empty_config_content = """/**:
   ros__parameters:
     []
-    # TODO: Add parameters for {}
+    # Add parameters for {}
 """.format(param_name)
             
             with open(dest_path, 'w') as f:
