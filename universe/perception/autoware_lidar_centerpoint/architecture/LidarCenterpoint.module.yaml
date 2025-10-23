@@ -47,7 +47,7 @@ configurations:
     description: If true, the module will only build the model and exit.
   - name: logger_name
     type: str
-    default: $(var node_name)
+    default: lidar_centerpoint
     description: The name of the logger for this module.
 
 # processes
