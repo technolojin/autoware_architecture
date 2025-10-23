@@ -13,7 +13,7 @@ from ament_index_python.packages import get_package_share_directory, get_package
 from autoware_architect.deployment import Deployment
 from autoware_architect.config import ArchitectureConfig
 
-def generate_autoware_architecture():
+def generate_autoware_architecture(deployment_file: str):
     """Generate Autoware Architecture deployment."""
     # Load architecture configuration from YAML file
 
@@ -28,7 +28,7 @@ def generate_autoware_architecture():
     launcher_pkg_install_dir = get_package_share_directory('tier4_perception_launch')
 
     architecture_config.architecture_yaml_list_file = os.path.join(architect_pkg_build_dir, "autoware_architect_config_file_list.txt")
-    architecture_config.deployment_file = os.path.join(launcher_pkg_install_dir, "deployment/universe_perception.deployment.yaml")
+    architecture_config.deployment_file = os.path.join(launcher_pkg_install_dir, deployment_file)
     architecture_config.output_root_dir = os.path.join(launcher_pkg_install_dir)
 
     logger.info("Architecture YAML List File: %s", architecture_config.architecture_yaml_list_file)
@@ -88,6 +88,35 @@ def generate_launch_description():
     
     # 1. pipeline junctions: switches to change SW architecture 
     add_launch_arg("mode", default_value="camera_lidar_fusion")
+    add_launch_arg("lidar_detection_model", default_value="centerpoint/centerpoint")
+
+    add_launch_arg("use_empty_dynamic_object_publisher", default_value="false")
+    add_launch_arg("use_traffic_light_recognition", default_value="true")
+
+    add_launch_arg("use_low_height_cropbox", default_value="false")
+    add_launch_arg("use_vector_map", default_value="true")
+    add_launch_arg("use_pointcloud_map", default_value="true")
+    add_launch_arg("use_irregular_object_detector", default_value="true")
+    add_launch_arg("use_low_intensity_cluster_filter", default_value="true")
+    add_launch_arg("use_image_segmentation_based_filter", default_value="false")
+    add_launch_arg("use_perception_online_evaluator", default_value="false")
+    add_launch_arg("use_perception_analytics_publisher", default_value="true")
+    add_launch_arg("use_detection_by_tracker", default_value="true")
+    add_launch_arg("use_radar_tracking_fusion", default_value="true")
+    add_launch_arg("use_object_filter", default_value="true")
+    add_launch_arg("use_obstacle_segmentation_single_frame_filter", default_value="false")
+    add_launch_arg("use_obstacle_segmentation_time_series_filter", default_value="true")
+    add_launch_arg("segmentation_pointcloud_fusion_camera_ids", default_value="[0,2,4]")
+    add_launch_arg("use_multi_channel_tracker_merger", default_value="true")
+    add_launch_arg("tracker_publish_merged_objects", default_value="false")
+
+    add_launch_arg("occupancy_grid_map_method", default_value="pointcloud_based")
+    add_launch_arg("occupancy_grid_map_updater", default_value="binary_bayes_filter")
+    add_launch_arg("detected_objects_filter_method", default_value="lanelet_filter")
+    add_launch_arg("detected_objects_validation_method", default_value="obstacle_pointcloud")
+    add_launch_arg("ml_camera_lidar_merger_priority_mode", default_value="0")
+
+
 
 
     # 2. parameter set arguments: get parameter file directories
@@ -100,10 +129,10 @@ def generate_launch_description():
 
 
 
-
+    deployment_file = "deployment/universe_perception.deployment.yaml"
 
     # First generate the architecture (this is just for setup, returns None)
-    generate_autoware_architecture()
+    generate_autoware_architecture(deployment_file)
     launcher_pkg_install_dir = get_package_share_directory('tier4_perception_launch')
     launcher_path = "exports/universe_perception.deployment/launcher/default/main_ecu/perception/perception.launch.xml"
     launcher_file = os.path.join(launcher_pkg_install_dir, launcher_path)
