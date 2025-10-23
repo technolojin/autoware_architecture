@@ -29,7 +29,7 @@ outputs:
 # configurations
 parameter_files:
   - name: tracker_setting_path
-    default: config/multi_object_tracker_node.param.yaml
+    default: config/default_tracker.param.yaml
   - name: data_association_matrix_path
     default: config/data_association_matrix.param.yaml
   - name: radar_object_tracker_param_path
