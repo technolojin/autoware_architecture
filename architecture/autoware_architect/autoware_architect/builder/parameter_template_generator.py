@@ -17,8 +17,6 @@ from typing import TYPE_CHECKING, List, Dict, Any, Optional
 import os
 import shutil
 
-from ..models.parameters import ParameterType
-
 if TYPE_CHECKING:
     from .instances import Instance
 
@@ -119,17 +117,18 @@ class ParameterTemplateGenerator:
             current_namespace: Current namespace path
         """
         if instance.element_type == "module":
-            # Use the instance's namespace_str directly - it already contains the correct namespace
+            # Use the instance's namespace_str directly
             full_namespace = instance.namespace_str
             
-            # Extract parameter information from module configuration
-            parameter_files, configurations = self._extract_module_parameter_info(instance)
+            # Get parameter information from parameter_manager
+            parameter_files, configurations = self._extract_parameters_from_manager(instance)
             
             if parameter_files or configurations:
                 module_info = {
                     "node": full_namespace,
                     "parameter_files": parameter_files,
-                    "configurations": configurations
+                    "configurations": configurations,
+                    "package": instance.configuration.launch.get("package", "unknown_package")
                 }
                 module_data.append(module_info)
         
@@ -138,11 +137,11 @@ class ParameterTemplateGenerator:
             for child in instance.children.values():
                 self._collect_module_parameter_files_recursive(child, module_data, current_namespace)
     
-    def _extract_module_parameter_info(self, module_instance: 'Instance') -> tuple[Dict[str, str], List[Dict[str, Any]]]:
-        """Extract parameter paths and configurations from module configuration.
+    def _extract_parameters_from_manager(self, module_instance: 'Instance') -> tuple[Dict[str, str], List[Dict[str, Any]]]:
+        """Extract parameter files and configurations from parameter manager.
         
         Args:
-            module_instance: Module instance to extract parameter_files from
+            module_instance: Module instance to extract parameters from
             
         Returns:
             Tuple of (parameter_files_dict, configurations_list)
@@ -150,60 +149,28 @@ class ParameterTemplateGenerator:
         parameter_files = {}
         configurations = []
         
-        if (hasattr(module_instance, 'configuration') and 
-            hasattr(module_instance.configuration, 'parameter_files') and 
-            module_instance.configuration.parameter_files):
-            
-            # Use the instance's namespace_str directly for parameter file paths
-            base_path = module_instance.namespace_str
-            
-            for param in module_instance.configuration.parameter_files:
-                param_name = param.get('name')
-                if param_name:
-                    # Generate template path based on namespace and parameter name
-                    template_path = f"{base_path}/{param_name}.param.yaml"
-                    parameter_files[param_name] = template_path
+        # Get all parameters from the parameter manager
+        all_parameters = module_instance.parameter_manager.get_all_parameter_files()
         
-        # Extract configurations from module configuration
-        if (hasattr(module_instance, 'configuration') and 
-            hasattr(module_instance.configuration, 'configurations') and 
-            module_instance.configuration.configurations):
-            
-            for config in module_instance.configuration.configurations:
-                config_name = config.get('name')
-                config_type = config.get('type', 'string')
-                config_value = config.get('value')  # Now initialized from 'default' during parsing
-                
-                if config_name is not None:
-                    configuration = {
-                        "name": config_name,
-                        "type": config_type,
-                        "value": config_value
-                    }
-                    configurations.append(configuration)
+        # Use the instance's namespace_str directly for parameter file paths
+        base_path = module_instance.namespace_str
         
-        # Get any runtime parameter overrides from the parameter manager
-        # These override the default values from module configuration
-        runtime_overrides = {}
-        for param in module_instance.parameter_manager.get_all_parameter_files():
-            if hasattr(param, 'param_type') and param.param_type == ParameterType.CONFIGURATION:
-                # Track runtime overrides by name to avoid duplicates
-                runtime_overrides[param.name] = {
-                    "name": param.name,
-                    "type": getattr(param, 'data_type', 'string'),
+        for param in all_parameters:
+            param_name = param.name
+            param_type = param.param_type
+            
+            if param_type.value == "parameter":  # ParameterType.PARAMETER_FILES
+                # Generate template path based on namespace and parameter name
+                template_path = f"{base_path}/{param_name}.param.yaml"
+                parameter_files[param_name] = template_path
+            
+            elif param_type.value == "configuration":  # ParameterType.CONFIGURATION
+                configuration = {
+                    "name": param_name,
+                    "type": param.data_type,
                     "value": param.value
                 }
-        
-        # Apply runtime overrides (update existing or add new configurations)
-        for config in configurations:
-            if config['name'] in runtime_overrides:
-                # Update existing configuration with runtime override
-                config['value'] = runtime_overrides[config['name']]['value']
-                # Remove from runtime_overrides so we don't add it again
-                del runtime_overrides[config['name']]
-        
-        # Add any remaining runtime overrides that weren't in the original config
-        configurations.extend(runtime_overrides.values())
+                configurations.append(configuration)
         
         return parameter_files, configurations
     
@@ -226,26 +193,13 @@ class ParameterTemplateGenerator:
         # Copy parameter files and update paths in module_data
         updated_parameter_files = {}
         for param_name, original_path in parameter_files.items():
-            # Find the source config file
-            source_config_path = self._find_source_config_file(param_name, original_path)
-            
             # Copy config file to namespace directory
             dest_filename = f"{param_name}.param.yaml"
             dest_path = os.path.join(namespace_dir, dest_filename)
-            
-            if source_config_path and os.path.exists(source_config_path):
-                try:
-                    shutil.copy2(source_config_path, dest_path)
-                    logger.debug(f"Copied {source_config_path} to {dest_path}")
-                except Exception as e:
-                    logger.warning(f"Failed to copy {source_config_path} to {dest_path}: {e}")
-                    # Create empty config file if copy fails
-                    self._create_empty_config_file(dest_path, param_name)
-            else:
-                logger.warning(f"Source config file not found for {param_name}: {original_path}")
-                # Create empty config file when source is not found
-                self._create_empty_config_file(dest_path, param_name)
-            
+
+            # Create an empty config file at the destination
+            self._create_empty_config_file(dest_path, param_name)
+
             # Update path to be relative to parameter set root
             relative_path = os.path.relpath(dest_path, parameter_set_root)
             updated_parameter_files[param_name] = relative_path
@@ -274,42 +228,3 @@ class ParameterTemplateGenerator:
             
         except Exception as e:
             logger.error(f"Failed to create empty config file {dest_path}: {e}")
-    
-    def _find_source_config_file(self, param_name: str, template_path: str) -> Optional[str]:
-        """Find the actual source config file generated from schema.
-        
-        Args:
-            param_name: Parameter name
-            template_path: Template path from module configuration
-            
-        Returns:
-            Path to the actual config file, or None if not found
-        """
-        # Look for config files in the install directory
-        # The config files are generated by the parameter_process.py script
-        # Use relative path resolution to find workspace root dynamically
-        current_file_dir = os.path.dirname(os.path.abspath(__file__))
-        workspace_root = os.path.abspath(os.path.join(current_file_dir, "../../../../../.."))
-        install_dir = os.path.join(workspace_root, "install")
-        
-        # Search for .param.yaml files matching the parameter name
-        if os.path.exists(install_dir):
-            for root, dirs, files in os.walk(install_dir):
-                for file in files:
-                    if file == f"{param_name}.param.yaml":
-                        return os.path.join(root, file)
-        
-        # If not found in install directory, try to construct from template_path
-        if template_path and not template_path.startswith('/'):
-            # Relative path - try to find in various locations
-            possible_paths = [
-                os.path.join(workspace_root, template_path),
-                os.path.join(workspace_root, "src", template_path),
-                os.path.join(install_dir, template_path)
-            ]
-            
-            for path in possible_paths:
-                if os.path.exists(path):
-                    return path
-        
-        return None
