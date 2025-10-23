@@ -242,7 +242,7 @@ class ParameterManager:
         if hasattr(self.instance.configuration, 'parameter_files') and self.instance.configuration.parameter_files:
             for cfg_param in self.instance.configuration.parameter_files:
                 param_name = cfg_param.get("name")
-                param_value = cfg_param.get("default")
+                param_value = cfg_param.get("value", cfg_param.get("default"))
                 param_schema = cfg_param.get("schema")
                 self.parameter_files.set_parameter(
                     param_name, 
@@ -258,7 +258,7 @@ class ParameterManager:
         if hasattr(self.instance.configuration, 'configurations') and self.instance.configuration.configurations:
             for cfg_config in self.instance.configuration.configurations:
                 config_name = cfg_config.get("name")
-                config_value = cfg_config.get("default")
+                config_value = cfg_config.get("value", cfg_config.get("default"))
                 config_type = cfg_config.get("type", "string")
                 
                 # Only set if a default value is provided

@@ -17,7 +17,7 @@ parameters:
     configurations:
       - name: build_only
         type: bool
-        value: none
+        value: false
       - name: logger_name
         type: str
         value: none
@@ -138,7 +138,7 @@ parameters:
         value: none
       - name: publish_merged_objects
         type: boolean
-        value: none
+        value: false
   - node: /perception/object_recognition/tracking/radar_object_tracker
     parameter_files:
       - tracker_setting_path: perception/object_recognition/tracking/radar_object_tracker/tracker_setting_path.param.yaml
