@@ -87,34 +87,62 @@ def generate_launch_description():
     add_launch_arg("config_path", default_value="install/autoware_configs/share/autoware_configs/config/default")
     
     # 1. pipeline junctions: switches to change SW architecture 
-    add_launch_arg("mode", default_value="camera_lidar_fusion")
-    add_launch_arg("lidar_detection_model", default_value="centerpoint/centerpoint")
-
     add_launch_arg("use_empty_dynamic_object_publisher", default_value="false")
-    add_launch_arg("use_traffic_light_recognition", default_value="true")
+    add_launch_arg("use_perception_online_evaluator", default_value="false")
+
 
     add_launch_arg("use_low_height_cropbox", default_value="false")
-    add_launch_arg("use_vector_map", default_value="true")
-    add_launch_arg("use_pointcloud_map", default_value="true")
-    add_launch_arg("use_irregular_object_detector", default_value="true")
-    add_launch_arg("use_low_intensity_cluster_filter", default_value="true")
-    add_launch_arg("use_image_segmentation_based_filter", default_value="false")
-    add_launch_arg("use_perception_online_evaluator", default_value="false")
-    add_launch_arg("use_perception_analytics_publisher", default_value="true")
-    add_launch_arg("use_detection_by_tracker", default_value="true")
-    add_launch_arg("use_radar_tracking_fusion", default_value="true")
-    add_launch_arg("use_object_filter", default_value="true")
-    add_launch_arg("use_obstacle_segmentation_single_frame_filter", default_value="false")
-    add_launch_arg("use_obstacle_segmentation_time_series_filter", default_value="true")
-    add_launch_arg("segmentation_pointcloud_fusion_camera_ids", default_value="[0,2,4]")
-    add_launch_arg("use_multi_channel_tracker_merger", default_value="true")
-    add_launch_arg("tracker_publish_merged_objects", default_value="false")
 
-    add_launch_arg("occupancy_grid_map_method", default_value="pointcloud_based")
-    add_launch_arg("occupancy_grid_map_updater", default_value="binary_bayes_filter")
+
+    add_launch_arg("use_perception_analytics_publisher", default_value="true")
+
+    add_launch_arg("segmentation_pointcloud_fusion_camera_ids", default_value="[0,2,4]")
+
     add_launch_arg("detected_objects_filter_method", default_value="lanelet_filter")
     add_launch_arg("detected_objects_validation_method", default_value="obstacle_pointcloud")
+
+    # Common
+    add_launch_arg("mode", default_value="camera_lidar_fusion")
+
+    add_launch_arg("use_vector_map", default_value="true")
+    add_launch_arg("use_pointcloud_map", default_value="true")
+
+
+    # Object recognition
+    add_launch_arg("use_multi_channel_tracker_merger", default_value="true")
+
+    # Object recognition / detection / detector
+    add_launch_arg("lidar_detection_model", default_value="centerpoint/centerpoint")
+    add_launch_arg("use_irregular_object_detector", default_value="true")
+    add_launch_arg("use_image_segmentation_based_filter", default_value="false")
+    add_launch_arg("use_detection_by_tracker", default_value="true")
+    add_launch_arg("use_low_intensity_cluster_filter", default_value="true")
+
+    # Object recognition / detection / filter
+    add_launch_arg("use_object_filter", default_value="true")
+
+    # Object recognition / detection / merger
     add_launch_arg("ml_camera_lidar_merger_priority_mode", default_value="0")
+
+    # Object recognition / tracking
+    add_launch_arg("use_radar_tracking_fusion", default_value="true")
+    add_launch_arg("tracker_publish_merged_objects", default_value="false")
+
+
+    # Object recognition / prediction
+
+
+    # Obstacle segmentation
+    add_launch_arg("use_obstacle_segmentation_single_frame_filter", default_value="false")
+    add_launch_arg("use_obstacle_segmentation_time_series_filter", default_value="true")
+
+    # Occupancy grid map
+    add_launch_arg("occupancy_grid_map_method", default_value="pointcloud_based")
+    add_launch_arg("occupancy_grid_map_updater", default_value="binary_bayes_filter")
+
+    # traffic light
+    add_launch_arg("use_traffic_light_recognition", default_value="true")
+
 
 
 
