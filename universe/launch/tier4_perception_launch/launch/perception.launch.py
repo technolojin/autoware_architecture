@@ -3,6 +3,7 @@ import os
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
 from launch.actions import DeclareLaunchArgument
+from launch.actions import OpaqueFunction
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
 from launch.substitutions import LaunchConfiguration
@@ -14,14 +15,87 @@ from autoware_architect.deployment import Deployment
 from autoware_architect.config import ArchitectureConfig
 
 
+def config_to_bool(config_name: str, context) -> bool:
+    """Convert LaunchConfiguration to boolean."""
+    value = LaunchConfiguration(config_name).perform(context)
+    return value == "True" or value == "true"
+
+def config_to_str(config_name: str, context) -> str:
+    """Convert LaunchConfiguration to string."""
+    value = LaunchConfiguration(config_name).perform(context)
+    return str(value)
+
+def determine_mode(context) -> dict:
+    """Determine mode based on launch configurations."""
+    modes = {}
+    
+    # common
+    if config_to_bool("downsample_perception_common_pointcloud", context):
+        modes["downsample_perception_common_pointcloud"] = "on"
+    else:
+        modes["downsample_perception_common_pointcloud"] = "off"
+
+    # obstacle segmentation
+    if config_to_bool("use_obstacle_segmentation_single_frame_filter", context):
+        if config_to_bool("use_obstacle_segmentation_time_series_filter", context):
+            modes["obstacle_segmentation_filter"] = "combined"
+        else:
+            modes["obstacle_segmentation_filter"] = "single_frame"
+    else:
+        if config_to_bool("use_obstacle_segmentation_time_series_filter", context):
+            modes["obstacle_segmentation_filter"] = "time_series"
+        else:
+            modes["obstacle_segmentation_filter"] = "none"
+
+    # object recognition
+    modality = config_to_str("mode", context)
+    # multi modality
+    if config_to_bool("use_empty_dynamic_object_publisher", context):
+        modes["object_modality"] = "dummy"
+    elif modality == "camera_lidar_radar_fusion":
+        modes["object_modality"] = "camera_lidar_radar_fusion"
+    elif modality == "camera_lidar_fusion":
+        modes["object_modality"] = "camera_lidar_fusion"
+    elif modality == "lidar_radar_fusion":
+        modes["object_modality"] = "lidar_radar_fusion"
+    # single modality
+    elif modality == "lidar":
+        modes["object_modality"] = "lidar"
+    elif modality == "radar":
+        modes["object_modality"] = "radar"
+    elif modality == "camera":
+        modes["object_modality"] = "camera"
+
+    # occupancy grid map
+    if config_to_str("occupancy_grid_map_method", context) == "pointcloud_based_occupancy_grid_map":
+        modes["occupancy_grid_map"] = "pointcloud_based"
+    elif config_to_str("occupancy_grid_map_method", context) == "laserscan_based_occupancy_grid_map":
+        modes["occupancy_grid_map"] = "laserscan_based"
+    elif config_to_str("occupancy_grid_map_method", context) == "multi_lidar_pointcloud_based_occupancy_grid_map":
+        modes["occupancy_grid_map"] = "multi_lidar_pointcloud_based"
 
 
+    # traffic light recognition
+    if config_to_bool("use_traffic_light_recognition", context) == False:
+        modes["traffic_light_recognition"] = "off"
+    elif config_to_bool("traffic_light_recognition/fusion_only", context) == True:
+        if config_to_str("traffic_light_recognition/high_accuracy_detection_type", context) == "fine_detection":
+            modes["traffic_light_recognition"] = "fusion_only_fine_detection"
+        else:
+            modes["traffic_light_recognition"] = "fusion_only"
+    elif config_to_bool("traffic_light_recognition/use_high_accuracy_detection", context) == True:
+        if config_to_str("traffic_light_recognition/high_accuracy_detection_type", context) == "fine_detection":
+            modes["traffic_light_recognition"] = "high_accuracy_fine_detection"
+        elif config_to_str("traffic_light_recognition/high_accuracy_detection_type", context) == "whole_image_detection":
+            modes["traffic_light_recognition"] = "high_accuracy_whole_image_detection"
+        else:
+            modes["traffic_light_recognition"] = "standard_detection"
+    else:
+        modes["traffic_light_recognition"] = "standard_detection"
 
+    return modes
 
-
-
-
-def generate_autoware_architecture(deployment_file: str):
+def generate_autoware_architecture(deployment_file: str, mode: dict):
     """Generate Autoware Architecture deployment."""
     # Load architecture configuration from YAML file
 
@@ -30,6 +104,8 @@ def generate_autoware_architecture(deployment_file: str):
     architecture_config.log_level = "INFO"
 
     logger = architecture_config.set_logging()
+    
+    logger.info("=== Determined mode: %s ===", mode)
 
     workspace_root = os.path.dirname(get_package_prefix('autoware_architect')).rsplit('/', 1)[0]
     architect_pkg_build_dir = os.path.join(workspace_root, 'build', 'autoware_architect')
@@ -81,6 +157,15 @@ def launch_generated_launch_file(launch_arguments_names, launcher_file: str):
         launch_arguments=launch_args_dict.items()
     )
 
+def opaque_generate_autoware_architecture(context, deployment_file: str):
+    """OpaqueFunction wrapper to generate Autoware Architecture at launch time."""
+    mode = determine_mode(context)
+    
+    deployment_file = "deployment/universe_perception.deployment.yaml"
+    generate_autoware_architecture(deployment_file, mode)
+    
+    return []
+
 def generate_launch_description():
     """ Generate autoware architecture and launch the generated launch file. """
 
@@ -113,9 +198,10 @@ def generate_launch_description():
     add_launch_arg("use_perception_analytics_publisher", default_value="true")
 
     # Common
-    add_launch_arg("mode", default_value="camera_lidar_fusion")
+    add_launch_arg("downsample_perception_common_pointcloud", default_value="false")
 
     # Object recognition
+    add_launch_arg("mode", default_value="camera_lidar_fusion")
     add_launch_arg("use_multi_channel_tracker_merger", default_value="true") # merger and tracker
     add_launch_arg("use_irregular_object_detector", default_value="true") # detector on/off, also for merger
     add_launch_arg("use_detection_by_tracker", default_value="true") # detector on/off, also for merger
@@ -153,7 +239,7 @@ def generate_launch_description():
     add_launch_arg("use_obstacle_segmentation_time_series_filter", default_value="true") # ground segmentation filter mode
 
     # Occupancy grid map
-    add_launch_arg("occupancy_grid_map_method", default_value="pointcloud_based") # occupancy grid map mode
+    add_launch_arg("occupancy_grid_map_method", default_value="pointcloud_based_occupancy_grid_map") # occupancy grid map mode
     add_launch_arg("occupancy_grid_map_updater", default_value="binary_bayes_filter") # always binary_bayes_filter
 
     # traffic light
@@ -164,20 +250,11 @@ def generate_launch_description():
     add_launch_arg("traffic_light_recognition/high_accuracy_detection_type", default_value="fine_detection") # filter mode, whole_image_detection or fine_detection
 
 
-    # 2. parameter set arguments: get parameter file directories
 
-
-
-
-    # determine the architecture to generate
-    # if the combination of pipeline junctions does not support any architecture, raise an error
-
-
-
+    # determine mode
     deployment_file = "deployment/universe_perception.deployment.yaml"
 
-    # First generate the architecture (this is just for setup, returns None)
-    generate_autoware_architecture(deployment_file)
+    # Setup launcher file path
     launcher_pkg_install_dir = get_package_share_directory('tier4_perception_launch')
     launcher_path = "exports/universe_perception.deployment/launcher/default/main_ecu/perception/perception.launch.xml"
     launcher_file = os.path.join(launcher_pkg_install_dir, launcher_path)
@@ -187,5 +264,9 @@ def generate_launch_description():
 
     # Then launch the generated launch file
     return LaunchDescription(
-        launch_arguments + [pointcloud_container, launch_generated_launch_file(launch_argument_names, launcher_file)]
+        launch_arguments + [
+            OpaqueFunction(function=lambda context: opaque_generate_autoware_architecture(context, deployment_file)),
+            pointcloud_container, 
+            launch_generated_launch_file(launch_argument_names, launcher_file)
+        ]
     )
