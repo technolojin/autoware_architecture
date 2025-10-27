@@ -28,12 +28,23 @@ def config_to_str(config_name: str, context) -> str:
 def determine_mode(context) -> dict:
     """Determine mode based on launch configurations."""
     modes = {}
+    parameters = {}
     
     # common
     if config_to_bool("downsample_perception_common_pointcloud", context):
         modes["downsample_perception_common_pointcloud"] = "on"
     else:
         modes["downsample_perception_common_pointcloud"] = "off"
+
+    if config_to_bool("use_perception_online_evaluator", context):
+        modes["perception_online_evaluator"] = "on"
+    else:
+        modes["perception_online_evaluator"] = "off"
+
+    if config_to_bool("use_perception_analytics_publisher", context):
+        modes["perception_analytics_publisher"] = "on"
+    else:
+        modes["perception_analytics_publisher"] = "off"
 
     # obstacle segmentation
     if config_to_bool("use_obstacle_segmentation_single_frame_filter", context):
@@ -49,22 +60,126 @@ def determine_mode(context) -> dict:
 
     # object recognition
     modality = config_to_str("mode", context)
-    # multi modality
+    is_lidar_used = False
+    is_lidar_camera_fusion = False
+
+    ## multi modality
     if config_to_bool("use_empty_dynamic_object_publisher", context):
         modes["object_modality"] = "dummy"
+        modes["perception_online_evaluator"] = "off"
+        modes["perception_analytics_publisher"] = "off"
     elif modality == "camera_lidar_radar_fusion":
         modes["object_modality"] = "camera_lidar_radar_fusion"
+        is_lidar_used = True
+        is_lidar_camera_fusion = True
     elif modality == "camera_lidar_fusion":
         modes["object_modality"] = "camera_lidar_fusion"
+        modes["irregular_object_detector"] = "on" if config_to_bool("use_irregular_object_detector", context) else "off"
+        is_lidar_used = True
+        is_lidar_camera_fusion = True
     elif modality == "lidar_radar_fusion":
         modes["object_modality"] = "lidar_radar_fusion"
-    # single modality
+        is_lidar_used = True
+    ## single modality
     elif modality == "lidar":
         modes["object_modality"] = "lidar"
+        is_lidar_used = True
     elif modality == "radar":
         modes["object_modality"] = "radar"
     elif modality == "camera":
         modes["object_modality"] = "camera"
+    else:
+        return KeyError(f"Invalid mode: {modality}")
+    
+    ## detector additional modes
+    if is_lidar_used:
+        modes["detection_by_tracker"] = "on" if config_to_bool("use_detection_by_tracker", context) else "off"
+        modes["filter__low_height_cropbox"] = "on" if config_to_bool("use_low_height_cropbox", context) else "off"
+
+        # object filter
+        if config_to_bool("use_object_filter", context):
+            if config_to_str("objects_filter_method", context) == "lanelet_filter":
+                modes["filter__object_filter"] = "lanelet_filter"
+            elif config_to_str("objects_filter_method", context) == "position_filter":
+                modes["filter__object_filter"] = "position_filter"
+            else:
+                return KeyError(f"Invalid objects filter method: {config_to_str('objects_filter_method', context)}")
+        else:
+            modes["filter__object_filter"] = "off"
+
+        # object validator
+        if config_to_bool("use_object_validator", context):
+            if config_to_str("objects_validation_method", context) == "obstacle_pointcloud":
+                if config_to_bool("use_pointcloud_map", context):
+                    modes["filter__object_validator"] = "map_filtered_obstacle_pointcloud"
+                else:
+                    modes["filter__object_validator"] = "obstacle_pointcloud"
+            elif config_to_str("objects_validation_method", context) == "occupancy_grid":
+                modes["filter__object_validator"] = "occupancy_grid"
+            else:
+                return KeyError(f"Invalid objects validation method: {config_to_str('objects_validation_method', context)}")
+
+        # lidar detection model
+        lidar_detection_model_code = LaunchConfiguration("lidar_detection_model").perform(context)
+        lidar_detection_model_type = lidar_detection_model_code.split('/')[0]
+        lidar_detection_model_name = lidar_detection_model_code.split('/')[1] if '/' in lidar_detection_model_code else ""
+        if lidar_detection_model_type == "centerpoint":
+            modes["lidar_detection_model_type"] = "centerpoint"
+            if lidar_detection_model_name in ["centerpoint", "centerpoint_tiny", "centerpoint_sigma"]:
+                modes["lidar_detection_model_name"] = lidar_detection_model_name
+            else:
+                modes["lidar_detection_model_name"] = "centerpoint_tiny"
+        elif lidar_detection_model_type == "bevfusion":
+            modes["lidar_detection_model_type"] = "bevfusion"
+            modes["lidar_detection_model_name"] = "bevfusion_lidar"
+        elif lidar_detection_model_type == "pointpainting":
+            modes["lidar_detection_model_type"] = "pointpainting"
+            modes["lidar_detection_model_name"] = "pointpainting"
+        elif lidar_detection_model_type == "transfusion":
+            modes["lidar_detection_model_type"] = "transfusion"
+            modes["lidar_detection_model_name"] = "transfusion"
+        elif lidar_detection_model_type == "apollo":
+            modes["lidar_detection_model_type"] = "apollo"
+        elif lidar_detection_model_type == "clustering":
+            modes["lidar_detection_model_type"] = "clustering"
+        else:
+            return KeyError(f"Invalid lidar detection model type: {lidar_detection_model_type}")
+
+    if is_lidar_camera_fusion:
+        modes["irregular_object_detector"] = "on" if config_to_bool("use_irregular_object_detector", context) else "off"
+        modes["image_segmentation_based_filter"] = "on" if config_to_bool("use_image_segmentation_based_filter", context) else "off"
+        modes["low_intensity_cluster_filter"] = "on" if config_to_bool("use_low_intensity_cluster_filter", context) else "off"
+        parameters["segmentation_pointcloud_fusion_camera_ids"] = config_to_str("segmentation_pointcloud_fusion_camera_ids", context)
+        parameters["ml_camera_lidar_merger_priority_mode"] = int(LaunchConfiguration("ml_camera_lidar_merger_priority_mode").perform(context))
+
+
+    ## detector
+
+    ## tracker merger
+    if config_to_bool("use_multi_channel_tracker_merger", context):
+        modes["tracker_merger"] = "multi_channel_tracker_merger"
+    else:
+        if modes["object_modality"] == "camera_lidar_radar_fusion":
+            modes["tracker_merger"] = "camera_lidar_radar_fusion"
+        elif modes["object_modality"] == "camera_lidar_fusion":
+            modes["tracker_merger"] = "camera_lidar_fusion"
+        elif modes["object_modality"] == "lidar_radar_fusion":
+            modes["tracker_merger"] = "lidar_radar_fusion"
+        elif modes["object_modality"] == "lidar":
+            modes["tracker_merger"] = "lidar_only"
+        elif modes["object_modality"] in ["radar", "camera", "dummy"]:
+            modes["tracker_merger"] = "off"
+        else:
+            return KeyError(f"Invalid modality for tracker merger: {modes['object_modality']}")
+
+    ## object prediction
+    if config_to_bool("use_vector_map", context) == True:
+        if config_to_str("prediction_model_type", context) == "map_based":
+            modes["object_prediction"] = "map_based"
+        else:
+            modes["object_prediction"] = "simpl_model"
+    else:
+        modes["object_prediction"] = "off"
 
     # occupancy grid map
     if config_to_str("occupancy_grid_map_method", context) == "pointcloud_based_occupancy_grid_map":
@@ -73,7 +188,8 @@ def determine_mode(context) -> dict:
         modes["occupancy_grid_map"] = "laserscan_based"
     elif config_to_str("occupancy_grid_map_method", context) == "multi_lidar_pointcloud_based_occupancy_grid_map":
         modes["occupancy_grid_map"] = "multi_lidar_pointcloud_based"
-
+    else:
+        modes["occupancy_grid_map"] = "off"
 
     # traffic light recognition
     if config_to_bool("use_traffic_light_recognition", context) == False:
@@ -93,9 +209,9 @@ def determine_mode(context) -> dict:
     else:
         modes["traffic_light_recognition"] = "standard_detection"
 
-    return modes
+    return modes, parameters
 
-def generate_autoware_architecture(deployment_file: str, mode: dict):
+def generate_autoware_architecture(deployment_file: str, mode: dict, parameters: dict):
     """Generate Autoware Architecture deployment."""
     # Load architecture configuration from YAML file
 
@@ -106,6 +222,7 @@ def generate_autoware_architecture(deployment_file: str, mode: dict):
     logger = architecture_config.set_logging()
     
     logger.info("=== Determined mode: %s ===", mode)
+    logger.info("=== Parameters: %s ===", parameters)
 
     workspace_root = os.path.dirname(get_package_prefix('autoware_architect')).rsplit('/', 1)[0]
     architect_pkg_build_dir = os.path.join(workspace_root, 'build', 'autoware_architect')
@@ -159,11 +276,11 @@ def launch_generated_launch_file(launch_arguments_names, launcher_file: str):
 
 def opaque_generate_autoware_architecture(context, deployment_file: str):
     """OpaqueFunction wrapper to generate Autoware Architecture at launch time."""
-    mode = determine_mode(context)
+    mode, parameters = determine_mode(context)
     
     deployment_file = "deployment/universe_perception.deployment.yaml"
-    generate_autoware_architecture(deployment_file, mode)
-    
+    generate_autoware_architecture(deployment_file, mode, parameters)
+
     return []
 
 def generate_launch_description():
@@ -205,15 +322,14 @@ def generate_launch_description():
     add_launch_arg("use_multi_channel_tracker_merger", default_value="true") # merger and tracker
     add_launch_arg("use_irregular_object_detector", default_value="true") # detector on/off, also for merger
     add_launch_arg("use_detection_by_tracker", default_value="true") # detector on/off, also for merger
+    add_launch_arg("use_object_validator", default_value="true") # always true
     add_launch_arg("lidar_detection_model", default_value="centerpoint/centerpoint_tiny") 
-    add_launch_arg("lidar_detection_model_type", default_value="centerpoint") # ml model (mode) node difference, also for merger
-    add_launch_arg("lidar_detection_model_name", default_value="centerpoint_tiny") # ml model, same node
 
     # Object recognition / detection / detector
     add_launch_arg("use_low_height_cropbox", default_value="false") # filter on/off of euclidean clustering
 
     # Object recognition / detection / detector / camera_lidar
-    add_launch_arg("use_low_intensity_cluster_filter", default_value="true") # filter on/off
+    add_launch_arg("use_low_intensity_cluster_filter", default_value="true") # additional detector on/off, also for merger
     add_launch_arg("use_image_segmentation_based_filter", default_value="false") # filter on/off
     add_launch_arg("segmentation_pointcloud_fusion_camera_ids", default_value="[0,2,4]") # sensor set, only if use_image_segmentation_based_filter
 
@@ -233,6 +349,7 @@ def generate_launch_description():
 
     # Object recognition / prediction
     add_launch_arg("use_vector_map", default_value="true") # always true
+    add_launch_arg("prediction_model_type", default_value="map_based") # prediction mode, map_based or SIMPL model
 
     # Obstacle segmentation
     add_launch_arg("use_obstacle_segmentation_single_frame_filter", default_value="false") # ground segmentation filter mode
@@ -240,7 +357,7 @@ def generate_launch_description():
 
     # Occupancy grid map
     add_launch_arg("occupancy_grid_map_method", default_value="pointcloud_based_occupancy_grid_map") # occupancy grid map mode
-    add_launch_arg("occupancy_grid_map_updater", default_value="binary_bayes_filter") # always binary_bayes_filter
+    # add_launch_arg("occupancy_grid_map_updater", default_value="binary_bayes_filter") # always binary_bayes_filter
 
     # traffic light
     add_launch_arg("use_traffic_light_recognition", default_value="true") # module switch. need for simulation
