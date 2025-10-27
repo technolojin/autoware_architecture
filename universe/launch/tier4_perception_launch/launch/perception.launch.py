@@ -13,6 +13,14 @@ from ament_index_python.packages import get_package_share_directory, get_package
 from autoware_architect.deployment import Deployment
 from autoware_architect.config import ArchitectureConfig
 
+
+
+
+
+
+
+
+
 def generate_autoware_architecture(deployment_file: str):
     """Generate Autoware Architecture deployment."""
     # Load architecture configuration from YAML file
@@ -83,68 +91,77 @@ def generate_launch_description():
         launch_arguments.append(DeclareLaunchArgument(name, default_value=default_value, **kwargs))
         launch_argument_names.append(name)
 
-    add_launch_arg("data_path", default_value="$(env HOME)/autoware_data")
-    add_launch_arg("config_path", default_value="install/autoware_configs/share/autoware_configs/config/default")
+    # for perception ecu
+    add_launch_arg("camera_2d_detector/model_path", default_value="$(var data_path)/tensorrt_yolox/yolox-sPlus-opt-pseudoV2-T4-960x960-T4-seg16cls.onnx")
+    add_launch_arg("camera_2d_detector/label_path", default_value="$(var data_path)/tensorrt_yolox/label.txt")
+    add_launch_arg("camera_2d_detector/color_map_path", default_value="$(var data_path)/tensorrt_yolox/semseg_color_map.csv")
+
+    # deployment configuration
+    add_launch_arg("data_path", default_value="$(env HOME)/autoware_data") # config
+    add_launch_arg("config_path", default_value="install/autoware_configs/share/autoware_configs/config/default") # config
+    add_launch_arg("vehicle_param_file", default_value="$(find-pkg-share $(var vehicle_model)_description)/config/vehicle_info.param.yaml") # config
     
+    add_launch_arg("pointcloud_container_name", default_value="pointcloud_container")
+
+
+
     # 1. pipeline junctions: switches to change SW architecture 
+
+    # Simulation / Evaluation
     add_launch_arg("use_empty_dynamic_object_publisher", default_value="false")
     add_launch_arg("use_perception_online_evaluator", default_value="false")
-
-
-    add_launch_arg("use_low_height_cropbox", default_value="false")
-
-
     add_launch_arg("use_perception_analytics_publisher", default_value="true")
-
-    add_launch_arg("segmentation_pointcloud_fusion_camera_ids", default_value="[0,2,4]")
-
-    add_launch_arg("detected_objects_filter_method", default_value="lanelet_filter")
-    add_launch_arg("detected_objects_validation_method", default_value="obstacle_pointcloud")
 
     # Common
     add_launch_arg("mode", default_value="camera_lidar_fusion")
 
-    add_launch_arg("use_vector_map", default_value="true")
-    add_launch_arg("use_pointcloud_map", default_value="true")
-
-
     # Object recognition
-    add_launch_arg("use_multi_channel_tracker_merger", default_value="true")
+    add_launch_arg("use_multi_channel_tracker_merger", default_value="true") # merger and tracker
+    add_launch_arg("use_irregular_object_detector", default_value="true") # detector on/off, also for merger
+    add_launch_arg("use_detection_by_tracker", default_value="true") # detector on/off, also for merger
+    add_launch_arg("lidar_detection_model", default_value="centerpoint/centerpoint_tiny") 
+    add_launch_arg("lidar_detection_model_type", default_value="centerpoint") # ml model (mode) node difference, also for merger
+    add_launch_arg("lidar_detection_model_name", default_value="centerpoint_tiny") # ml model, same node
 
     # Object recognition / detection / detector
-    add_launch_arg("lidar_detection_model", default_value="centerpoint/centerpoint")
-    add_launch_arg("use_irregular_object_detector", default_value="true")
-    add_launch_arg("use_image_segmentation_based_filter", default_value="false")
-    add_launch_arg("use_detection_by_tracker", default_value="true")
-    add_launch_arg("use_low_intensity_cluster_filter", default_value="true")
+    add_launch_arg("use_low_height_cropbox", default_value="false") # filter on/off of euclidean clustering
+
+    # Object recognition / detection / detector / camera_lidar
+    add_launch_arg("use_low_intensity_cluster_filter", default_value="true") # filter on/off
+    add_launch_arg("use_image_segmentation_based_filter", default_value="false") # filter on/off
+    add_launch_arg("segmentation_pointcloud_fusion_camera_ids", default_value="[0,2,4]") # sensor set, only if use_image_segmentation_based_filter
 
     # Object recognition / detection / filter
-    add_launch_arg("use_object_filter", default_value="true")
+    add_launch_arg("use_object_filter", default_value="true") # filter and merger, almost true
+    add_launch_arg("objects_filter_method", default_value="lanelet_filter") # objects filter mode, lanelet_filter or position_filter
+    add_launch_arg("objects_validation_method", default_value="obstacle_pointcloud") # mode, obstacle_pointcloud or occupancy_grid
+    add_launch_arg("use_pointcloud_map", default_value="true") # pointcloud map filter mode
 
     # Object recognition / detection / merger
-    add_launch_arg("ml_camera_lidar_merger_priority_mode", default_value="0")
+    add_launch_arg("ml_camera_lidar_merger_priority_mode", default_value="0") # dynamic configuration, only if !use_multi_channel_tracker_merger
 
     # Object recognition / tracking
-    add_launch_arg("use_radar_tracking_fusion", default_value="true")
-    add_launch_arg("tracker_publish_merged_objects", default_value="false")
+    add_launch_arg("use_radar_tracking_fusion", default_value="true") # merge topology change, only if !use_multi_channel_tracker_merger and radar is used
+    add_launch_arg("tracker_publish_merged_objects", default_value="false") # dynamic configuration, only if use_multi_channel_tracker_merger
 
 
     # Object recognition / prediction
-
+    add_launch_arg("use_vector_map", default_value="true") # always true
 
     # Obstacle segmentation
-    add_launch_arg("use_obstacle_segmentation_single_frame_filter", default_value="false")
-    add_launch_arg("use_obstacle_segmentation_time_series_filter", default_value="true")
+    add_launch_arg("use_obstacle_segmentation_single_frame_filter", default_value="false") # ground segmentation filter mode
+    add_launch_arg("use_obstacle_segmentation_time_series_filter", default_value="true") # ground segmentation filter mode
 
     # Occupancy grid map
-    add_launch_arg("occupancy_grid_map_method", default_value="pointcloud_based")
-    add_launch_arg("occupancy_grid_map_updater", default_value="binary_bayes_filter")
+    add_launch_arg("occupancy_grid_map_method", default_value="pointcloud_based") # occupancy grid map mode
+    add_launch_arg("occupancy_grid_map_updater", default_value="binary_bayes_filter") # always binary_bayes_filter
 
     # traffic light
-    add_launch_arg("use_traffic_light_recognition", default_value="true")
-
-
-
+    add_launch_arg("use_traffic_light_recognition", default_value="true") # module switch. need for simulation
+    add_launch_arg("traffic_light_recognition/fusion_only", default_value="false") # linked with ecu
+    add_launch_arg("traffic_light_recognition/camera_namespaces", default_value="[camera6, camera7]") # sensor set
+    add_launch_arg("traffic_light_recognition/use_high_accuracy_detection", default_value="true") # filter on/off
+    add_launch_arg("traffic_light_recognition/high_accuracy_detection_type", default_value="fine_detection") # filter mode, whole_image_detection or fine_detection
 
 
     # 2. parameter set arguments: get parameter file directories
