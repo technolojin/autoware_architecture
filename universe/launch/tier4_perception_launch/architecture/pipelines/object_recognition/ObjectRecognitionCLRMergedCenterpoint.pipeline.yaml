@@ -1,17 +1,17 @@
-name: ObjectRecognition.pipeline
+name: ObjectRecognitionCLRMergedCenterpoint.pipeline
 
 depends:
-  - ObjectDetection.pipeline
+  - ObjectDetectionCameraLidarRadarMergedCenterpoint.pipeline
   - ObjectTrackingTrackerMergerRadarFusion.pipeline
-  - ObjectPrediction.pipeline
+  - ObjectPredictionMapBased.pipeline
 
 nodes:
   - node: detection
-    element: ObjectDetection.pipeline
+    element: ObjectDetectionCameraLidarRadarMergedCenterpoint.pipeline
   - node: tracking
     element: ObjectTrackingTrackerMergerRadarFusion.pipeline
   - node: prediction
-    element: ObjectPrediction.pipeline
+    element: ObjectPredictionMapBased.pipeline
 
 external_interfaces:
   input:

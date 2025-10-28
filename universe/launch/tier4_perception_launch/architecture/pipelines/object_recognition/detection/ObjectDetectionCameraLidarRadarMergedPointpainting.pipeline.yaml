@@ -1,8 +1,8 @@
-name: ObjectDetection.pipeline
+name: ObjectDetectionCameraLidarRadarMergedPointpainting.pipeline
 
 depends:
   # detectors
-  - LidarCenterpoint.pipeline
+  - PointpaintingFusion.pipeline
   - LidarClustering.pipeline
   - DetectionByTracker.module
   # filter
@@ -12,13 +12,14 @@ depends:
   # merger
   - RoiDetectedObjectFusion.module
   - ObjectAssociationMerger.module
+
 nodes:
   # compare map filter
   - node: compare_map_filter
     element: VoxelBasedCompareMapFilter.module
   # detectors
-  - node: centerpoint
-    element: LidarCenterpoint.pipeline
+  - node: pointpainting
+    element: PointpaintingFusion.pipeline
   - node: clustering
     element: LidarClustering.pipeline
   - node: detection_by_tracker
@@ -71,11 +72,15 @@ connections:
     to: compare_map_filter.input.input
   - from: input.pointcloud_map
     to: compare_map_filter.input.input_map
-  # centerpoint
+  # pointpainting
   - from: input.pointcloud
-    to: centerpoint.input.pointcloud
+    to: pointpainting.input.pointcloud
+  - from: input.rois*
+    to: pointpainting.input.rois*
+  - from: input.camera_info*
+    to: pointpainting.input.camera_info*
   - from: compare_map_filter.output.output
-    to: centerpoint.input.obstacle_pointcloud
+    to: pointpainting.input.obstacle_pointcloud
   # clustering
   - from: input.pointcloud
     to: clustering.input.pointcloud
@@ -87,12 +92,10 @@ connections:
   # detection by tracker
   - from: input.tracked_objects
     to: detection_by_tracker.input.tracked_objects
-  - from: input.*
-    to: detection_by_tracker.input.*
   - from: clustering.output.cluster_objects
     to: detection_by_tracker.input.initial_objects
   # roi detected object fusion
-  - from: centerpoint.output.detected_objects
+  - from: pointpainting.output.detected_objects
     to: roi_detected_object_fusion.input.objects
   - from: input.rois*
     to: roi_detected_object_fusion.input.rois*

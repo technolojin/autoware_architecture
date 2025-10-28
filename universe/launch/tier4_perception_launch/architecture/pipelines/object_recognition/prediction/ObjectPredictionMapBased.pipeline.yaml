@@ -1,4 +1,4 @@
-name: ObjectPrediction.pipeline
+name: ObjectPredictionMapBased.pipeline
 
 depends:
   - MapBasedPrediction.module

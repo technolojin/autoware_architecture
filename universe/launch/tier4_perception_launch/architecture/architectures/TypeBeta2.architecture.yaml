@@ -10,13 +10,19 @@ depends:
 
   # perception
   - ObjectSegmentation.pipeline
-  - ObjectRecognition.pipeline
+  - ObjectRecognitionCLRMergedCenterpoint.pipeline
   - Camera2dDetection.pipeline
   - OccupancyGridMap.pipeline
 
   # parameter sets
   - TypeBeta2PerceptionCamera2dDetection.parameter_set
   - TypeBeta2PerceptionPipeline.parameter_set
+
+modes:
+  - name: CLR_Centerpoint
+    description: Camera Lidar Radar mode with Centerpoint detector mode
+  - name: CLR_Pointpainting
+    description: Camera Lidar Radar mode with Pointpainting detector mode
 
 components:
   - component: lidar
@@ -48,10 +54,17 @@ components:
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionPipeline.parameter_set
   - component: object_recognition
-    element: ObjectRecognition.pipeline
+    element: ObjectRecognitionCLRMergedCenterpoint.pipeline
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionPipeline.parameter_set
+    mode: [CLR_Centerpoint]
+  - component: object_recognition
+    element: ObjectRecognitionCLRMergedPointpainting.pipeline
+    namespace: perception
+    compute_unit: main_ecu
+    parameter_set: TypeBeta2PerceptionPipeline.parameter_set
+    mode: [CLR_Pointpainting]
   - component: occupancy_grid_map
     element: OccupancyGridMap.pipeline
     namespace: perception
