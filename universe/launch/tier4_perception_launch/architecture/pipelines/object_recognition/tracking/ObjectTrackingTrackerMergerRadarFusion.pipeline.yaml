@@ -1,4 +1,4 @@
-name: ObjectTracking.pipeline
+name: ObjectTrackingTrackerMergerRadarFusion.pipeline
 
 depends:
   - MultiObjectTracker.module

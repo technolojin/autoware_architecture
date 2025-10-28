@@ -66,57 +66,57 @@ def determine_mode(context) -> dict:
 
     ## multi modality
     if config_to_bool("use_empty_dynamic_object_publisher", context):
-        modes["object_detection"] = {"mode":"dummy"}
+        modes["object_recognition"] = {"mode":"dummy"}
         modes["perception_online_evaluator"] = "off"
         modes["perception_analytics_publisher"] = "off"
     elif modality == "camera_lidar_radar_fusion":
-        modes["object_detection"] = {"mode":"camera_lidar_radar_fusion"}
+        modes["object_recognition"] = {"mode":"camera_lidar_radar_fusion"}
         is_lidar_used = True
         is_lidar_camera_fusion = True
     elif modality == "camera_lidar_fusion":
-        modes["object_detection"] = {"mode":"camera_lidar_fusion"}
+        modes["object_recognition"] = {"mode":"camera_lidar_fusion"}
         modes["irregular_object_detector"] = "on" if config_to_bool("use_irregular_object_detector", context) else "off"
         is_lidar_used = True
         is_lidar_camera_fusion = True
     elif modality == "lidar_radar_fusion":
-        modes["object_detection"] = {"mode":"lidar_radar_fusion"}
+        modes["object_recognition"] = {"mode":"lidar_radar_fusion"}
         is_lidar_used = True
     ## single modality
     elif modality == "lidar":
-        modes["object_detection"] = {"mode":"lidar"}
+        modes["object_recognition"] = {"mode":"lidar"}
         is_lidar_used = True
     elif modality == "radar":
-        modes["object_detection"] = {"mode":"radar"}
+        modes["object_recognition"] = {"mode":"radar"}
     elif modality == "camera":
-        modes["object_detection"] = {"mode":"camera"}
+        modes["object_recognition"] = {"mode":"camera"}
     else:
         return KeyError(f"Invalid mode: {modality}")
     
     ## detector additional modes
     if is_lidar_used:
-        modes["object_detection"]["detection_by_tracker"] = "on" if config_to_bool("use_detection_by_tracker", context) else "off"
-        modes["object_detection"]["filter__low_height_cropbox"] = "on" if config_to_bool("use_low_height_cropbox", context) else "off"
+        modes["object_recognition"]["detection_by_tracker"] = "on" if config_to_bool("use_detection_by_tracker", context) else "off"
+        modes["object_recognition"]["filter__low_height_cropbox"] = "on" if config_to_bool("use_low_height_cropbox", context) else "off"
 
         # object filter
         if config_to_bool("use_object_filter", context):
             if config_to_str("objects_filter_method", context) == "lanelet_filter":
-                modes["object_detection"]["filter__object_filter"] = "lanelet_filter"
+                modes["object_recognition"]["filter__object_filter"] = "lanelet_filter"
             elif config_to_str("objects_filter_method", context) == "position_filter":
-                modes["object_detection"]["filter__object_filter"] = "position_filter"
+                modes["object_recognition"]["filter__object_filter"] = "position_filter"
             else:
                 return KeyError(f"Invalid objects filter method: {config_to_str('objects_filter_method', context)}")
         else:
-            modes["object_detection"]["filter__object_filter"] = "off"
+            modes["object_recognition"]["filter__object_filter"] = "off"
 
         # object validator
         if config_to_bool("use_object_validator", context):
             if config_to_str("objects_validation_method", context) == "obstacle_pointcloud":
                 if config_to_bool("use_pointcloud_map", context):
-                    modes["object_detection"]["filter__object_validator"] = "map_filtered_obstacle_pointcloud"
+                    modes["object_recognition"]["filter__object_validator"] = "map_filtered_obstacle_pointcloud"
                 else:
-                    modes["object_detection"]["filter__object_validator"] = "obstacle_pointcloud"
+                    modes["object_recognition"]["filter__object_validator"] = "obstacle_pointcloud"
             elif config_to_str("objects_validation_method", context) == "occupancy_grid":
-                modes["object_detection"]["filter__object_validator"] = "occupancy_grid"
+                modes["object_recognition"]["filter__object_validator"] = "occupancy_grid"
             else:
                 return KeyError(f"Invalid objects validation method: {config_to_str('objects_validation_method', context)}")
 
@@ -125,30 +125,30 @@ def determine_mode(context) -> dict:
         lidar_detection_model_type = lidar_detection_model_code.split('/')[0]
         lidar_detection_model_name = lidar_detection_model_code.split('/')[1] if '/' in lidar_detection_model_code else ""
         if lidar_detection_model_type == "centerpoint":
-            modes["object_detection"]["lidar_detection_model"] = {"type": "centerpoint"}
+            modes["object_recognition"]["lidar_detection_model"] = {"type": "centerpoint"}
             if lidar_detection_model_name in ["centerpoint", "centerpoint_tiny", "centerpoint_sigma"]:
-                modes["object_detection"]["lidar_detection_model"]["name"] = lidar_detection_model_name
+                modes["object_recognition"]["lidar_detection_model"]["name"] = lidar_detection_model_name
             elif lidar_detection_model_name == "":
-                modes["object_detection"]["lidar_detection_model"]["name"] = "centerpoint_tiny"
+                modes["object_recognition"]["lidar_detection_model"]["name"] = "centerpoint_tiny"
             else:
                 return KeyError(f"Invalid centerpoint model name: {lidar_detection_model_name}")
         elif lidar_detection_model_type == "bevfusion":
-            modes["object_detection"]["lidar_detection_model"] = {"type": "bevfusion", "name": "bevfusion_lidar"}
+            modes["object_recognition"]["lidar_detection_model"] = {"type": "bevfusion", "name": "bevfusion_lidar"}
         elif lidar_detection_model_type == "pointpainting":
-            modes["object_detection"]["lidar_detection_model"] = {"type": "pointpainting", "name": "pointpainting"}
+            modes["object_recognition"]["lidar_detection_model"] = {"type": "pointpainting", "name": "pointpainting"}
         elif lidar_detection_model_type == "transfusion":
-            modes["object_detection"]["lidar_detection_model"] = {"type": "transfusion", "name": "transfusion"}
+            modes["object_recognition"]["lidar_detection_model"] = {"type": "transfusion", "name": "transfusion"}
         elif lidar_detection_model_type == "apollo":
-            modes["object_detection"]["lidar_detection_model"] = {"type": "apollo"}
+            modes["object_recognition"]["lidar_detection_model"] = {"type": "apollo"}
         elif lidar_detection_model_type == "clustering":
-            modes["object_detection"]["lidar_detection_model"] = {"type": "clustering"}
+            modes["object_recognition"]["lidar_detection_model"] = {"type": "clustering"}
         else:
             return KeyError(f"Invalid lidar detection model type: {lidar_detection_model_type}")
 
     if is_lidar_camera_fusion:
-        modes["object_detection"]["irregular_object_detector"] = "on" if config_to_bool("use_irregular_object_detector", context) else "off"
-        modes["object_detection"]["image_segmentation_based_filter"] = "on" if config_to_bool("use_image_segmentation_based_filter", context) else "off"
-        modes["object_detection"]["low_intensity_cluster_filter"] = "on" if config_to_bool("use_low_intensity_cluster_filter", context) else "off"
+        modes["object_recognition"]["irregular_object_detector"] = "on" if config_to_bool("use_irregular_object_detector", context) else "off"
+        modes["object_recognition"]["image_segmentation_based_filter"] = "on" if config_to_bool("use_image_segmentation_based_filter", context) else "off"
+        modes["object_recognition"]["low_intensity_cluster_filter"] = "on" if config_to_bool("use_low_intensity_cluster_filter", context) else "off"
         parameters["segmentation_pointcloud_fusion_camera_ids"] = config_to_str("segmentation_pointcloud_fusion_camera_ids", context)
         parameters["ml_camera_lidar_merger_priority_mode"] = int(LaunchConfiguration("ml_camera_lidar_merger_priority_mode").perform(context))
 
@@ -162,49 +162,49 @@ def determine_mode(context) -> dict:
         modes["tracker"] = "single_channel_tracker"
         if modality == "camera_lidar_radar_fusion":
             if config_to_bool("use_radar_tracking_fusion", context):
-                modes["object_detection"]["merger"] = {"type": "camera_lidar_merger"}
+                modes["object_recognition"]["merger"] = {"type": "camera_lidar_merger"}
                 modes["tracker"] = "tracker_merger_radar_fusion"
             else:
-                modes["object_detection"]["merger"] = {"type": "camera_lidar_radar_merger"}
+                modes["object_recognition"]["merger"] = {"type": "camera_lidar_radar_merger"}
         elif modality == "camera_lidar_fusion":
-            modes["object_detection"]["merger"] = {"type": "camera_lidar_merger"}
+            modes["object_recognition"]["merger"] = {"type": "camera_lidar_merger"}
         elif modality == "lidar_radar_fusion":
-            modes["object_detection"]["merger"] = {"type": "lidar_merger"}
-            modes["object_detection"]["merger"]["radar_object_fusion"] = "on"
+            modes["object_recognition"]["merger"] = {"type": "lidar_merger"}
+            modes["object_recognition"]["merger"]["radar_object_fusion"] = "on"
         elif modality == "lidar":
-            modes["object_detection"]["merger"] = {"type": "lidar_merger"}
+            modes["object_recognition"]["merger"] = {"type": "lidar_merger"}
         else:
             pass
 
-    if modes["object_detection"]["merger"]:
-        if modes["object_detection"]["merger"]["type"] in ["camera_lidar_radar_merger", "camera_lidar_merger", "lidar_merger"]:
+    if modes["object_recognition"]["merger"]:
+        if modes["object_recognition"]["merger"]["type"] in ["camera_lidar_radar_merger", "camera_lidar_merger", "lidar_merger"]:
             if config_to_bool("use_detection_by_tracker", context):
                 if config_to_bool("use_object_filter", context):
                     if config_to_str("objects_filter_method", context) == "lanelet_filter":
-                        modes["object_detection"]["merger"]["object_association_mergers"] = "detection_by_tracker_and_lanelet_filter"
+                        modes["object_recognition"]["merger"]["object_association_mergers"] = "detection_by_tracker_and_lanelet_filter"
                     elif config_to_str("objects_filter_method", context) == "position_filter":
-                        modes["object_detection"]["merger"]["object_association_mergers"] = "detection_by_tracker_and_position_filter"
+                        modes["object_recognition"]["merger"]["object_association_mergers"] = "detection_by_tracker_and_position_filter"
                     else:
                         return KeyError(f"Invalid objects filter method: {config_to_str('objects_filter_method', context)}")
                 else:
-                    modes["object_detection"]["merger"]["object_association_mergers"] = "detection_by_tracker"
+                    modes["object_recognition"]["merger"]["object_association_mergers"] = "detection_by_tracker"
             else:
                 if config_to_bool("use_object_filter", context):
                     if config_to_str("objects_filter_method", context) == "lanelet_filter":
-                        modes["object_detection"]["merger"]["object_association_mergers"] = "lanelet_filter"
+                        modes["object_recognition"]["merger"]["object_association_mergers"] = "lanelet_filter"
                     elif config_to_str("objects_filter_method", context) == "position_filter":
-                        modes["object_detection"]["merger"]["object_association_mergers"] = "position_filter"
+                        modes["object_recognition"]["merger"]["object_association_mergers"] = "position_filter"
                     else:
                         return KeyError(f"Invalid objects filter method: {config_to_str('objects_filter_method', context)}")
                 else:
-                    modes["object_detection"]["merger"]["object_association_mergers"] = "single_merger"
+                    modes["object_recognition"]["merger"]["object_association_mergers"] = "single_merger"
 
-        if modes["object_detection"]["merger"]["type"] in ["camera_lidar_radar_merger", "camera_lidar_merger"]:
-            modes["object_detection"]["merger"]["roi_detected_object_merger"] = "on"
-            modes["object_detection"]["merger"]["irregular_detector_merger"] = "on" if config_to_bool("use_irregular_object_detector", context) else "off"
+        if modes["object_recognition"]["merger"]["type"] in ["camera_lidar_radar_merger", "camera_lidar_merger"]:
+            modes["object_recognition"]["merger"]["filter__roi_detected_object_merger"] = "on"
+            modes["object_recognition"]["merger"]["irregular_detector_merger"] = "on" if config_to_bool("use_irregular_object_detector", context) else "off"
             
-        if modes["object_detection"]["merger"]["type"] == "camera_lidar_radar_merger":
-            modes["object_detection"]["merger"]["radar_object_association_merger"] = "on" if not config_to_bool("use_radar_tracking_fusion", context) else "off"
+        if modes["object_recognition"]["merger"]["type"] == "camera_lidar_radar_merger":
+            modes["object_recognition"]["merger"]["radar_object_association_merger"] = "on" if not config_to_bool("use_radar_tracking_fusion", context) else "off"
             
 
     ## object prediction

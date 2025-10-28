@@ -2,14 +2,14 @@ name: ObjectRecognition.pipeline
 
 depends:
   - ObjectDetection.pipeline
-  - ObjectTracking.pipeline
+  - ObjectTrackingTrackerMergerRadarFusion.pipeline
   - ObjectPrediction.pipeline
 
 nodes:
   - node: detection
     element: ObjectDetection.pipeline
   - node: tracking
-    element: ObjectTracking.pipeline
+    element: ObjectTrackingTrackerMergerRadarFusion.pipeline
   - node: prediction
     element: ObjectPrediction.pipeline
 
