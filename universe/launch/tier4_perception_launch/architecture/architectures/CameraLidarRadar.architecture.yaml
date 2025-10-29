@@ -1,4 +1,4 @@
-name: TypeBeta2.architecture
+name: CameraLidarRadar.architecture
 
 depends:
   # dummy
@@ -23,6 +23,8 @@ modes:
     description: Camera Lidar Radar mode with Centerpoint detector mode
   - name: CLR_Pointpainting
     description: Camera Lidar Radar mode with Pointpainting detector mode
+  # - name: Lidar_Centerpoint
+  #   description: Lidar only mode with Centerpoint detector mode
 
 components:
   - component: lidar

@@ -3,7 +3,6 @@ name: CameraLidarFusion.pipeline
 depends:
   - RoiClusterFusion.module
   - LowIntensityClusterFilter.module
-  - ClusterMerger.module
   - ShapeEstimation.module
   - DetectedObjectFeatureRemover.module
 
@@ -12,8 +11,6 @@ nodes:
     element: RoiClusterFusion.module
   - node: low_intensity_cluster_filter
     element: LowIntensityClusterFilter.module
-  - node: cluster_merger
-    element: ClusterMerger.module
   - node: shape_estimation
     element: ShapeEstimation.module
   - node: detected_object_feature_remover
@@ -38,7 +35,6 @@ external_interfaces:
     - name: camera_info6
     - name: camera_info7
     - name: euclidean_clusters
-    - name: roi_clusters
   output:
     - name: objects
   parameter: []
@@ -81,12 +77,8 @@ connections:
 
   - from: roi_cluster_fusion.output.clusters
     to: low_intensity_cluster_filter.input.objects
-  - from: low_intensity_cluster_filter.output.objects
-    to: cluster_merger.input.cluster0
-  - from: input.roi_clusters
-    to: cluster_merger.input.cluster1
 
-  - from: cluster_merger.output.clusters
+  - from: low_intensity_cluster_filter.output.objects
     to: shape_estimation.input.objects
   - from: shape_estimation.output.objects
     to: detected_object_feature_remover.input.input

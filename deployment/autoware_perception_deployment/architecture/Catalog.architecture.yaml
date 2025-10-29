@@ -23,7 +23,7 @@ depends:
 
   # pipeline
   - CameraLidarFusion.pipeline
-  - LidarClustering.pipeline
+  - LidarClusteringCameraFusion.pipeline
   - LidarCenterpoint.pipeline
   - ObjectDetectionCLRMergedCenterpoint.pipeline
   - ObjectTrackingTrackerMergerRadarFusion.pipeline

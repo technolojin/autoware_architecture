@@ -1,14 +1,14 @@
-name: ObjectDetectionCLRMergedCenterpoint.pipeline
+name: ObjectDetectionLidarCenterpoint.pipeline
 
 depends:
   # detectors
   - LidarCenterpoint.pipeline
-  - LidarClusteringCameraFusion.pipeline
+  - LidarClustering.pipeline
   - DetectionByTracker.module
   # filter
   - VoxelBasedCompareMapFilter.module
   - ObjectLaneletFilter.module
-  - DetectedObjectSorter.module
+
   # merger
   - RoiDetectedObjectFusion.module
   - ObjectAssociationMerger.module
@@ -21,12 +21,10 @@ nodes:
   - node: centerpoint
     element: LidarCenterpoint.pipeline
   - node: clustering
-    element: LidarClusteringCameraFusion.pipeline
+    element: LidarClustering.pipeline
   - node: detection_by_tracker
     element: DetectionByTracker.module
   # merger
-  - node: roi_detected_object_fusion
-    element: RoiDetectedObjectFusion.module
   - node: object_association_merger_alpha
     element: ObjectAssociationMerger.module
   - node: object_association_merger_beta
@@ -34,8 +32,6 @@ nodes:
   # filter
   - node: object_lanelet_filter
     element: ObjectLaneletFilter.module
-  - node: radar_object_filter
-    element: DetectedObjectSorter.module
 
 external_interfaces:
   input:
@@ -43,27 +39,9 @@ external_interfaces:
     - name: pointcloud_map
     - name: vector_map
     - name: obstacle_pointcloud
-    - name: rois0
-    - name: rois1
-    - name: rois2
-    - name: rois3
-    - name: rois4
-    - name: rois5
-    - name: rois6
-    - name: rois7
-    - name: camera_info0
-    - name: camera_info1
-    - name: camera_info2
-    - name: camera_info3
-    - name: camera_info4
-    - name: camera_info5
-    - name: camera_info6
-    - name: camera_info7
-    - name: radar_objects
     - name: tracked_objects
   output:
     - name: detected_objects
-    - name: radar_filtered_objects
   parameter: []
 
 connections:
@@ -82,24 +60,16 @@ connections:
     to: clustering.input.pointcloud
   - from: input.pointcloud_map
     to: clustering.input.pointcloud_map
-  - from: input.*
-    to: clustering.input.*
 
   # detection by tracker
   - from: input.tracked_objects
     to: detection_by_tracker.input.tracked_objects
   - from: clustering.output.cluster_objects
     to: detection_by_tracker.input.initial_objects
-  # roi detected object fusion
-  - from: centerpoint.output.detected_objects
-    to: roi_detected_object_fusion.input.objects
-  - from: input.rois*
-    to: roi_detected_object_fusion.input.rois*
-  - from: input.camera_info*
-    to: roi_detected_object_fusion.input.camera_info*
+
 
   # merger
-  - from: roi_detected_object_fusion.output.fused_objects
+  - from: centerpoint.output.detected_objects
     to: object_association_merger_alpha.input.object0
   - from: clustering.output.detected_objects
     to: object_association_merger_alpha.input.object1
@@ -114,8 +84,5 @@ connections:
     to: object_lanelet_filter.input.vector_map
   - from: object_lanelet_filter.output.object
     to: output.detected_objects
-  - from: input.radar_objects
-    to: radar_object_filter.input.objects
-  - from: radar_object_filter.output.objects
-    to: output.radar_filtered_objects
+
 

@@ -313,7 +313,7 @@ def opaque_generate_autoware_architecture(context, deployment_file: str):
     """OpaqueFunction wrapper to generate Autoware Architecture at launch time."""
     mode, parameters = determine_mode(context)
     
-    deployment_file = "deployment/universe_perception.deployment.yaml"
+    deployment_file = "deployment/universe_perception_clr.deployment.yaml"
     generate_autoware_architecture(deployment_file, mode, parameters)
 
     return []
@@ -404,11 +404,11 @@ def generate_launch_description():
 
 
     # determine mode
-    deployment_file = "deployment/universe_perception.deployment.yaml"
+    deployment_file = "deployment/universe_perception_clr.deployment.yaml"
 
     # Setup launcher file path
     launcher_pkg_install_dir = get_package_share_directory('tier4_perception_launch')
-    launcher_path = "exports/universe_perception.deployment/launcher/default/main_ecu/perception/perception.launch.xml"
+    launcher_path = "exports/universe_perception_clr.deployment/launcher/default/main_ecu/perception/perception.launch.xml"
     launcher_file = os.path.join(launcher_pkg_install_dir, launcher_path)
 
     # Create the pointcloud container

@@ -3,7 +3,7 @@ name: ObjectDetectionCLRMergedPointpainting.pipeline
 depends:
   # detectors
   - PointpaintingFusion.pipeline
-  - LidarClustering.pipeline
+  - LidarClusteringCameraFusion.pipeline
   - DetectionByTracker.module
   # filter
   - VoxelBasedCompareMapFilter.module
@@ -21,7 +21,7 @@ nodes:
   - node: pointpainting
     element: PointpaintingFusion.pipeline
   - node: clustering
-    element: LidarClustering.pipeline
+    element: LidarClusteringCameraFusion.pipeline
   - node: detection_by_tracker
     element: DetectionByTracker.module
   # merger
