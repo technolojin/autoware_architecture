@@ -1,4 +1,4 @@
-name: ObjectDetectionCameraLidarRadarMergedCenterpoint.pipeline
+name: ObjectDetectionCLRMergedCenterpoint.pipeline
 
 depends:
   # detectors

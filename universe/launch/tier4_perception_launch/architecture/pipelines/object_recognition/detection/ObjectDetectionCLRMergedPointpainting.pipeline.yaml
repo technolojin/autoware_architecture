@@ -1,4 +1,4 @@
-name: ObjectDetectionCameraLidarRadarMergedPointpainting.pipeline
+name: ObjectDetectionCLRMergedPointpainting.pipeline
 
 depends:
   # detectors

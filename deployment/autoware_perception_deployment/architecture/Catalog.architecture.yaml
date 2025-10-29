@@ -25,7 +25,7 @@ depends:
   - CameraLidarFusion.pipeline
   - LidarClustering.pipeline
   - LidarCenterpoint.pipeline
-  - ObjectDetectionCameraLidarRadarMergedCenterpoint.pipeline
+  - ObjectDetectionCLRMergedCenterpoint.pipeline
   - ObjectTrackingTrackerMergerRadarFusion.pipeline
   - ObjectPredictionMapBased.pipeline
   - Camera2dDetection.pipeline

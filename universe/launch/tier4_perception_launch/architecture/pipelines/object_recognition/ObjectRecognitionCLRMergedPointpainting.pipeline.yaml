@@ -1,13 +1,13 @@
 name: ObjectRecognitionCLRMergedPointpainting.pipeline
 
 depends:
-  - ObjectDetectionCameraLidarRadarMergedPointpainting.pipeline
+  - ObjectDetectionCLRMergedPointpainting.pipeline
   - ObjectTrackingTrackerMergerRadarFusion.pipeline
   - ObjectPredictionMapBased.pipeline
 
 nodes:
   - node: detection
-    element: ObjectDetectionCameraLidarRadarMergedPointpainting.pipeline
+    element: ObjectDetectionCLRMergedPointpainting.pipeline
   - node: tracking
     element: ObjectTrackingTrackerMergerRadarFusion.pipeline
   - node: prediction
