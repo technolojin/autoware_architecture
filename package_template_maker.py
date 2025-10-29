@@ -297,7 +297,8 @@ def main():
         "autoware_object_merger",
         "autoware_radar_object_tracker",
         "autoware_probabilistic_occupancy_grid_map",
-        "autoware_lidar_apollo_instance_segmentation"
+        "autoware_lidar_apollo_instance_segmentation",
+        "autoware_lidar_transfusion"
     ]
     
     # Optional: Override from command line arguments

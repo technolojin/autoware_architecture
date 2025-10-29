@@ -10,6 +10,7 @@ depends:
   # perception
   - ObjectSegmentation.pipeline
   - ObjectRecognitionLidarCenterpoint.pipeline
+  - ObjectRecognitionLidarTransfusion.pipeline
   - OccupancyGridMapPointcloudBased.pipeline
 
   # parameter sets
@@ -19,6 +20,8 @@ depends:
 modes:
   - name: Lidar_Centerpoint
     description: Lidar only mode with Centerpoint detector mode
+  - name: Lidar_Transfusion
+    description: Lidar only mode with Transfusion detector mode
 
 components:
   - component: lidar
@@ -46,6 +49,12 @@ components:
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionPipeline.parameter_set
     mode: [Lidar_Centerpoint]
+  - component: object_recognition
+    element: ObjectRecognitionLidarTransfusion.pipeline
+    namespace: perception
+    compute_unit: main_ecu
+    parameter_set: TypeBeta2PerceptionPipeline.parameter_set
+    mode: [Lidar_Transfusion]
   - component: occupancy_grid_map
     element: OccupancyGridMapPointcloudBased.pipeline
     namespace: perception
