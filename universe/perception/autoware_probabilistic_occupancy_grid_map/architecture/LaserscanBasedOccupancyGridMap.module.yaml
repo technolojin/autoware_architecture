@@ -1,10 +1,10 @@
 # module information
-name: PointcloudBasedOccupancyGridMap.module
+name: LaserscanBasedOccupancyGridMap.module
 
 launch:
   package: autoware_probabilistic_occupancy_grid_map
-  plugin: autoware::occupancy_grid_map::PointcloudBasedOccupancyGridMapNode
-  executable: pointcloud_based_occupancy_grid_map_node
+  plugin: autoware::occupancy_grid_map::LaserscanBasedOccupancyGridMapNode
+  executable: laserscan_based_occupancy_grid_map_node
   node_output: screen
   use_container: true
   container_name: pointcloud_container
@@ -29,8 +29,8 @@ outputs:
 # configurations
 parameter_files:
   - name: param_file
-    default: config/pointcloud_based_occupancy_grid_map.param.yaml
-    schema: schema/pointcloud_based_occupancy_grid_map.schema.json
+    default: config/laserscan_based_occupancy_grid_map.param.yaml
+    schema: schema/laserscan_based_occupancy_grid_map.schema.json
   - name: updater_param_file
     default: config/binary_bayes_filter_updater.param.yaml
     schema: schema/binary_bayes_filter_updater.schema.json

@@ -1,8 +1,8 @@
-name: OccupancyGridMap.pipeline
+name: OccupancyGridMapLaserscanBasedDownsampled.pipeline
 
 depends:
   - PickupBasedVoxelGridDownsampleFilter.module
-  - PointcloudBasedOccupancyGridMap.module
+  - LaserscanBasedOccupancyGridMap.module
 
 nodes:
   - node: raw_pc_downsample_filter
@@ -10,7 +10,7 @@ nodes:
   - node: obstacle_pc_downsample_filter
     element: PickupBasedVoxelGridDownsampleFilter.module
   - node: occupancy_grid_map_node
-    element: PointcloudBasedOccupancyGridMap.module
+    element: LaserscanBasedOccupancyGridMap.module
 
 external_interfaces:
   input:
