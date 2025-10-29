@@ -1,4 +1,4 @@
-name: CameraLidarRadar.architecture
+name: CameraLidar.architecture
 
 depends:
   # dummy
@@ -10,7 +10,9 @@ depends:
 
   # perception
   - ObjectSegmentation.pipeline
-  - ObjectRecognitionCLRMergedCenterpoint.pipeline
+  - ObjectRecognitionCLMergedCenterpoint.pipeline
+  - ObjectRecognitionCLMergedPointpainting.pipeline
+  - ObjectRecognitionCLMergedApollo.pipeline
   - Camera2dDetection.pipeline
   - OccupancyGridMapPointcloudBased.pipeline
 
@@ -19,10 +21,12 @@ depends:
   - TypeBeta2PerceptionPipeline.parameter_set
 
 modes:
-  - name: CLR_Centerpoint
+  - name: Centerpoint
     description: Camera Lidar Radar mode with Centerpoint detector mode
-  - name: CLR_Pointpainting
+  - name: Pointpainting
     description: Camera Lidar Radar mode with Pointpainting detector mode
+  - name: Apollo
+    description: Camera Lidar Radar mode with Apollo detector mode
 
 components:
   - component: lidar
@@ -54,17 +58,23 @@ components:
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionPipeline.parameter_set
   - component: object_recognition
-    element: ObjectRecognitionCLRMergedCenterpoint.pipeline
+    element: ObjectRecognitionCLMergedCenterpoint.pipeline
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionPipeline.parameter_set
-    mode: [CLR_Centerpoint]
+    mode: [Centerpoint]
   - component: object_recognition
-    element: ObjectRecognitionCLRMergedPointpainting.pipeline
+    element: ObjectRecognitionCLMergedPointpainting.pipeline
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionPipeline.parameter_set
-    mode: [CLR_Pointpainting]
+    mode: [Pointpainting]
+  - component: object_recognition
+    element: ObjectRecognitionCLMergedApollo.pipeline
+    namespace: perception
+    compute_unit: main_ecu
+    parameter_set: TypeBeta2PerceptionPipeline.parameter_set
+    mode: [Apollo]
   - component: occupancy_grid_map
     element: OccupancyGridMapPointcloudBased.pipeline
     namespace: perception
