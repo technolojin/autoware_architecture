@@ -1,0 +1,20 @@
+name: RadarDummy.pipeline
+
+depends:
+  - RadarDummyDriver.module
+
+nodes:
+  - node: radar
+    element: RadarDummyDriver.module
+
+external_interfaces:
+  input: []
+  output:
+    - name: detected_objects
+    - name: tracked_objects
+
+connections:
+  - from: radar.output.detected_objects
+    to: output.detected_objects
+  - from: radar.output.tracked_objects
+    to: output.tracked_objects

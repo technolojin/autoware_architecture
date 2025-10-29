@@ -2,8 +2,9 @@ name: CameraLidarRadar.architecture
 
 depends:
   # dummy
-  - LidarDummy.pipeline
   - CameraDummy.pipeline
+  - LidarDummy.pipeline
+  - RadarDummy.pipeline
   - MapDummy.module
   - LocalizationDummy.module
   - PlanningDummy.module
@@ -31,6 +32,10 @@ components:
     compute_unit: perception_ecu_1
   - component: camera
     element: CameraDummy.pipeline
+    namespace: sensing
+    compute_unit: perception_ecu_1
+  - component: radar
+    element: RadarDummy.pipeline
     namespace: sensing
     compute_unit: perception_ecu_1
   - component: map_loader
@@ -91,6 +96,9 @@ connections:
     to: object_recognition.input.rois*
   - from: camera.output.camera*/camera_info
     to: object_recognition.input.camera_info*
+
+  - from: radar.output.detected_objects
+    to: object_recognition.input.radar_objects
 
   - from: lidar.output.concatenated/pointcloud
     to: occupancy_grid_map.input.concatenated_pointcloud
