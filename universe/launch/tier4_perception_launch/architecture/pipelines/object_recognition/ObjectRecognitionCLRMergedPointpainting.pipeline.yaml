@@ -61,6 +61,8 @@ connections:
     to: detection.input.camera_info*
   - from: input.radar_objects
     to: detection.input.radar_objects
+  - from: input.pointcloud_map
+    to: detection.input.pointcloud_map
 
   # tracking
   - from: input.vector_map

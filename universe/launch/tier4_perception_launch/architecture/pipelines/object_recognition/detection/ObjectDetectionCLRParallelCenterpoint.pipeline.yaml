@@ -1,0 +1,109 @@
+name: ObjectDetectionCLRParallelCenterpoint.pipeline
+
+depends:
+  # detectors
+  - LidarCenterpoint.pipeline
+  - LidarClusteringCameraFusion.pipeline
+  - DetectionByTracker.module
+  # filter
+  - VoxelBasedCompareMapFilter.module
+  - ObjectLaneletFilter.module
+  - RadarFilter.pipeline
+
+nodes:
+  # compare map filter
+  - node: compare_map_filter
+    element: VoxelBasedCompareMapFilter.module
+  # detectors
+  - node: centerpoint
+    element: LidarCenterpoint.pipeline
+  - node: clustering
+    element: LidarClusteringCameraFusion.pipeline
+  - node: detection_by_tracker
+    element: DetectionByTracker.module
+
+  # filter
+  - node: object_lanelet_filter
+    element: ObjectLaneletFilter.module
+  - node: radar
+    element: RadarFilter.pipeline
+
+external_interfaces:
+  input:
+    - name: pointcloud
+    - name: pointcloud_map
+    - name: vector_map
+    - name: obstacle_pointcloud
+    - name: rois0
+    - name: rois1
+    - name: rois2
+    - name: rois3
+    - name: rois4
+    - name: rois5
+    - name: rois6
+    - name: rois7
+    - name: camera_info0
+    - name: camera_info1
+    - name: camera_info2
+    - name: camera_info3
+    - name: camera_info4
+    - name: camera_info5
+    - name: camera_info6
+    - name: camera_info7
+    - name: radar_objects
+    - name: tracked_objects
+  output:
+    - name: centerpoint/objects
+    - name: clustering/camera_lidar_fusion/objects
+    # - name: irregular_object/objects
+    - name: detection_by_tracker/objects
+    - name: radar/far_objects
+  parameter: []
+
+connections:
+  # compare map filter
+  - from: input.obstacle_pointcloud
+    to: compare_map_filter.input.input
+  - from: input.pointcloud_map
+    to: compare_map_filter.input.input_map
+
+  # centerpoint
+  - from: input.pointcloud
+    to: centerpoint.input.pointcloud
+  - from: compare_map_filter.output.output
+    to: centerpoint.input.obstacle_pointcloud
+  - from: centerpoint.output.detected_objects
+    to: output.centerpoint/objects
+  
+  # clustering
+  - from: input.pointcloud
+    to: clustering.input.pointcloud
+  - from: input.pointcloud_map
+    to: clustering.input.pointcloud_map
+  - from: input.*
+    to: clustering.input.*
+
+  # camera-lidar fusion output filtering
+  - from: input.vector_map
+    to: object_lanelet_filter.input.vector_map
+  - from: clustering.output.detected_objects
+    to: object_lanelet_filter.input.object
+  - from: object_lanelet_filter.output.object
+    to: output.clustering/camera_lidar_fusion/objects
+
+  # detection by tracker
+  - from: input.tracked_objects
+    to: detection_by_tracker.input.tracked_objects
+  - from: clustering.output.cluster_objects
+    to: detection_by_tracker.input.initial_objects
+  - from: detection_by_tracker.output.objects
+    to: output.detection_by_tracker/objects
+
+  # radar filter
+  - from: input.vector_map
+    to: radar.input.vector_map
+  - from: input.radar_objects
+    to: radar.input.radar_objects
+  - from: radar.output.radar_filtered_objects
+    to: output.radar/far_objects
+

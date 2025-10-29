@@ -12,7 +12,7 @@ external_interfaces:
     - name: lidar_ml_objects
     - name: lidar_ml_short_range_objects
     - name: camera_lidar_rule_detector_objects
-    - name: lidar_irregular_objects
+    - name: camera_lidar_irregular_objects
     - name: tracker_based_detector_objects
     - name: radar_objects
 
@@ -27,7 +27,7 @@ connections:
     to: multi_object_tracker.input.detection02/objects
   - from: input.camera_lidar_rule_detector_objects
     to: multi_object_tracker.input.detection03/objects
-  - from: input.lidar_irregular_objects
+  - from: input.camera_lidar_irregular_objects
     to: multi_object_tracker.input.detection04/objects
   - from: input.tracker_based_detector_objects
     to: multi_object_tracker.input.detection05/objects

@@ -1,15 +1,15 @@
-name: ObjectRecognitionCLMergedApollo.pipeline
+name: ObjectRecognitionCLRParallelCenterpoint.pipeline
 
 depends:
-  - ObjectDetectionCLMergedApollo.pipeline
-  - ObjectTrackingTrackerMergerRadarFusion.pipeline
+  - ObjectDetectionCLRParallelCenterpoint.pipeline
+  - ObjectTrackingMultiChannel.pipeline
   - ObjectPredictionMapBased.pipeline
 
 nodes:
   - node: detection
-    element: ObjectDetectionCLMergedApollo.pipeline
+    element: ObjectDetectionCLRParallelCenterpoint.pipeline
   - node: tracking
-    element: ObjectTrackingTrackerMergerRadarFusion.pipeline
+    element: ObjectTrackingMultiChannel.pipeline
   - node: prediction
     element: ObjectPredictionMapBased.pipeline
 
@@ -39,6 +39,8 @@ external_interfaces:
     - name: camera_info5
     - name: camera_info6
     - name: camera_info7
+    # radar
+    - name: radar_objects
   output:
     - name: objects
   parameter: []
@@ -57,17 +59,23 @@ connections:
     to: detection.input.rois*
   - from: input.camera_info*
     to: detection.input.camera_info*
+  - from: input.radar_objects
+    to: detection.input.radar_objects
   - from: input.pointcloud_map
     to: detection.input.pointcloud_map
 
   # tracking
-  - from: input.vector_map
-    to: tracking.input.vector_map
-  - from: detection.output.*_objects
-    to: tracking.input.*_objects
-  - from: tracking.output.objects
-    to: detection.input.tracked_objects
-
+  - from: detection.output.centerpoint/objects
+    to: tracking.input.lidar_ml_objects
+  - from: detection.output.clustering/camera_lidar_fusion/objects
+    to: tracking.input.camera_lidar_rule_detector_objects
+  # - from: detection.output.irregular_object/objects
+  #   to: tracking.input.camera_lidar_irregular_objects
+  - from: detection.output.detection_by_tracker/objects
+    to: tracking.input.tracker_based_detector_objects
+  - from: detection.output.radar/far_objects
+    to: tracking.input.radar_objects
+  
   # prediction
   - from: tracking.output.objects
     to: prediction.input.tracked_objects
