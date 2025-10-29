@@ -4,6 +4,7 @@ depends:
   # detectors
   - LidarCenterpoint.pipeline
   - LidarClusteringCameraFusion.pipeline
+  - CameraLidarIrregularObject.pipeline
   - DetectionByTracker.module
   # filter
   - VoxelBasedCompareMapFilter.module
@@ -19,6 +20,8 @@ nodes:
     element: LidarCenterpoint.pipeline
   - node: clustering
     element: LidarClusteringCameraFusion.pipeline
+  - node: irregular_object
+    element: CameraLidarIrregularObject.pipeline
   - node: detection_by_tracker
     element: DetectionByTracker.module
 
@@ -55,7 +58,7 @@ external_interfaces:
   output:
     - name: centerpoint/objects
     - name: clustering/camera_lidar_fusion/objects
-    # - name: irregular_object/objects
+    - name: irregular_object/objects
     - name: detection_by_tracker/objects
     - name: radar/far_objects
   parameter: []
@@ -90,6 +93,22 @@ connections:
     to: object_lanelet_filter.input.object
   - from: object_lanelet_filter.output.object
     to: output.clustering/camera_lidar_fusion/objects
+
+  # irregular object
+  - from: input.rois0
+    to: irregular_object.input.rois0
+  - from: input.rois1
+    to: irregular_object.input.rois1
+  - from: input.rois5
+    to: irregular_object.input.rois2
+  - from: input.camera_info0
+    to: irregular_object.input.camera_info0
+  - from: input.camera_info1
+    to: irregular_object.input.camera_info1
+  - from: input.camera_info5
+    to: irregular_object.input.camera_info2
+  - from: irregular_object.output.objects
+    to: output.irregular_object/objects
 
   # detection by tracker
   - from: input.tracked_objects

@@ -4,12 +4,14 @@ depends:
   # detectors
   - LidarCenterpoint.pipeline
   - LidarClusteringCameraFusion.pipeline
+  - CameraLidarIrregularObject.pipeline
   - DetectionByTracker.module
   # filter
   - VoxelBasedCompareMapFilter.module
   - ObjectLaneletFilter.module
   - DetectedObjectSorter.module
   # merger
+  - SimpleObjectMerger.module
   - RoiDetectedObjectFusion.module
   - ObjectAssociationMerger.module
 
@@ -22,9 +24,14 @@ nodes:
     element: LidarCenterpoint.pipeline
   - node: clustering
     element: LidarClusteringCameraFusion.pipeline
+  - node: irregular_object
+    element: CameraLidarIrregularObject.pipeline
   - node: detection_by_tracker
     element: DetectionByTracker.module
+
   # merger
+  - node: simple_object_merger
+    element: SimpleObjectMerger.module
   - node: roi_detected_object_fusion
     element: RoiDetectedObjectFusion.module
   - node: object_association_merger_alpha
@@ -85,6 +92,20 @@ connections:
   - from: input.*
     to: clustering.input.*
 
+  # irregular object
+  - from: input.rois0
+    to: irregular_object.input.rois0
+  - from: input.rois1
+    to: irregular_object.input.rois1
+  - from: input.rois5
+    to: irregular_object.input.rois2
+  - from: input.camera_info0
+    to: irregular_object.input.camera_info0
+  - from: input.camera_info1
+    to: irregular_object.input.camera_info1
+  - from: input.camera_info5
+    to: irregular_object.input.camera_info2
+
   # detection by tracker
   - from: input.tracked_objects
     to: detection_by_tracker.input.tracked_objects
@@ -100,6 +121,10 @@ connections:
 
   # merger
   - from: roi_detected_object_fusion.output.fused_objects
+    to: simple_object_merger.input.object1
+  - from: irregular_object.output.objects
+    to: simple_object_merger.input.object2
+  - from: simple_object_merger.output.merged_object
     to: object_association_merger_alpha.input.object0
   - from: clustering.output.detected_objects
     to: object_association_merger_alpha.input.object1

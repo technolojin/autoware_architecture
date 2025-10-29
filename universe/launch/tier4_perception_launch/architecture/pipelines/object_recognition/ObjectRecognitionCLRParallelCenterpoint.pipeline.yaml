@@ -69,8 +69,8 @@ connections:
     to: tracking.input.lidar_ml_objects
   - from: detection.output.clustering/camera_lidar_fusion/objects
     to: tracking.input.camera_lidar_rule_detector_objects
-  # - from: detection.output.irregular_object/objects
-  #   to: tracking.input.camera_lidar_irregular_objects
+  - from: detection.output.irregular_object/objects
+    to: tracking.input.camera_lidar_irregular_objects
   - from: detection.output.detection_by_tracker/objects
     to: tracking.input.tracker_based_detector_objects
   - from: detection.output.radar/far_objects
