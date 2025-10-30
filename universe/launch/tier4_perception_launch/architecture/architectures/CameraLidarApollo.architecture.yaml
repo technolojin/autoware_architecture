@@ -76,8 +76,6 @@ components:
     compute_unit: dummy_ecu
 
 connections:
-  # - from: lidar.output.concatenated/pointcloud
-  #   to: object_recognition.input.concatenated_pointcloud
   - from: lidar.output.concatenated/pointcloud
     to: object_segmentation.input.concatenated_pointcloud
   - from: object_segmentation.output.pointcloud
