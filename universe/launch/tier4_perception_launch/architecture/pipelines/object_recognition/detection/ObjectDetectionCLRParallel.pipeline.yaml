@@ -1,8 +1,7 @@
-name: ObjectDetectionCLRParallelCenterpoint.pipeline
+name: ObjectDetectionCLRParallel.pipeline
 
 depends:
   # detectors
-  - LidarCenterpoint.pipeline
   - LidarClusteringCameraFusion.pipeline
   - CameraLidarIrregularObject.pipeline
   - DetectionByTracker.module
@@ -16,8 +15,6 @@ nodes:
   - node: compare_map_filter
     element: VoxelBasedCompareMapFilter.module
   # detectors
-  - node: centerpoint
-    element: LidarCenterpoint.pipeline
   - node: clustering
     element: LidarClusteringCameraFusion.pipeline
   - node: irregular_object
@@ -56,7 +53,7 @@ external_interfaces:
     - name: radar_objects
     - name: tracked_objects
   output:
-    - name: centerpoint/objects
+    - name: filtered_obstacle_pointcloud
     - name: clustering/camera_lidar_fusion/objects
     - name: irregular_object/objects
     - name: detection_by_tracker/objects
@@ -69,15 +66,9 @@ connections:
     to: compare_map_filter.input.input
   - from: input.pointcloud_map
     to: compare_map_filter.input.input_map
-
-  # centerpoint
-  - from: input.pointcloud
-    to: centerpoint.input.pointcloud
   - from: compare_map_filter.output.output
-    to: centerpoint.input.obstacle_pointcloud
-  - from: centerpoint.output.detected_objects
-    to: output.centerpoint/objects
-  
+    to: output.filtered_obstacle_pointcloud
+
   # clustering
   - from: input.pointcloud
     to: clustering.input.pointcloud
