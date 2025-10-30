@@ -33,7 +33,6 @@ nodes:
 
 external_interfaces:
   input:
-    - name: pointcloud
     - name: pointcloud_map
     - name: vector_map
     - name: obstacle_pointcloud
@@ -69,7 +68,7 @@ connections:
   - from: compare_map_filter.output.output
     to: output.filtered_obstacle_pointcloud
   # clustering
-  - from: input.pointcloud
+  - from: compare_map_filter.output.output
     to: clustering.input.pointcloud
   - from: input.pointcloud_map
     to: clustering.input.pointcloud_map

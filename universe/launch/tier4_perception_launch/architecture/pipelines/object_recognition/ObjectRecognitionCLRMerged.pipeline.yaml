@@ -49,8 +49,6 @@ external_interfaces:
 
 connections:
   # detection
-  - from: input.concatenated_pointcloud
-    to: detection.input.pointcloud
   - from: input.pointcloud_map
     to: detection.input.pointcloud_map
   - from: input.vector_map

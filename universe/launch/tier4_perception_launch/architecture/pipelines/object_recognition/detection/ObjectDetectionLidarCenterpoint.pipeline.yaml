@@ -41,6 +41,7 @@ external_interfaces:
     - name: obstacle_pointcloud
     - name: tracked_objects
   output:
+    - name: filtered_obstacle_pointcloud
     - name: detected_objects
   parameter: []
 
@@ -50,13 +51,15 @@ connections:
     to: compare_map_filter.input.input
   - from: input.pointcloud_map
     to: compare_map_filter.input.input_map
+  - from: compare_map_filter.output.output
+    to: output.filtered_obstacle_pointcloud
   # centerpoint
   - from: input.pointcloud
     to: centerpoint.input.pointcloud
   - from: compare_map_filter.output.output
     to: centerpoint.input.obstacle_pointcloud
   # clustering
-  - from: input.pointcloud
+  - from: compare_map_filter.output.output
     to: clustering.input.pointcloud
   - from: input.pointcloud_map
     to: clustering.input.pointcloud_map

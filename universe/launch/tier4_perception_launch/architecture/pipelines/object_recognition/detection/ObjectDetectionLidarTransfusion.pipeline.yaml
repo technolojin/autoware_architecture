@@ -56,7 +56,7 @@ connections:
   - from: compare_map_filter.output.output
     to: transfusion.input.obstacle_pointcloud
   # clustering
-  - from: input.pointcloud
+  - from: compare_map_filter.output.output
     to: clustering.input.pointcloud
   - from: input.pointcloud_map
     to: clustering.input.pointcloud_map

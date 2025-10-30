@@ -4,7 +4,6 @@ depends:
   # detectors
   - LidarClusteringCameraFusion.pipeline
   - CameraLidarIrregularObject.pipeline
-  - DetectionByTracker.module
   # filter
   - VoxelBasedCompareMapFilter.module
   - ObjectLaneletFilter.module
@@ -19,18 +18,14 @@ nodes:
     element: LidarClusteringCameraFusion.pipeline
   - node: irregular_object
     element: CameraLidarIrregularObject.pipeline
-  - node: detection_by_tracker
-    element: DetectionByTracker.module
+
 
   # filter
   - node: object_lanelet_filter
     element: ObjectLaneletFilter.module
-  - node: radar
-    element: RadarFilter.pipeline
 
 external_interfaces:
   input:
-    - name: pointcloud
     - name: pointcloud_map
     - name: vector_map
     - name: obstacle_pointcloud
@@ -50,14 +45,13 @@ external_interfaces:
     - name: camera_info5
     - name: camera_info6
     - name: camera_info7
-    - name: radar_objects
-    - name: tracked_objects
+
   output:
     - name: filtered_obstacle_pointcloud
     - name: clustering/camera_lidar_fusion/objects
     - name: irregular_object/objects
-    - name: detection_by_tracker/objects
-    - name: radar/far_objects
+    - name: cluster_objects
+
   parameter: []
 
 connections:
@@ -70,12 +64,16 @@ connections:
     to: output.filtered_obstacle_pointcloud
 
   # clustering
-  - from: input.pointcloud
+  - from: compare_map_filter.output.output
     to: clustering.input.pointcloud
   - from: input.pointcloud_map
     to: clustering.input.pointcloud_map
-  - from: input.*
-    to: clustering.input.*
+  - from: input.rois*
+    to: clustering.input.rois*
+  - from: input.camera_info*
+    to: clustering.input.camera_info*
+  - from: clustering.output.cluster_objects
+    to: output.cluster_objects
 
   # camera-lidar fusion output filtering
   - from: input.vector_map
@@ -100,20 +98,4 @@ connections:
     to: irregular_object.input.camera_info2
   - from: irregular_object.output.objects
     to: output.irregular_object/objects
-
-  # detection by tracker
-  - from: input.tracked_objects
-    to: detection_by_tracker.input.tracked_objects
-  - from: clustering.output.cluster_objects
-    to: detection_by_tracker.input.initial_objects
-  - from: detection_by_tracker.output.objects
-    to: output.detection_by_tracker/objects
-
-  # radar filter
-  - from: input.vector_map
-    to: radar.input.vector_map
-  - from: input.radar_objects
-    to: radar.input.radar_objects
-  - from: radar.output.radar_filtered_objects
-    to: output.radar/far_objects
 

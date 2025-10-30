@@ -2,12 +2,22 @@ name: ObjectRecognitionCLRParallel.pipeline
 
 depends:
   - ObjectDetectionCLRParallel.pipeline
+
+  - RadarFilter.pipeline
+  - DetectionByTracker.module
+
   - ObjectTrackingMultiChannel.pipeline
   - ObjectPredictionMapBased.pipeline
 
 nodes:
   - node: detection
     element: ObjectDetectionCLRParallel.pipeline
+
+  - node: detection/radar
+    element: RadarFilter.pipeline
+  - node: detection/detection_by_tracker
+    element: DetectionByTracker.module
+
   - node: tracking
     element: ObjectTrackingMultiChannel.pipeline
   - node: prediction
@@ -49,8 +59,6 @@ external_interfaces:
 
 connections:
   # detection
-  - from: input.concatenated_pointcloud
-    to: detection.input.pointcloud
   - from: input.pointcloud_map
     to: detection.input.pointcloud_map
   - from: input.vector_map
@@ -61,13 +69,28 @@ connections:
     to: detection.input.rois*
   - from: input.camera_info*
     to: detection.input.camera_info*
-  - from: input.radar_objects
-    to: detection.input.radar_objects
-  - from: input.pointcloud_map
-    to: detection.input.pointcloud_map
+
+
+
   - from: detection.output.filtered_obstacle_pointcloud
     to: output.map_filtered_obstacle_pointcloud
 
+  # detection/detection by tracker
+  - from: tracking.output.objects
+    to: detection/detection_by_tracker.input.tracked_objects
+  - from: detection.output.cluster_objects
+    to: detection/detection_by_tracker.input.initial_objects
+  - from: detection/detection_by_tracker.output.objects
+    to: tracking.input.tracker_based_detector_objects
+
+  # detection/radar
+  - from: input.vector_map
+    to: detection/radar.input.vector_map
+  - from: input.radar_objects
+    to: detection/radar.input.radar_objects
+  - from: detection/radar.output.radar_filtered_objects
+    to: tracking.input.radar_objects
+    
   # tracking
   - from: input.lidar_ml_objects
     to: tracking.input.lidar_ml_objects
@@ -75,10 +98,6 @@ connections:
     to: tracking.input.camera_lidar_rule_detector_objects
   - from: detection.output.irregular_object/objects
     to: tracking.input.camera_lidar_irregular_objects
-  - from: detection.output.detection_by_tracker/objects
-    to: tracking.input.tracker_based_detector_objects
-  - from: detection.output.radar/far_objects
-    to: tracking.input.radar_objects
   
   # prediction
   - from: tracking.output.objects
