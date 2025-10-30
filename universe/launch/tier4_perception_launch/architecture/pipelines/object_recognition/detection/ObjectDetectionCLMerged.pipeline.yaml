@@ -1,8 +1,7 @@
-name: ObjectDetectionCLMergedPointpainting.pipeline
+name: ObjectDetectionCLMerged.pipeline
 
 depends:
   # detectors
-  - PointpaintingFusion.pipeline
   - LidarClusteringCameraFusion.pipeline
   - DetectionByTracker.module
   # filter
@@ -17,8 +16,6 @@ nodes:
   - node: compare_map_filter
     element: VoxelBasedCompareMapFilter.module
   # detectors
-  - node: pointpainting
-    element: PointpaintingFusion.pipeline
   - node: clustering
     element: LidarClusteringCameraFusion.pipeline
   - node: detection_by_tracker
@@ -56,9 +53,11 @@ external_interfaces:
     - name: camera_info5
     - name: camera_info6
     - name: camera_info7
+    - name: lidar_ml_objects
     - name: tracked_objects
   output:
     - name: detected_objects
+    - name: filtered_obstacle_pointcloud
   parameter: []
 
 connections:
@@ -67,30 +66,24 @@ connections:
     to: compare_map_filter.input.input
   - from: input.pointcloud_map
     to: compare_map_filter.input.input_map
-  # pointpainting
-  - from: input.pointcloud
-    to: pointpainting.input.pointcloud
-  - from: input.rois*
-    to: pointpainting.input.rois*
-  - from: input.camera_info*
-    to: pointpainting.input.camera_info*
   - from: compare_map_filter.output.output
-    to: pointpainting.input.obstacle_pointcloud
+    to: output.filtered_obstacle_pointcloud
   # clustering
   - from: input.pointcloud
     to: clustering.input.pointcloud
   - from: input.pointcloud_map
     to: clustering.input.pointcloud_map
-  - from: input.*
-    to: clustering.input.*
-
+  - from: input.rois*
+    to: clustering.input.rois*
+  - from: input.camera_info*
+    to: clustering.input.camera_info*
   # detection by tracker
   - from: input.tracked_objects
     to: detection_by_tracker.input.tracked_objects
   - from: clustering.output.cluster_objects
     to: detection_by_tracker.input.initial_objects
   # roi detected object fusion
-  - from: pointpainting.output.detected_objects
+  - from: input.lidar_ml_objects
     to: roi_detected_object_fusion.input.objects
   - from: input.rois*
     to: roi_detected_object_fusion.input.rois*
@@ -113,4 +106,5 @@ connections:
     to: object_lanelet_filter.input.vector_map
   - from: object_lanelet_filter.output.object
     to: output.detected_objects
+
 

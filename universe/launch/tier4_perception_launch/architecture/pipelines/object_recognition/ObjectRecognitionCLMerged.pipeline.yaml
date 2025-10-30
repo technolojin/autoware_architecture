@@ -1,13 +1,13 @@
-name: ObjectRecognitionCLMergedApollo.pipeline
+name: ObjectRecognitionCLMerged.pipeline
 
 depends:
-  - ObjectDetectionCLMergedApollo.pipeline
+  - ObjectDetectionCLMerged.pipeline
   - ObjectTrackingTrackerMergerRadarFusion.pipeline
   - ObjectPredictionMapBased.pipeline
 
 nodes:
   - node: detection
-    element: ObjectDetectionCLMergedApollo.pipeline
+    element: ObjectDetectionCLMerged.pipeline
   - node: tracking
     element: ObjectTrackingTrackerMergerRadarFusion.pipeline
   - node: prediction
@@ -22,6 +22,7 @@ external_interfaces:
     # lidar
     - name: concatenated_pointcloud
     - name: obstacle_pointcloud
+    - name: lidar_ml_objects
     # camera
     - name: rois0
     - name: rois1
@@ -40,6 +41,7 @@ external_interfaces:
     - name: camera_info6
     - name: camera_info7
   output:
+    - name: map_filtered_obstacle_pointcloud
     - name: objects
   parameter: []
 
@@ -59,6 +61,10 @@ connections:
     to: detection.input.camera_info*
   - from: input.pointcloud_map
     to: detection.input.pointcloud_map
+  - from: input.lidar_ml_objects
+    to: detection.input.lidar_ml_objects
+  - from: detection.output.filtered_obstacle_pointcloud
+    to: output.map_filtered_obstacle_pointcloud
 
   # tracking
   - from: input.vector_map

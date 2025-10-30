@@ -1,4 +1,4 @@
-name: CameraLidar.architecture
+name: CameraLidarCenterpoint.architecture
 
 depends:
   # dummy
@@ -10,9 +10,8 @@ depends:
 
   # perception
   - ObjectSegmentation.pipeline
-  - ObjectRecognitionCLMergedCenterpoint.pipeline
-  - ObjectRecognitionCLMergedPointpainting.pipeline
-  - ObjectRecognitionCLMergedApollo.pipeline
+  - ObjectRecognitionCLMerged.pipeline
+  - LidarCenterpoint.pipeline
   - Camera2dDetection.pipeline
   - OccupancyGridMapPointcloudBased.pipeline
 
@@ -21,12 +20,10 @@ depends:
   - TypeBeta2PerceptionPipeline.parameter_set
 
 modes:
-  - name: Centerpoint
-    description: Camera Lidar Radar mode with Centerpoint detector mode
-  - name: Pointpainting
-    description: Camera Lidar Radar mode with Pointpainting detector mode
-  - name: Apollo
-    description: Camera Lidar Radar mode with Apollo detector mode
+  - name: Runtime
+    description: on-vehicle runtime mode
+  - name: LoggingSimulation
+    description: Logged data replay simulation mode
 
 components:
   - component: lidar
@@ -52,29 +49,20 @@ components:
     namespace: perception/object_recognition/detection
     compute_unit: perception_ecu_1
     parameter_set: TypeBeta2PerceptionCamera2dDetection.parameter_set
+  - component: centerpoint
+    element: LidarCenterpoint.pipeline
+    namespace: perception/object_recognition/detection
+    compute_unit: main_ecu
   - component: object_segmentation
     element: ObjectSegmentation.pipeline
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionPipeline.parameter_set
   - component: object_recognition
-    element: ObjectRecognitionCLMergedCenterpoint.pipeline
+    element: ObjectRecognitionCLMerged.pipeline
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionPipeline.parameter_set
-    mode: [Centerpoint]
-  - component: object_recognition
-    element: ObjectRecognitionCLMergedPointpainting.pipeline
-    namespace: perception
-    compute_unit: main_ecu
-    parameter_set: TypeBeta2PerceptionPipeline.parameter_set
-    mode: [Pointpainting]
-  - component: object_recognition
-    element: ObjectRecognitionCLMergedApollo.pipeline
-    namespace: perception
-    compute_unit: main_ecu
-    parameter_set: TypeBeta2PerceptionPipeline.parameter_set
-    mode: [Apollo]
   - component: occupancy_grid_map
     element: OccupancyGridMapPointcloudBased.pipeline
     namespace: perception
@@ -101,6 +89,13 @@ connections:
     to: object_recognition.input.rois*
   - from: camera.output.camera*/camera_info
     to: object_recognition.input.camera_info*
+
+  - from: lidar.output.concatenated/pointcloud
+    to: centerpoint.input.pointcloud
+  - from: object_recognition.output.map_filtered_obstacle_pointcloud
+    to: centerpoint.input.obstacle_pointcloud
+  - from: centerpoint.output.detected_objects
+    to: object_recognition.input.lidar_ml_objects
 
   - from: lidar.output.concatenated/pointcloud
     to: occupancy_grid_map.input.concatenated_pointcloud

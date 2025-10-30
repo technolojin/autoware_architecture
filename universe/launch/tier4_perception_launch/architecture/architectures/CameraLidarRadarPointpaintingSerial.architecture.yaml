@@ -1,9 +1,9 @@
-name: CameraLidarRadar.architecture
+name: CameraLidarRadarPointpaintingSerial.architecture
 
 depends:
   # dummy
-  - CameraDummy.pipeline
   - LidarDummy.pipeline
+  - CameraDummy.pipeline
   - RadarDummy.pipeline
   - MapDummy.module
   - LocalizationDummy.module
@@ -11,7 +11,8 @@ depends:
 
   # perception
   - ObjectSegmentation.pipeline
-  - ObjectRecognitionCLRParallelCenterpoint.pipeline
+  - ObjectRecognitionCLRMerged.pipeline
+  - PointpaintingFusion.pipeline
   - Camera2dDetection.pipeline
   - OccupancyGridMapPointcloudBased.pipeline
 
@@ -53,13 +54,17 @@ components:
     namespace: perception/object_recognition/detection
     compute_unit: perception_ecu_1
     parameter_set: TypeBeta2PerceptionCamera2dDetection.parameter_set
+  - component: pointpainting
+    element: PointpaintingFusion.pipeline
+    namespace: perception/object_recognition/detection
+    compute_unit: main_ecu
   - component: object_segmentation
     element: ObjectSegmentation.pipeline
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionPipeline.parameter_set
   - component: object_recognition
-    element: ObjectRecognitionCLRParallelCenterpoint.pipeline
+    element: ObjectRecognitionCLRMerged.pipeline
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionPipeline.parameter_set
@@ -89,9 +94,19 @@ connections:
     to: object_recognition.input.rois*
   - from: camera.output.camera*/camera_info
     to: object_recognition.input.camera_info*
-
   - from: radar.output.detected_objects
     to: object_recognition.input.radar_objects
+
+  - from: lidar.output.concatenated/pointcloud
+    to: pointpainting.input.pointcloud
+  - from: object_recognition.output.map_filtered_obstacle_pointcloud
+    to: pointpainting.input.obstacle_pointcloud
+  - from: camera.output.camera*/camera_info
+    to: pointpainting.input.camera_info*
+  - from: camera_2d_detection.output.rois*
+    to: pointpainting.input.rois*
+  - from: pointpainting.output.detected_objects
+    to: object_recognition.input.lidar_ml_objects
 
   - from: lidar.output.concatenated/pointcloud
     to: occupancy_grid_map.input.concatenated_pointcloud

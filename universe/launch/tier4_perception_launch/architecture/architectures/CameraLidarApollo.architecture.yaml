@@ -1,17 +1,17 @@
-name: CameraLidarRadar.architecture
+name: CameraLidarApollo.architecture
 
 depends:
   # dummy
-  - CameraDummy.pipeline
   - LidarDummy.pipeline
-  - RadarDummy.pipeline
+  - CameraDummy.pipeline
   - MapDummy.module
   - LocalizationDummy.module
   - PlanningDummy.module
 
   # perception
   - ObjectSegmentation.pipeline
-  - ObjectRecognitionCLRParallelCenterpoint.pipeline
+  - ObjectRecognitionCLMerged.pipeline
+  - LidarApollo.pipeline
   - Camera2dDetection.pipeline
   - OccupancyGridMapPointcloudBased.pipeline
 
@@ -34,10 +34,6 @@ components:
     element: CameraDummy.pipeline
     namespace: sensing
     compute_unit: perception_ecu_1
-  - component: radar
-    element: RadarDummy.pipeline
-    namespace: sensing
-    compute_unit: perception_ecu_1
   - component: map_loader
     element: MapDummy.module
     namespace: map
@@ -53,13 +49,17 @@ components:
     namespace: perception/object_recognition/detection
     compute_unit: perception_ecu_1
     parameter_set: TypeBeta2PerceptionCamera2dDetection.parameter_set
+  - component: apollo
+    element: LidarApollo.pipeline
+    namespace: perception/object_recognition/detection
+    compute_unit: main_ecu
   - component: object_segmentation
     element: ObjectSegmentation.pipeline
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionPipeline.parameter_set
   - component: object_recognition
-    element: ObjectRecognitionCLRParallelCenterpoint.pipeline
+    element: ObjectRecognitionCLMerged.pipeline
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionPipeline.parameter_set
@@ -90,8 +90,12 @@ connections:
   - from: camera.output.camera*/camera_info
     to: object_recognition.input.camera_info*
 
-  - from: radar.output.detected_objects
-    to: object_recognition.input.radar_objects
+  - from: lidar.output.concatenated/pointcloud
+    to: apollo.input.pointcloud
+  - from: object_recognition.output.map_filtered_obstacle_pointcloud
+    to: apollo.input.obstacle_pointcloud
+  - from: apollo.output.detected_objects
+    to: object_recognition.input.lidar_ml_objects
 
   - from: lidar.output.concatenated/pointcloud
     to: occupancy_grid_map.input.concatenated_pointcloud

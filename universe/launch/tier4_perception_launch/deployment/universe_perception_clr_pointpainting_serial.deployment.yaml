@@ -1,0 +1,8 @@
+name: universe_perception_clr_pointpainting_serial.deployment
+
+architecture: CameraLidarRadarPointpaintingSerial.architecture
+
+vehicle_parameters:
+  - vehicle_id: virtual_vehicle_01
+
+environment_parameters: []
