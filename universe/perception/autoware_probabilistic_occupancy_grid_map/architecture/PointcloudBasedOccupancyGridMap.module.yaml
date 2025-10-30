@@ -28,10 +28,10 @@ outputs:
 
 # configurations
 parameter_files:
-  - name: occupancy_grid_map
+  - name: param_file
     default: config/pointcloud_based_occupancy_grid_map.param.yaml
     schema: schema/pointcloud_based_occupancy_grid_map.schema.json
-  - name: binary_bayes_filter_updater
+  - name: updater_param_file
     default: config/binary_bayes_filter_updater.param.yaml
     schema: schema/binary_bayes_filter_updater.schema.json
 
@@ -39,7 +39,7 @@ configurations: []
 
 # processes
 processes:
-  - name: filter
+  - name: update
     trigger_conditions:
       - and:
           - on_input: obstacle_pointcloud

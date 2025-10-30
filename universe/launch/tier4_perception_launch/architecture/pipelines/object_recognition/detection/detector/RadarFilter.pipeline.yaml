@@ -1,0 +1,30 @@
+name: RadarFilter.pipeline
+
+depends:
+  - DetectedObjectSorter.module
+  - ObjectLaneletFilter.module
+
+nodes:
+  # filter
+  - node: object_lanelet_filter
+    element: ObjectLaneletFilter.module
+  - node: radar_object_filter
+    element: DetectedObjectSorter.module
+
+external_interfaces:
+  input:
+    - name: vector_map
+    - name: radar_objects
+  output:
+    - name: radar_filtered_objects
+  parameter: []
+
+connections:
+  - from: input.radar_objects
+    to: radar_object_filter.input.objects
+  - from: radar_object_filter.output.objects
+    to: object_lanelet_filter.input.object
+  - from: input.vector_map
+    to: object_lanelet_filter.input.vector_map
+  - from: object_lanelet_filter.output.object
+    to: output.radar_filtered_objects

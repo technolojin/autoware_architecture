@@ -1,0 +1,8 @@
+name: universe_perception_lidar_centerpoint.deployment
+
+architecture: LidarCenterpoint.architecture
+
+vehicle_parameters:
+  - vehicle_id: virtual_vehicle_01
+
+environment_parameters: []

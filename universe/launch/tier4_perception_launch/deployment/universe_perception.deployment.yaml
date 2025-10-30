@@ -1,8 +1,0 @@
-name: universe_perception.deployment
-
-architecture: TypeBeta2.architecture
-
-vehicle_parameters:
-  - vehicle_id: virtual_vehicle_01
-
-environment_parameters: []

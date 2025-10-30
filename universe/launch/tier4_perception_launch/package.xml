@@ -26,6 +26,8 @@
   <depend>autoware_pointcloud_preprocessor</depend>
   <depend>autoware_image_projection_based_fusion</depend>
   <depend>autoware_lidar_centerpoint</depend>
+  <depend>autoware_lidar_apollo_instance_segmentation</depend>
+  <depend>autoware_lidar_transfusion</depend>
   <depend>autoware_map_based_prediction</depend>
   <depend>autoware_detected_object_validation</depend>
   <depend>autoware_ground_segmentation</depend>
@@ -39,6 +41,7 @@
   <depend>autoware_probabilistic_occupancy_grid_map</depend>
   <depend>autoware_multi_object_tracker</depend>
   <depend>autoware_object_sorter</depend>
+  <depend>autoware_simple_object_merger</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

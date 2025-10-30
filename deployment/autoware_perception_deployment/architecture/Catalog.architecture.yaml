@@ -23,13 +23,13 @@ depends:
 
   # pipeline
   - CameraLidarFusion.pipeline
-  - LidarClustering.pipeline
+  - LidarClusteringCameraFusion.pipeline
   - LidarCenterpoint.pipeline
-  - ObjectDetection.pipeline
-  - ObjectTracking.pipeline
-  - ObjectPrediction.pipeline
+  - ObjectDetectionCLRMergedCenterpoint.pipeline
+  - ObjectTrackingTrackerMergerRadarFusion.pipeline
+  - ObjectPredictionMapBased.pipeline
   - Camera2dDetection.pipeline
-  - OccupancyGridMap.pipeline
+  - OccupancyGridMapMultiLidar.pipeline
 
 components:
   - component: camera
@@ -58,7 +58,7 @@ components:
     compute_unit: main_ecu
 
   - component: occupancy_grid_map
-    element: OccupancyGridMap.pipeline
+    element: OccupancyGridMapMultiLidar.pipeline
     namespace: perception
     compute_unit: main_ecu
 
