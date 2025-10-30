@@ -15,7 +15,7 @@
 
 import os
 import logging
-from typing import Dict
+from typing import Dict, List, Tuple
 from .config import ArchitectureConfig
 from .models.config import Config
 from .builder.config_registry import ConfigRegistry
@@ -26,6 +26,7 @@ from .parsers.data_validator import element_name_decode
 from .parsers.yaml_parser import yaml_parser
 from .exceptions import ValidationError
 from .template_utils import TemplateRenderer
+from .models.modes import Modes
 
 logger = logging.getLogger(__name__)
 debug_mode = True
@@ -92,38 +93,60 @@ class Deployment:
         if not architecture:
             raise ValidationError(f"Architecture not found: {architecture_name}")
 
-        # 2. Determine modes to build
-        modes_config = architecture.modes or []
-        if modes_config:
-            # Build one instance per mode
-            mode_names = [m.get('name') for m in modes_config]
-            logger.info(f"Building deployment for {len(mode_names)} modes: {mode_names}")
-        else:
-            # No modes defined - build single instance without mode filtering
-            mode_names = [None]
-            logger.info(f"Building deployment without mode filtering")
+        # 2. Determine mode-axis combinations to build
+        modes_helper = Modes.from_architecture_modes(getattr(architecture, 'modes', []))
 
-        # 3. Create deployment instance for each mode
-        for mode_name in mode_names:
+        def cartesian_product(axes: Dict[str, set]) -> List[Dict[str, str]]:
+            # Return list of selections, one dict per combination
+            items: List[Tuple[str, List[str]]] = [(axis, sorted(list(names))) for axis, names in axes.items()]
+            if not items:
+                return [{}]
+            selections: List[Dict[str, str]] = [{}]
+            for axis, names in items:
+                new_sel: List[Dict[str, str]] = []
+                for sel in selections:
+                    for name in names:
+                        s = sel.copy()
+                        s[axis] = name
+                        new_sel.append(s)
+                selections = new_sel
+            return selections
+
+        axis_to_names: Dict[str, set] = modes_helper.available_axes
+        selections: List[Dict[str, str]] = cartesian_product(axis_to_names)
+
+        def selection_key(sel: Dict[str, str]) -> str:
+            if not sel:
+                return "default"
+            parts = [f"{k}={v}" for k, v in sorted(sel.items())]
+            return "+".join(parts).replace(" ", "_")
+
+        logger.info(
+            f"Building deployment for {len(selections)} mode selections: " +
+            f"{[selection_key(s) for s in selections]}"
+        )
+
+        # 3. Create deployment instance for each selection
+        for sel in selections:
             try:
-                mode_suffix = f"_{mode_name}" if mode_name else ""
+                mode_key = selection_key(sel)
+                mode_suffix = f"_{mode_key}" if mode_key != "default" else ""
                 instance_name = f"{self.name}{mode_suffix}"
-                deploy_instance = DeploymentInstance(instance_name, mode=mode_name)
+                deploy_instance = DeploymentInstance(instance_name, mode_selection=sel)
                 
                 # Set architecture with mode filtering
                 deploy_instance.set_architecture(
-                    architecture, self.config_registry, mode=mode_name
+                    architecture, self.config_registry, mode_selection=sel
                 )
                 
                 # Store instance
-                mode_key = mode_name if mode_name else "default"
                 self.deploy_instances[mode_key] = deploy_instance
-                logger.info(f"Successfully built deployment instance for mode: {mode_key}")
+                logger.info(f"Successfully built deployment instance for mode selection: {mode_key}")
                 
             except Exception as e:
                 # try to visualize the architecture to show error status
                 self.visualize()
-                raise ValidationError(f"Error in setting deploy for mode '{mode_name}': {e}")
+                raise ValidationError(f"Error in setting deploy for selection '{mode_key}': {e}")
 
     def generate_by_template(self, data, template_path, output_dir, output_filename):
         """Generate file from template using the unified template renderer."""

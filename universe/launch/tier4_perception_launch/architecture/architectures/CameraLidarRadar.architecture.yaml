@@ -22,12 +22,24 @@ depends:
   - TypeBeta2PerceptionPipeline.parameter_set
 
 modes:
-  - name: CLR_Centerpoint
+  - name: CLR_Centerpoint_mode
     description: Camera Lidar Radar mode with Centerpoint detector mode
-  - name: CLR_Pointpainting
+  - name: CLR_Pointpainting_mode
     description: Camera Lidar Radar mode with Pointpainting detector mode
-  - name: CLR_Parallel_Centerpoint
-    description: Camera Lidar Radar mode with Centerpoint detector mode
+  - name: CLR_Parallel_Centerpoint_mode
+    description: Camera Lidar Radar mode with Parallel Centerpoint detector mode
+  - operation:
+    - mode: Runtime_mode
+      description: on the vehicle
+    - mode: Logging_Simulation_mode
+      description: simulation mode for data log replay
+  - lidar_model:
+    - mode: Lidar_Centerpoint_model
+      description: Lidar only model with Centerpoint detector model
+    - mode: Camera_Lidar_Pointpainting_mode
+      description: Camera Lidar Radar mode with Pointpainting detector mode
+    - mode: Lidar_Parallel_Centerpoint_model
+      description: Camera Lidar Radar mode with Parallel Centerpoint detector model
 
 components:
   - component: lidar
@@ -67,19 +79,25 @@ components:
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionPipeline.parameter_set
-    mode: [CLR_Centerpoint]
+    modes:
+      - lidar_model: [Lidar_Centerpoint_model]
+      - operation: [Runtime_mode, Logging_Simulation_mode]
   - component: object_recognition
     element: ObjectRecognitionCLRMergedPointpainting.pipeline
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionPipeline.parameter_set
-    mode: [CLR_Pointpainting]
+    modes:
+      - lidar_model: [Camera_Lidar_Pointpainting_mode]
+      - operation: [Runtime_mode, Logging_Simulation_mode]
   - component: object_recognition
     element: ObjectRecognitionCLRParallelCenterpoint.pipeline
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionPipeline.parameter_set
-    mode: [CLR_Parallel_Centerpoint]
+    modes:
+      - lidar_model: [Lidar_Parallel_Centerpoint_model]
+      - operation: [Runtime_mode, Logging_Simulation_mode]
   - component: occupancy_grid_map
     element: OccupancyGridMapPointcloudBased.pipeline
     namespace: perception

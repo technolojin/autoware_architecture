@@ -31,6 +31,8 @@ depends:
   - Camera2dDetection.pipeline
   - OccupancyGridMapMultiLidar.pipeline
 
+modes: []
+
 components:
   - component: camera
     element: CameraDummy.pipeline

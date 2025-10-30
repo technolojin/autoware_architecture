@@ -10,10 +10,11 @@ depends:
   - PerceptionPipelineA.parameter_set
 
 modes:
-  - name: default
-    description: Default mode
-  - name: simulation
-    description: Simulation mode
+  - operation:
+    - mode: Runtime_mode
+      description: on the vehicle
+    - mode: Logging_Simulation_mode
+      description: simulation mode for data log replay
 
 components:
   - component: sensor_pipeline_a
@@ -35,7 +36,8 @@ components:
     parameter_set: [
       PerceptionPipelineA.parameter_set
     ]
-    mode: [default]
+    modes:
+      - operation: [Runtime_mode]
   - component: object_recognition
     element: PerceptionB.pipeline
     namespace: perception
@@ -44,11 +46,14 @@ components:
       PerceptionPipelineA.parameter_set,  
       PerceptionPipelineABuild.parameter_set,
     ]
-    mode: simulation
+    modes:
+      - operation: [Logging_Simulation_mode]
   - component: planner
     element: PlanningDummy.module
     namespace: planning
     compute_unit: dummy_ecu_2
+    modes:
+      - operation: [Runtime_mode]
 
 connections:
   - from: sensor_pipeline_a.output.concatenated/pointcloud
@@ -61,5 +66,9 @@ connections:
     to: object_recognition.input.vector_map
   - from: map_loader.output.vector_map
     to: planner.input.lanelet_map
+    modes:
+      - operation: [Runtime_mode]
   - from: object_recognition.output.objects
     to: planner.input.predicted_objects
+    modes:
+      - operation: [Runtime_mode]

@@ -24,80 +24,17 @@ from .config_registry import ConfigRegistry
 from .parameter_manager import ParameterManager
 from .link_manager import LinkManager
 from .event_manager import EventManager
+from ..models.modes import Modes
 
 logger = logging.getLogger(__name__)
 
-def normalize_mode_field(mode_field) -> List[str]:
-    """Normalize mode field to list of mode names.
-    
-    Args:
-        mode_field: Can be None, string, or list of strings
-        
-    Returns:
-        List of mode names (empty list if None)
-    """
-    if mode_field is None:
-        return []
-    if isinstance(mode_field, str):
-        return [mode_field]
-    if isinstance(mode_field, list):
-        return mode_field
-    raise ValidationError(f"Invalid mode field type: {type(mode_field)}")
-
-def filter_components_by_mode(components: List[Dict], mode_name: str, available_modes: List[str]) -> List[Dict]:
-    """Filter components that are enabled for the given mode.
-    
-    Args:
-        components: List of component configurations
-        mode_name: Name of the mode to filter for
-        available_modes: List of all available mode names
-        
-    Returns:
-        Filtered list of components enabled for this mode
-        
-    Raises:
-        ValidationError: If mode references are invalid or components overlap
-    """
-    enabled_components = []
-    component_mode_map = {}  # Track which modes each component name uses
-    
-    for cfg_component in components:
-        component_name = cfg_component.get("component")
-        component_modes = normalize_mode_field(cfg_component.get("mode"))
-        
-        # If no mode specified, enable for all modes
-        if not component_modes:
-            component_modes = available_modes
-        
-        # Validate mode references
-        for mode in component_modes:
-            if mode not in available_modes:
-                raise ValidationError(
-                    f"Component '{component_name}' references undefined mode '{mode}'. "
-                    f"Available modes: {available_modes}"
-                )
-        
-        # Check for mode overlap with same component name
-        if component_name not in component_mode_map:
-            component_mode_map[component_name] = set()
-        
-        for mode in component_modes:
-            if mode in component_mode_map[component_name]:
-                raise ValidationError(
-                    f"Component '{component_name}' is defined multiple times for mode '{mode}'"
-                )
-            component_mode_map[component_name].add(mode)
-        
-        # Add to enabled list if this mode is in component's mode list
-        if mode_name in component_modes:
-            enabled_components.append(cfg_component)
-    
-    return enabled_components
+def _filter_components_by_modes(components: List[Dict], modes_helper: Modes, selection: Dict[str, str]) -> List[Dict]:
+    return modes_helper.filter_items(components, selection, name_key="component")
 
 class Instance:
     # Common attributes for node hierarch instance
     def __init__(
-        self, name: str, compute_unit: str = "", namespace: list[str] = [], layer: int = 0
+        self, name: str, compute_unit: str = "", namespace: list[str] = [], layer: int = 0, mode_selection: Dict[str, str] | None = None
     ):
         self.name: str = name
         self.namespace: List[str] = namespace.copy()
@@ -130,6 +67,9 @@ class Instance:
 
         # status
         self.is_initialized = False
+        
+        # modes
+        self.mode_selection: Dict[str, str] = (mode_selection or {}).copy()
 
     @property
     def unique_id(self):
@@ -150,23 +90,18 @@ class Instance:
 
     def _set_architecture_instances(self, config_registry: ConfigRegistry):
         """Set instances for architecture element type."""
-        # Determine which components to instantiate based on mode
-        components_to_instantiate = self.configuration.components
-        
-        # If this is a DeploymentInstance with a mode, filter components
-        if hasattr(self, 'mode') and self.mode is not None:
-            # Get available modes from configuration
-            modes_config = self.configuration.modes or []
-            available_modes = [m.get('name') for m in modes_config]
-            
-            # Filter components for this mode
-            components_to_instantiate = filter_components_by_mode(
-                self.configuration.components, 
-                self.mode, 
-                available_modes
-            )
-            logger.info(f"Architecture instance '{self.namespace_str}' mode '{self.mode}': "
-                       f"{len(components_to_instantiate)}/{len(self.configuration.components)} components enabled")
+        # Build mode axes and selection
+        selection = self.mode_selection or {}
+        modes_helper = Modes.from_architecture_modes(getattr(self.configuration, 'modes', []))
+
+        # Filter components by modes
+        components_to_instantiate = _filter_components_by_modes(
+            self.configuration.components, modes_helper, selection
+        )
+        logger.info(
+            f"Architecture instance '{self.namespace_str}' modes {selection}: "
+            f"{len(components_to_instantiate)}/{len(self.configuration.components)} components enabled"
+        )
         
         # First pass: create all component instances
         for cfg_component in components_to_instantiate:
@@ -181,7 +116,7 @@ class Instance:
                 namespace = []
 
             # create instance
-            instance = Instance(instance_name, compute_unit_name, namespace)
+            instance = Instance(instance_name, compute_unit_name, namespace, mode_selection=self.mode_selection)
             instance.parent = self
             try:
                 instance.set_instances(element_id, config_registry)
@@ -200,6 +135,12 @@ class Instance:
             instance = self.children[instance_name]
             self._apply_parameter_set(instance, cfg_component, config_registry)
         
+        # Filter architecture-level connections by modes before linking
+        if hasattr(self.configuration, 'connections') and self.configuration.connections:
+            self.configuration.connections = Modes.from_architecture_modes(getattr(self.configuration, 'modes', [])).filter_items(
+                self.configuration.connections, selection, name_key=None
+            )
+
         # all children are initialized
         self.is_initialized = True
 
@@ -213,6 +154,14 @@ class Instance:
         if element_id in self.parent_pipeline_list:
             raise ValidationError(f"Config is already set: {element_id}, avoid circular reference")
         self.parent_pipeline_list.append(element_id)
+
+        # Filter pipeline nodes and connections by inherited modes
+        selection = self.mode_selection or {}
+        modes_helper = Modes.from_architecture_modes(getattr(self.parent.configuration, 'modes', [])) if self.parent and hasattr(self.parent, 'configuration') else Modes({})
+        if hasattr(self.configuration, 'nodes') and self.configuration.nodes:
+            self.configuration.nodes = modes_helper.filter_items(self.configuration.nodes, selection, name_key="node")
+        if hasattr(self.configuration, 'connections') and self.configuration.connections:
+            self.configuration.connections = modes_helper.filter_items(self.configuration.connections, selection, name_key=None)
 
         # set children
         self._create_pipeline_children(config_registry)
@@ -298,7 +247,7 @@ class Instance:
         cfg_node_list = self.configuration.nodes
         for cfg_node in cfg_node_list:
             instance = Instance(
-                cfg_node.get("node"), self.compute_unit, self.namespace, self.layer + 1
+                cfg_node.get("node"), self.compute_unit, self.namespace, self.layer + 1, mode_selection=self.mode_selection
             )
             instance.parent = self
             instance.parent_pipeline_list = self.parent_pipeline_list.copy()
@@ -387,35 +336,54 @@ class Instance:
             "parameters": self.parameter_manager.get_all_parameter_files(),
         }
         
-        # Add mode information if this is a deployment instance
-        if hasattr(self, 'mode') and self.mode is not None:
-            data["mode"] = self.mode
+        # Add mode selection if present
+        if hasattr(self, 'mode_selection') and self.mode_selection is not None:
+            data["modes"] = self.mode_selection
 
         return data
 
 class DeploymentInstance(Instance):
-    def __init__(self, name: str, mode: str = None):
-        super().__init__(name)
-        self.mode = mode  # Store mode for this deployment instance
+    def __init__(self, name: str, mode_selection: Dict[str, str] | None = None, mode: str | None = None):
+        # Accept legacy 'mode' param; map to new selection if provided and no selection passed
+        if mode_selection is None and mode is not None:
+            mode_selection = {"default": mode}
+        super().__init__(name, mode_selection=mode_selection)
 
     def set_architecture(
         self,
         architecture: Config,
         config_registry,
-        mode: str = None,
+        mode_selection: Dict[str, str] | None = None,
+        mode: str | None = None,
     ):
-        """Set architecture for this deployment instance.
+        """Set architecture for this deployment instance with multi-axis modes.
         
         Args:
             architecture: Architecture configuration
             config_registry: Registry of all configurations
-            mode: Optional mode name to filter components (None means no filtering)
+            mode_selection: Dict axis -> mode name. Omitted axes are wildcards.
+            mode: Legacy single value; mapped to first axis or default.
         """
-        self.mode = mode
-        logger.info(f"Setting architecture {architecture.full_name} for instance {self.name}" + 
-                   (f" (mode: {mode})" if mode else ""))
+        if mode_selection is not None:
+            self.mode_selection = mode_selection.copy()
+        elif mode is not None:
+            # Map legacy 'mode' to first declared axis, or 'default' if none
+            modes_section = getattr(architecture, 'modes', []) or []
+            if isinstance(modes_section, list) and len(modes_section) > 0 and isinstance(modes_section[0], dict) and len(modes_section[0].keys()) == 1:
+                first_axis = next(iter(modes_section[0].keys()))
+                self.mode_selection = {first_axis: mode}
+            else:
+                self.mode_selection = {"default": mode}
+        logger.info(
+            f"Setting architecture {architecture.full_name} for instance {self.name}" +
+            (f" (modes: {self.mode_selection})" if self.mode_selection else "")
+        )
         self.configuration = architecture
         self.element_type = "architecture"
+
+        # If architecture.modes is empty and no selection provided, set default selection
+        if (not self.mode_selection) and (not getattr(self.configuration, 'modes', [])):
+            self.mode_selection = {"default": "default"}
 
         # 1. set component instances
         logger.info(f"Instance '{self.name}': setting component instances")
