@@ -1,4 +1,4 @@
-name: Lidar.architecture
+name: LidarCenterpoint.architecture
 
 depends:
   # dummy
@@ -9,8 +9,8 @@ depends:
 
   # perception
   - ObjectSegmentation.pipeline
-  - ObjectRecognitionLidarCenterpoint.pipeline
-  - ObjectRecognitionLidarTransfusion.pipeline
+  - ObjectRecognitionLidar.pipeline
+  - LidarCenterpoint.pipeline
   - OccupancyGridMapPointcloudBased.pipeline
 
   # parameter sets
@@ -18,10 +18,10 @@ depends:
   - TypeBeta2PerceptionPipeline.parameter_set
 
 modes:
-  - name: Lidar_Centerpoint
-    description: Lidar only mode with Centerpoint detector mode
-  - name: Lidar_Transfusion
-    description: Lidar only mode with Transfusion detector mode
+  - name: Runtime
+    description: on-vehicle runtime mode
+  - name: LoggingSimulation
+    description: Logged data replay simulation mode
 
 components:
   - component: lidar
@@ -43,18 +43,15 @@ components:
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionPipeline.parameter_set
+  - component: centerpoint
+    element: LidarCenterpoint.pipeline
+    namespace: perception/object_recognition/detection
+    compute_unit: main_ecu
   - component: object_recognition
-    element: ObjectRecognitionLidarCenterpoint.pipeline
+    element: ObjectRecognitionLidar.pipeline
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionPipeline.parameter_set
-    mode: [Lidar_Centerpoint]
-  - component: object_recognition
-    element: ObjectRecognitionLidarTransfusion.pipeline
-    namespace: perception
-    compute_unit: main_ecu
-    parameter_set: TypeBeta2PerceptionPipeline.parameter_set
-    mode: [Lidar_Transfusion]
   - component: occupancy_grid_map
     element: OccupancyGridMapPointcloudBased.pipeline
     namespace: perception
@@ -69,11 +66,16 @@ components:
 
 connections:
   - from: lidar.output.concatenated/pointcloud
-    to: object_recognition.input.concatenated_pointcloud
-  - from: lidar.output.concatenated/pointcloud
     to: object_segmentation.input.concatenated_pointcloud
   - from: object_segmentation.output.pointcloud
     to: object_recognition.input.obstacle_pointcloud
+
+  - from: lidar.output.concatenated/pointcloud
+    to: centerpoint.input.pointcloud
+  - from: object_recognition.output.map_filtered_obstacle_pointcloud
+    to: centerpoint.input.obstacle_pointcloud
+  - from: centerpoint.output.detected_objects
+    to: object_recognition.input.lidar_ml_objects
 
   - from: lidar.output.concatenated/pointcloud
     to: occupancy_grid_map.input.concatenated_pointcloud

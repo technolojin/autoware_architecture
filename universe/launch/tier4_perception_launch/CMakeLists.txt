@@ -23,4 +23,5 @@ autoware_architect_build_deploy(${PROJECT_NAME} universe_perception_clr_centerpo
 autoware_architect_build_deploy(${PROJECT_NAME} universe_perception_cl_pointpainting.deployment)
 autoware_architect_build_deploy(${PROJECT_NAME} universe_perception_cl_centerpoint.deployment)
 autoware_architect_build_deploy(${PROJECT_NAME} universe_perception_cl_apollo.deployment)
-autoware_architect_build_deploy(${PROJECT_NAME} universe_perception_lidar.deployment)
+autoware_architect_build_deploy(${PROJECT_NAME} universe_perception_lidar_centerpoint.deployment)
+autoware_architect_build_deploy(${PROJECT_NAME} universe_perception_lidar_transfusion.deployment)

@@ -1,8 +1,0 @@
-name: universe_perception_lidar.deployment
-
-architecture: Lidar.architecture
-
-vehicle_parameters:
-  - vehicle_id: virtual_vehicle_01
-
-environment_parameters: []

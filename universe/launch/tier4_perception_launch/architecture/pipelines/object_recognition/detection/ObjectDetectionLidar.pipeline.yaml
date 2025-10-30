@@ -1,14 +1,12 @@
-name: ObjectDetectionLidarTransfusion.pipeline
+name: ObjectDetectionLidar.pipeline
 
 depends:
   # detectors
-  - LidarTransfusion.pipeline
   - LidarClustering.pipeline
   - DetectionByTracker.module
   # filter
   - VoxelBasedCompareMapFilter.module
   - ObjectLaneletFilter.module
-
   # merger
   - RoiDetectedObjectFusion.module
   - ObjectAssociationMerger.module
@@ -18,8 +16,6 @@ nodes:
   - node: compare_map_filter
     element: VoxelBasedCompareMapFilter.module
   # detectors
-  - node: transfusion
-    element: LidarTransfusion.pipeline
   - node: clustering
     element: LidarClustering.pipeline
   - node: detection_by_tracker
@@ -35,12 +31,13 @@ nodes:
 
 external_interfaces:
   input:
-    - name: pointcloud
     - name: pointcloud_map
     - name: vector_map
     - name: obstacle_pointcloud
+    - name: lidar_ml_objects
     - name: tracked_objects
   output:
+    - name: filtered_obstacle_pointcloud
     - name: detected_objects
   parameter: []
 
@@ -50,11 +47,9 @@ connections:
     to: compare_map_filter.input.input
   - from: input.pointcloud_map
     to: compare_map_filter.input.input_map
-  # transfusion
-  - from: input.pointcloud
-    to: transfusion.input.pointcloud
   - from: compare_map_filter.output.output
-    to: transfusion.input.obstacle_pointcloud
+    to: output.filtered_obstacle_pointcloud
+
   # clustering
   - from: compare_map_filter.output.output
     to: clustering.input.pointcloud
@@ -67,9 +62,8 @@ connections:
   - from: clustering.output.cluster_objects
     to: detection_by_tracker.input.initial_objects
 
-
   # merger
-  - from: transfusion.output.detected_objects
+  - from: input.lidar_ml_objects
     to: object_association_merger_alpha.input.object0
   - from: clustering.output.detected_objects
     to: object_association_merger_alpha.input.object1

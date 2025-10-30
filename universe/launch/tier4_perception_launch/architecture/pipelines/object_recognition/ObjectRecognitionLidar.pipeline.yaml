@@ -1,13 +1,13 @@
-name: ObjectRecognitionLidarCenterpoint.pipeline
+name: ObjectRecognitionLidar.pipeline
 
 depends:
-  - ObjectDetectionLidarCenterpoint.pipeline
+  - ObjectDetectionLidar.pipeline
   - ObjectTrackingSingleChannel.pipeline
   - ObjectPredictionMapBased.pipeline
 
 nodes:
   - node: detection
-    element: ObjectDetectionLidarCenterpoint.pipeline
+    element: ObjectDetectionLidar.pipeline
   - node: tracking
     element: ObjectTrackingSingleChannel.pipeline
   - node: prediction
@@ -20,16 +20,15 @@ external_interfaces:
     - name: vector_map
     - name: traffic_lights
     # lidar
-    - name: concatenated_pointcloud
     - name: obstacle_pointcloud
+    - name: lidar_ml_objects
   output:
     - name: objects
+    - name: map_filtered_obstacle_pointcloud
   parameter: []
 
 connections:
   # detection
-  - from: input.concatenated_pointcloud
-    to: detection.input.pointcloud
   - from: input.pointcloud_map
     to: detection.input.pointcloud_map
   - from: input.vector_map
@@ -38,6 +37,10 @@ connections:
     to: detection.input.obstacle_pointcloud
   - from: input.pointcloud_map
     to: detection.input.pointcloud_map
+  - from: input.lidar_ml_objects
+    to: detection.input.lidar_ml_objects
+  - from: detection.output.filtered_obstacle_pointcloud
+    to: output.map_filtered_obstacle_pointcloud
 
   # tracking
   - from: detection.output.detected_objects

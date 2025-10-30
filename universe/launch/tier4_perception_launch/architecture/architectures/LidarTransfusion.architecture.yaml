@@ -1,18 +1,16 @@
-name: CameraLidarCenterpoint.architecture
+name: LidarTransfusion.architecture
 
 depends:
   # dummy
   - LidarDummy.pipeline
-  - CameraDummy.pipeline
   - MapDummy.module
   - LocalizationDummy.module
   - PlanningDummy.module
 
   # perception
   - ObjectSegmentation.pipeline
-  - ObjectRecognitionCLMerged.pipeline
-  - LidarCenterpoint.pipeline
-  - Camera2dDetection.pipeline
+  - ObjectRecognitionLidar.pipeline
+  - LidarTransfusion.pipeline
   - OccupancyGridMapPointcloudBased.pipeline
 
   # parameter sets
@@ -30,10 +28,6 @@ components:
     element: LidarDummy.pipeline
     namespace: sensing
     compute_unit: perception_ecu_1
-  - component: camera
-    element: CameraDummy.pipeline
-    namespace: sensing
-    compute_unit: perception_ecu_1
   - component: map_loader
     element: MapDummy.module
     namespace: map
@@ -44,22 +38,17 @@ components:
     compute_unit: dummy_ecu
 
   # perception
-  - component: camera_2d_detection
-    element: Camera2dDetection.pipeline
-    namespace: perception/object_recognition/detection
-    compute_unit: perception_ecu_1
-    parameter_set: TypeBeta2PerceptionCamera2dDetection.parameter_set
-  - component: centerpoint
-    element: LidarCenterpoint.pipeline
-    namespace: perception/object_recognition/detection
-    compute_unit: main_ecu
   - component: object_segmentation
     element: ObjectSegmentation.pipeline
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionPipeline.parameter_set
+  - component: transfusion
+    element: LidarTransfusion.pipeline
+    namespace: perception/object_recognition/detection
+    compute_unit: main_ecu
   - component: object_recognition
-    element: ObjectRecognitionCLMerged.pipeline
+    element: ObjectRecognitionLidar.pipeline
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionPipeline.parameter_set
@@ -81,18 +70,11 @@ connections:
   - from: object_segmentation.output.pointcloud
     to: object_recognition.input.obstacle_pointcloud
 
-  - from: camera.output.camera*/image
-    to: camera_2d_detection.input.image_raw*
-  - from: camera_2d_detection.output.rois*
-    to: object_recognition.input.rois*
-  - from: camera.output.camera*/camera_info
-    to: object_recognition.input.camera_info*
-
   - from: lidar.output.concatenated/pointcloud
-    to: centerpoint.input.pointcloud
+    to: transfusion.input.pointcloud
   - from: object_recognition.output.map_filtered_obstacle_pointcloud
-    to: centerpoint.input.obstacle_pointcloud
-  - from: centerpoint.output.detected_objects
+    to: transfusion.input.obstacle_pointcloud
+  - from: transfusion.output.detected_objects
     to: object_recognition.input.lidar_ml_objects
 
   - from: lidar.output.concatenated/pointcloud
