@@ -51,37 +51,9 @@ connections:
 
   - from: voxel_grid_based_euclidean_cluster.output.output_clusters
     to: camera_lidar_fusion.input.euclidean_clusters
-  - from: input.rois0
-    to: camera_lidar_fusion.input.rois0
-  - from: input.rois1
-    to: camera_lidar_fusion.input.rois1
-  - from: input.rois2
-    to: camera_lidar_fusion.input.rois2
-  - from: input.rois3
-    to: camera_lidar_fusion.input.rois3
-  - from: input.rois4
-    to: camera_lidar_fusion.input.rois4
-  - from: input.rois5
-    to: camera_lidar_fusion.input.rois5
-  - from: input.rois6
-    to: camera_lidar_fusion.input.rois6
-  - from: input.rois7
-    to: camera_lidar_fusion.input.rois7
-  - from: input.camera_info0
-    to: camera_lidar_fusion.input.camera_info0
-  - from: input.camera_info1
-    to: camera_lidar_fusion.input.camera_info1
-  - from: input.camera_info2
-    to: camera_lidar_fusion.input.camera_info2
-  - from: input.camera_info3
-    to: camera_lidar_fusion.input.camera_info3
-  - from: input.camera_info4
-    to: camera_lidar_fusion.input.camera_info4
-  - from: input.camera_info5
-    to: camera_lidar_fusion.input.camera_info5
-  - from: input.camera_info6
-    to: camera_lidar_fusion.input.camera_info6
-  - from: input.camera_info7
-    to: camera_lidar_fusion.input.camera_info7
+  - from: input.rois*
+    to: camera_lidar_fusion.input.rois*
+  - from: input.camera_info*
+    to: camera_lidar_fusion.input.camera_info*
   - from: camera_lidar_fusion.output.objects
     to: output.detected_objects
