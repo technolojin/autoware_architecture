@@ -319,10 +319,8 @@ class Instance:
         if len(self.configuration.connections) == 0:
             raise ValidationError(f"No connections found in the pipeline configuration, at {self.configuration.file_path}")
 
+        # set links first to know topic type for external ports
         self.link_manager.set_links()
-
-        # create external ports
-        self.link_manager.create_external_ports(self.link_manager.links)
 
         # log pipeline configuration
         self.link_manager.log_pipeline_configuration()
