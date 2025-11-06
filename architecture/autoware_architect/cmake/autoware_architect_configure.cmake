@@ -16,37 +16,20 @@
 # collect all yaml files in the architecture directory
 # store the list in a shared file
 macro(autoware_architect_configure)
-  # Usage: autoware_architect_configure() OR autoware_architect_configure(<domain>)
-  # Domain defaults to 'shared' when omitted or empty.
-  if(ARGC GREATER 1)
-    message(FATAL_ERROR "autoware_architect_configure: expects 0 or 1 argument (domain). Got ARGC='${ARGC}' ARGV='${ARGV}'")
+  # Behavior:
+  # - No argument: domain='shared'
+  # - One or more arguments: domain=first argument verbatim after trim; empty string maps to 'shared'
+  if(ARGC LESS 1)
+    set(_ARCH_DOMAIN_FINAL "shared")
+  else()
+    string(STRIP "${ARGV0}" _ARCH_DOMAIN_CANDIDATE)
+    if("${_ARCH_DOMAIN_CANDIDATE}" STREQUAL "")
+      set(_ARCH_DOMAIN_FINAL "shared")
+    else()
+      set(_ARCH_DOMAIN_FINAL "${_ARCH_DOMAIN_CANDIDATE}")
+    endif()
   endif()
-
-  # Raw domain (exact user input before normalization)
-  set(_ARCH_DOMAIN_RAW "shared")
-  if(ARGC EQUAL 1)
-    set(_ARCH_DOMAIN_RAW "${ARGV0}")
-  endif()
-
-  # Show initial capture
-  message(STATUS "autoware_architect_configure: ARGC='${ARGC}' RAW='${_ARCH_DOMAIN_RAW}'")
-
-  # Trim and lowercase for final use
-  string(STRIP "${_ARCH_DOMAIN_RAW}" _ARCH_DOMAIN_STRIPPED)
-  if("${_ARCH_DOMAIN_STRIPPED}" STREQUAL "")
-    set(_ARCH_DOMAIN_STRIPPED "shared")
-  endif()
-  string(TOLOWER "${_ARCH_DOMAIN_STRIPPED}" _ARCH_DOMAIN_FINAL)
-
-  # Safeguard: if user provided a non-empty, non-shared domain that collapses to 'shared', raise fatal to surface hidden override.
-  if(ARGC EQUAL 1 
-     AND NOT "${_ARCH_DOMAIN_RAW}" STREQUAL ""
-     AND NOT "${_ARCH_DOMAIN_RAW}" STREQUAL "shared"
-     AND "${_ARCH_DOMAIN_FINAL}" STREQUAL "shared")
-    message(FATAL_ERROR "autoware_architect_configure: Provided domain='${_ARCH_DOMAIN_RAW}' unexpectedly normalized to 'shared'. This indicates an override or logic error. Please inspect the macro call site.")
-  endif()
-
-  message(STATUS "autoware_architect_configure: domain raw='${_ARCH_DOMAIN_RAW}' final='${_ARCH_DOMAIN_FINAL}' for package='${PROJECT_NAME}'")
+  message(STATUS "autoware_architect_configure: domain='${_ARCH_DOMAIN_FINAL}' for package='${PROJECT_NAME}' (ARGC='${ARGC}' ARGV='${ARGV}')")
 
   # Collect all yaml files in the package's architecture directory
   file(GLOB_RECURSE YAML_FILES "${CMAKE_CURRENT_SOURCE_DIR}/architecture/*.yaml")
