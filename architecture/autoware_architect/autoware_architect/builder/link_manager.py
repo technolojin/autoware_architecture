@@ -15,7 +15,7 @@
 import logging
 import fnmatch
 import re
-from typing import List, Dict, TYPE_CHECKING
+from typing import Any, Dict, List, TYPE_CHECKING
 
 from ..models.ports import InPort, OutPort
 from ..models.links import Link, Connection, ConnectionType
@@ -27,193 +27,101 @@ logger = logging.getLogger(__name__)
 
 
 def match_and_pair_wildcard_ports(
-    source_pattern: str, 
-    target_pattern: str, 
-    source_port_names: List[str], 
-    target_port_names: List[str]
+    source_pattern: str,
+    target_pattern: str,
+    source_ports: Dict[str, Any],
+    target_ports: Dict[str, Any],
 ) -> List[tuple[str, str]]:
-    """Match port names against wildcard patterns and return paired port names.
-    
-    This function matches port names from source and target lists against their respective
-    patterns, then pairs them based on wildcard substitution. The pairing is done by
-    iterating over the source ports and deriving corresponding target port names.
-    
-    Args:
-        source_pattern: Source port name pattern that may contain wildcards (*, image*, etc.)
-        target_pattern: Target port name pattern that may contain wildcards
-        source_port_names: List of available source port names to match against
-        target_port_names: List of available target port names to match against
-        
-    Returns:
-        List of tuples (source_port_name, target_port_name) that match and can be paired
-        
-    Examples:
-        match_and_pair_wildcard_ports("*", "*", ["image0", "image1"], ["image0", "image1"])
-            -> [("image0", "image0"), ("image1", "image1")]
-        match_and_pair_wildcard_ports("image*", "camera*", ["image0", "image1"], ["camera0", "camera1"])
-            -> [("image0", "camera0"), ("image1", "camera1")]
-        match_and_pair_wildcard_ports("filtered_*", "detected_*", ["filtered_obj"], ["detected_obj"])
-            -> [("filtered_obj", "detected_obj")]
+    """Return matching (source_key, target_key) pairs for wildcard patterns.
+
+    Simplified implementation:
+    1. Collect keys matching each pattern.
+    2. If both patterns are '*', pair identical keys (intersection).
+    3. Otherwise substitute wildcard capture(s) from source into target pattern and
+       keep the pair only if the produced target key exists.
     """
-    # Match source and target ports against their patterns
-    if source_pattern == "*":
-        matched_source_ports = source_port_names
-    else:
-        matched_source_ports = [name for name in source_port_names if fnmatch.fnmatch(name, source_pattern)]
-    
-    if target_pattern == "*":
-        matched_target_ports = target_port_names
-    else:
-        matched_target_ports = [name for name in target_port_names if fnmatch.fnmatch(name, target_pattern)]
-    
-    # Return empty list if no matches
-    if not matched_source_ports or not matched_target_ports:
+    source_keys = list(source_ports.keys())
+    target_keys = list(target_ports.keys())
+
+    def _filter(pattern: str, keys: List[str]) -> List[str]:
+        return keys if pattern == "*" else [k for k in keys if fnmatch.fnmatch(k, pattern)]
+
+    matched_source = _filter(source_pattern, source_keys)
+    matched_target = _filter(target_pattern, target_keys)
+    if not matched_source or not matched_target:
         return []
-    
-    # Build pairs by iterating source ports and deriving target names
-    pairs = []
-    
-    for source_name in matched_source_ports:
-        # Derive target name using wildcard substitution
-        target_name = _apply_wildcard_substitution(source_pattern, target_pattern, source_name)
-        
-        # Only include the pair if the derived target name exists in matched targets
-        if target_name in matched_target_ports:
-            pairs.append((source_name, target_name))
-    
+
+    # Fast path: both '*'
+    if source_pattern == "*" and target_pattern == "*":
+        common = set(matched_source).intersection(matched_target)
+        return [(k, k) for k in sorted(common)]
+
+    pairs: List[tuple[str, str]] = []
+    for s_key in matched_source:
+        t_key = _apply_wildcard_substitution(source_pattern, target_pattern, s_key)
+        if t_key in matched_target and s_key != t_key:
+            pairs.append((s_key, t_key))
     return pairs
 
 
 def _apply_wildcard_substitution(source_pattern: str, target_pattern: str, matched_name: str) -> str:
-    """Apply wildcard substitution from source pattern to target pattern.
-    
-    This is a helper function that extracts the wildcard-matched portion from the source 
-    and applies it to the target pattern.
-    
-    Args:
-        source_pattern: The pattern with wildcard used for matching (e.g., "filtered_*")
-        target_pattern: The pattern to apply the matched portion to (e.g., "radar_filtered_*")
-        matched_name: The actual name that matched the source pattern (e.g., "filtered_objects")
-        
-    Returns:
-        The target name with wildcard substitution applied (e.g., "radar_filtered_objects")
-    """
-    # If either pattern is just "*", no substitution needed
+    """Substitute wildcard captures from a matched source key into target pattern."""
     if source_pattern == "*" or target_pattern == "*":
         return matched_name
-    
-    # Convert wildcard pattern to regex pattern
-    # Escape special regex characters except *
-    source_regex = re.escape(source_pattern).replace(r'\*', '(.*)')
-    
-    # Match the source pattern against the matched name to extract wildcard content
+    source_regex = re.escape(source_pattern).replace(r"\*", "(.*)")
     match = re.match(f"^{source_regex}$", matched_name)
     if not match:
-        # If it doesn't match (shouldn't happen), return the matched name as-is
         return matched_name
-    
-    # Extract the wildcard-matched portions and apply to target pattern
-    wildcard_parts = match.groups()
     result = target_pattern
-    for part in wildcard_parts:
-        result = result.replace('*', part, 1)  # Replace one * at a time
-    
+    for part in match.groups():
+        result = result.replace("*", part, 1)
     return result
 
 
 class LinkManager:
     """Manages port, connection, and link operations for Instance objects."""
-    
+
     def __init__(self, instance: 'Instance'):
         self.instance = instance
-        
-        # interface
         self.in_ports: Dict[str, InPort] = {}
         self.out_ports: Dict[str, OutPort] = {}
         self.links: List[Link] = []
 
-    def get_in_port(self, name: str):
-        """Get input port by name."""
+    def get_in_port(self, name: str) -> InPort:
         if name in self.in_ports:
             return self.in_ports[name]
-        raise ValueError(f"In port not found: in-port name '{name}', instance of '{self.instance.name}'")
+        raise ValueError(f"In port not found: '{name}' (instance '{self.instance.name}')")
 
-    def get_out_port(self, name: str):
-        """Get output port by name."""
+    def get_out_port(self, name: str) -> OutPort:
         if name in self.out_ports:
             return self.out_ports[name]
-        raise ValueError(f"Out port not found: out-port name '{name}', instance of '{self.instance.name}'")
+        raise ValueError(f"Out port not found: '{name}' (instance '{self.instance.name}')")
 
-    def set_in_port(self, in_port: InPort):
-        """Set input port after validation."""
-        # check the external input is defined
-        cfg_external_input_list = self.instance.configuration.external_interfaces.get("input")
-        cfg_external_input_list = [ext_input.get("name") for ext_input in cfg_external_input_list]
-        if in_port.name not in cfg_external_input_list:
-            raise ValueError(
-                f"External input not found: '{in_port.name}' in '{cfg_external_input_list}'"
-            )
+    def _register_external_port(self, port_dict: Dict[str, Any], port_obj: InPort | OutPort, kind: str):
+        """Generic logic for adding/updating an external port.
 
-        # check if there is a port with the same name
-        if in_port.name in self.in_ports:
-            port = self.in_ports[in_port.name]
-            # check if the message type is the same
-            if port.msg_type != in_port.msg_type:
-                raise ValueError(
-                    f"Message type mismatch: '{port.port_path}' {port.msg_type} != {in_port.msg_type}"
-                )
-            # same port name is found, update reference
-            port.set_references(in_port.reference)
-            return
-        # same port name is not found, add the port
-        self.in_ports[in_port.name] = in_port
-
-    def set_out_port(self, out_port: OutPort):
-        """Set output port after validation."""
-        # check the external output is defined
-        cfg_external_output_list = self.instance.configuration.external_interfaces.get("output")
-        cfg_external_output_list = [ext_output.get("name") for ext_output in cfg_external_output_list]
-        if out_port.name not in cfg_external_output_list:
-            raise ValueError(
-                f"External output not found: '{out_port.name}' in {cfg_external_output_list}"
-            )
-
-        # check if there is a port with the same name
-        if out_port.name in self.out_ports:
-            port = self.out_ports[out_port.name]
-            # check if the message type is the same
-            if port.msg_type != out_port.msg_type:
-                raise ValueError(
-                    f"Message type mismatch: '{port.port_path}' {port.msg_type} != {out_port.msg_type}"
-                )
-            # same port name is found, update reference
-            port.set_references(out_port.reference)
-            return
-        # same port name is not found, add the port
-        self.out_ports[out_port.name] = out_port
-
-    def _get_external_interface_names(self, interface_type: str) -> List[str]:
-        """Get external interface names (input or output).
-        
-        Args:
-            interface_type: Either "input" or "output"
-            
-        Returns:
-            List of external interface names
+        kind: 'input' or 'output'.
         """
-        cfg_external_list = self.instance.configuration.external_interfaces.get(interface_type)
-        return [ext.get("name") for ext in cfg_external_list]
+        cfg_list = self.instance.configuration.external_interfaces.get(kind, [])
+        declared_names = {item.get("name") for item in cfg_list}
+        if port_obj.name not in declared_names:
+            raise ValueError(f"External {kind} not declared: '{port_obj.name}' in {sorted(declared_names)}")
 
-    def _get_non_global_port_names(self, port_dict: Dict) -> List[str]:
-        """Get non-global port names from a port dictionary.
-        
-        Args:
-            port_dict: Dictionary of ports (in_ports or out_ports)
-            
-        Returns:
-            List of non-global port names
-        """
-        return [name for name, port in port_dict.items() if not port.is_global]
+        existing = port_dict.get(port_obj.name)
+        if existing:
+            if existing.msg_type != port_obj.msg_type:
+                raise ValueError(
+                    f"Message type mismatch: '{existing.port_path}' {existing.msg_type} != {port_obj.msg_type}"
+                )
+            existing.set_references(port_obj.reference)
+        else:
+            port_dict[port_obj.name] = port_obj
+
+    def set_in_port(self, in_port: InPort):  # external interface only
+        self._register_external_port(self.in_ports, in_port, "input")
+
+    def set_out_port(self, out_port: OutPort):  # external interface only
+        self._register_external_port(self.out_ports, out_port, "output")
 
     def _create_link_from_ports(self, from_port, to_port, connection_type: ConnectionType):
         """Create and append a link between two ports.
@@ -226,22 +134,69 @@ class LinkManager:
         link = Link(from_port.msg_type, from_port, to_port, self.instance.namespace, connection_type)
         self.links.append(link)
 
-    def _create_wildcard_links(self, connection: Connection, 
-                              from_port_names: List[str], to_port_names: List[str],
-                              from_instance, to_instance):
+    def _resolve_ports_for_connection(
+        self,
+        connection: Connection,
+        from_info: Dict[str, Any] | None,
+        to_info: Dict[str, Any] | None,
+    ) -> tuple[OutPort | InPort, OutPort | InPort]:
+        """Resolve concrete port objects for a connection, creating externals when needed."""
+
+        def _existing_port(info: Dict[str, Any] | None, accessor) -> OutPort | InPort | None:
+            if not info:
+                return None
+            port = info.get("port")
+            if port is not None:
+                return port
+            instance = info.get("instance")
+            if instance is None:
+                return None
+            return accessor(instance.link_manager, info["port_name"])
+
+        from_port = _existing_port(from_info, lambda lm, name: lm.get_out_port(name))
+        to_port = _existing_port(to_info, lambda lm, name: lm.get_in_port(name))
+
+        if connection.type == ConnectionType.EXTERNAL_TO_INTERNAL:
+            if to_port is None:
+                raise ValueError("Target internal port must exist for EXTERNAL_TO_INTERNAL connection")
+            port_name = (from_info or {}).get("port_name", connection.from_port_name)
+            from_port = InPort(port_name, to_port.msg_type, self.instance.namespace)
+        elif connection.type == ConnectionType.INTERNAL_TO_EXTERNAL:
+            if from_port is None:
+                raise ValueError("Source internal port must exist for INTERNAL_TO_EXTERNAL connection")
+            port_name = (to_info or {}).get("port_name", connection.to_port_name)
+            to_port = OutPort(port_name, from_port.msg_type, self.instance.namespace)
+            
+        if from_info is not None:
+            from_info["port"] = from_port
+        if to_info is not None:
+            to_info["port"] = to_port
+
+        return from_port, to_port
+
+    def _create_wildcard_links(
+        self,
+        connection: Connection,
+        port_list_from: Dict[str, Dict[str, Any]],
+        port_list_to: Dict[str, Dict[str, Any]],
+    ):
         """Create links for wildcard connections.
         
         Args:
             connection: Connection configuration
-            from_port_names: List of available source port names
-            to_port_names: List of available target port names
-            from_instance: Source instance (or None for external)
-            to_instance: Target instance (or None for external)
+            port_list_from: Mapping of source port keys to metadata dictionaries
+            port_list_to: Mapping of target port keys to metadata dictionaries
         """
+        # filter the port name lists only for target instance
+        from_idx = f"{connection.from_instance}.{connection.from_port_name}"
+        to_idx = f"{connection.to_instance}.{connection.to_port_name}"
+
         # Match and pair ports based on wildcard patterns
         port_pairs = match_and_pair_wildcard_ports(
-            connection.from_port_name, connection.to_port_name,
-            from_port_names, to_port_names
+            from_idx,
+            to_idx,
+            port_list_from,
+            port_list_to,
         )
         
         # Validate matched ports
@@ -251,107 +206,74 @@ class LinkManager:
             )
 
         # Create links for each matched pair
-        for from_port_name, to_port_name in port_pairs:
-            # Get or create from_port
-            if connection.type == ConnectionType.EXTERNAL_TO_INTERNAL:
-                # For external->internal, create InPort based on target's message type
-                to_port = to_instance.link_manager.get_in_port(to_port_name)
-                from_port = InPort(from_port_name, to_port.msg_type, self.instance.namespace)
-            else:
-                from_port = from_instance.link_manager.get_out_port(from_port_name)
-            
-            # Get or create to_port
-            if connection.type == ConnectionType.INTERNAL_TO_EXTERNAL:
-                to_port = OutPort(to_port_name, from_port.msg_type, self.instance.namespace)
-            else:
-                to_port = to_instance.link_manager.get_in_port(to_port_name)
-            
+        for from_key, to_key in port_pairs:
+            from_info = port_list_from.get(from_key)
+            to_info = port_list_to.get(to_key)
+
+            if from_info is None or to_info is None:
+                raise ValueError(f"Port metadata missing for pair: {from_key} -> {to_key}")
+
+            from_port, to_port = self._resolve_ports_for_connection(connection, from_info, to_info)
+
             self._create_link_from_ports(from_port, to_port, connection.type)
 
-    def _create_external_to_internal_link(self, connection: Connection):
-        """Create link from external input to internal input.
-        
-        Args:
-            connection: Connection configuration
-        """
-        to_instance = self.instance.get_child(connection.to_instance)
-        has_wildcard = "*" in connection.from_port_name or "*" in connection.to_port_name
-        
-        if has_wildcard:
-            from_port_names = self._get_external_interface_names("input")
-            to_port_names = self._get_non_global_port_names(to_instance.link_manager.in_ports)
-            self._create_wildcard_links(connection, from_port_names, to_port_names,
-                                       None, to_instance)
-        else:
-            to_port = to_instance.link_manager.get_in_port(connection.to_port_name)
-            from_port = InPort(connection.from_port_name, to_port.msg_type, self.instance.namespace)
-            self._create_link_from_ports(from_port, to_port, connection.type)
-
-    def _create_internal_to_internal_link(self, connection: Connection):
-        """Create link from internal output to internal input.
-        
-        Args:
-            connection: Connection configuration
-        """
-        from_instance = self.instance.get_child(connection.from_instance)
-        to_instance = self.instance.get_child(connection.to_instance)
-        has_wildcard = "*" in connection.from_port_name or "*" in connection.to_port_name
-        
-        if has_wildcard:
-            from_port_names = list(from_instance.link_manager.out_ports.keys())
-            to_port_names = list(to_instance.link_manager.in_ports.keys())
-            self._create_wildcard_links(connection, from_port_names, to_port_names,
-                                       from_instance, to_instance)
-        else:
-            from_port = from_instance.link_manager.get_out_port(connection.from_port_name)
-            to_port = to_instance.link_manager.get_in_port(connection.to_port_name)
-            self._create_link_from_ports(from_port, to_port, connection.type)
-
-    def _create_internal_to_external_link(self, connection: Connection):
-        """Create link from internal output to external output.
-        
-        Args:
-            connection: Connection configuration
-        """
-        from_instance = self.instance.get_child(connection.from_instance)
-        has_wildcard = "*" in connection.from_port_name or "*" in connection.to_port_name
-        
-        if has_wildcard:
-            from_port_names = self._get_non_global_port_names(from_instance.link_manager.out_ports)
-            to_port_names = self._get_external_interface_names("output")
-            self._create_wildcard_links(connection, from_port_names, to_port_names,
-                                       from_instance, None)
-        else:
-            from_port = from_instance.link_manager.get_out_port(connection.from_port_name)
-            to_port = OutPort(connection.to_port_name, from_port.msg_type, self.instance.namespace)
-            self._create_link_from_ports(from_port, to_port, connection.type)
 
     def set_links(self):
         """Set up links based on element connections."""
-        connection_list: List[Connection] = []
-        for cfg_connection in self.instance.configuration.connections:
-            connection_instance = Connection(cfg_connection)
-            connection_list.append(connection_instance)
+        connection_list: List[Connection] = [Connection(cfg) for cfg in self.instance.configuration.connections]
+
+        # dictionary of ports, having field of instance, port-name, port-type
+        port_list_from: Dict[str, Dict[str, Any]] = {}
+        port_list_to: Dict[str, Dict[str, Any]] = {}
+
+        # ports from children instances
+        for child_instance in self.instance.children.values():
+            for port_name, port in child_instance.link_manager.in_ports.items():
+                idx = f"{child_instance.name}.{port_name}"
+                port_list_to[idx] = {"instance": child_instance, "port_name": port_name, "port": port}
+            for port_name, port in child_instance.link_manager.out_ports.items():
+                idx = f"{child_instance.name}.{port_name}"
+                port_list_from[idx] = {"instance": child_instance, "port_name": port_name, "port": port}
+        # ports from external interfaces
+        external_interfaces = getattr(self.instance.configuration, "external_interfaces", None)
+        if isinstance(external_interfaces, dict):
+            for ext_input in external_interfaces.get("input", []):
+                port_name = ext_input.get("name")
+                idx = f".{port_name}"
+                port_list_from[idx] = {"instance": None, "port_name": port_name, "port": None}
+            for ext_output in external_interfaces.get("output", []):
+                port_name = ext_output.get("name")
+                idx = f".{port_name}"
+                port_list_to[idx] = {"instance": None, "port_name": port_name, "port": None}
 
         # Establish links based on connection type
         for connection in connection_list:
-            if connection.type == ConnectionType.EXTERNAL_TO_INTERNAL:
-                self._create_external_to_internal_link(connection)
-            elif connection.type == ConnectionType.INTERNAL_TO_INTERNAL:
-                self._create_internal_to_internal_link(connection)
-            elif connection.type == ConnectionType.INTERNAL_TO_EXTERNAL:
-                self._create_internal_to_external_link(connection)
+            wildcard_fields = [
+                connection.from_port_name or "",
+                connection.to_port_name or "",
+                connection.from_instance or "",
+                connection.to_instance or "",
+            ]
+            has_wildcard = any("*" in field for field in wildcard_fields)
+            if has_wildcard:
+                self._create_wildcard_links(connection, port_list_from, port_list_to)
+            else:
+                # set from_port and to_port
+                from_info = port_list_from.get(f"{connection.from_instance}.{connection.from_port_name}")
+                to_info = port_list_to.get(f"{connection.to_instance}.{connection.to_port_name}")
 
-    def create_external_ports(self, link_list):
+                from_port, to_port = self._resolve_ports_for_connection(connection, from_info, to_info)
+                self._create_link_from_ports(from_port, to_port, connection.type)
+
+        # Create external ports after links are set
+        self._create_external_ports()
+
+    def _create_external_ports(self):
         """Create external ports based on link list."""
-        # create in ports based on the link_list
-        for link in link_list:
-            # create port only if the namespace is the same as the instance
+        for link in self.links:
             if link.from_port.namespace == self.instance.namespace:
-                # set the in_port
                 self.set_in_port(link.from_port)
             if link.to_port.namespace == self.instance.namespace:
-                # set the out_port
                 self.set_out_port(link.to_port)
 
     def initialize_module_ports(self):
