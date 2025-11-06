@@ -32,40 +32,13 @@ debug_mode = True
 
 class Deployment:
     def __init__(self, architecture_config: ArchitectureConfig ):
-        # Parse architecture manifest directory: required (no legacy text file support)
-        architecture_yaml_list: list[str] = []
-        manifest_dir = architecture_config.architecture_manifest_dir
-        requested_domain = architecture_config.domain if architecture_config.domain else "shared"
-        if not os.path.isdir(manifest_dir):
-            raise ValidationError(f"Architecture manifest directory not found or not a directory: {manifest_dir}")
-        logger.info(f"Loading per-package architecture manifests from directory: {manifest_dir} (domain filter='{requested_domain}' + shared)")
-        for entry in sorted(os.listdir(manifest_dir)):
-            if not entry.endswith('.yaml'):
-                continue
-            manifest_file = os.path.join(manifest_dir, entry)
-            try:
-                manifest_yaml = yaml_parser.load_config(manifest_file)
-                manifest_domain = manifest_yaml.get('domain', 'shared')
-                # Skip manifests not matching requested domain or shared
-                if manifest_domain != 'shared' and manifest_domain != requested_domain:
-                    continue
-                files = manifest_yaml.get('architecture_config_files', [])
-                for f in files:
-                    file_path = f.get('path')
-                    if file_path and file_path not in architecture_yaml_list:
-                        architecture_yaml_list.append(file_path)
-            except Exception as e:
-                logger.warning(f"Failed to load manifest {manifest_file}: {e}")
-        logger.info(f"Collected {len(architecture_yaml_list)} unique architecture config files for domain '{requested_domain}'.")
-        if not architecture_yaml_list:
-            raise ValidationError(f"No architecture config files found for domain '{requested_domain}'.")
-
         # load yaml file
         self.config_yaml_dir = architecture_config.deployment_file
         self.config_yaml = yaml_parser.load_config(self.config_yaml_dir)
         self.name = self.config_yaml.get("name")
 
         # element collection
+        architecture_yaml_list = self._get_architecture_list(architecture_config)
         self.config_registry = ConfigRegistry(architecture_yaml_list)
 
         # Check the configuration
@@ -90,6 +63,27 @@ class Deployment:
         # set the vehicle individual parameters
         #   sensor calibration, vehicle parameters, map, etc.
 
+
+    def _get_architecture_list(self, architecture_config: ArchitectureConfig) -> list[str]:
+        architecture_list = []
+        manifest_dir = architecture_config.architecture_manifest_dir
+        if not os.path.isdir(manifest_dir):
+            raise ValidationError(f"Architecture manifest directory not found or not a directory: {manifest_dir}")
+        for entry in sorted(os.listdir(manifest_dir)):
+            if not entry.endswith('.yaml'):
+                continue
+            manifest_file = os.path.join(manifest_dir, entry)
+            try:
+                manifest_yaml = yaml_parser.load_config(manifest_file)
+                files = manifest_yaml.get('architecture_config_files', [])
+                for f in files:
+                    file_path = f.get('path')
+                    if file_path and file_path not in architecture_list:
+                        architecture_list.append(file_path)
+            except Exception as e:
+                logger.warning(f"Failed to load manifest {manifest_file}: {e}")
+        return architecture_list
+
     def _check_config(self) -> bool:
         # Check the name field
         deployment_config_fields = [
@@ -103,7 +97,6 @@ class Deployment:
                 raise ValidationError(
                     f"Field '{field}' is required in deployment configuration file {self.config_yaml_dir}"
                 )
-                return False
         return True
 
     def build(self):
@@ -210,9 +203,6 @@ class Deployment:
             generate_pipeline_launch_file(deploy_instance, mode_launcher_dir)
             
             logger.info(f"Generated launcher for mode: {mode_key}")
-
-        # 2. generate deployment launch file
-        # integrated all the module launch directly
 
     def generate_parameter_set_template(self):
         """Generate parameter set template using ParameterTemplateGenerator."""
