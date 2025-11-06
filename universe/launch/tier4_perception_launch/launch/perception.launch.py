@@ -263,11 +263,11 @@ def generate_autoware_architecture(deployment_file: str, mode: dict, parameters:
     architect_pkg_build_dir = os.path.join(workspace_root, 'build', 'autoware_architect')
     launcher_pkg_install_dir = get_package_share_directory('tier4_perception_launch')
 
-    architecture_config.architecture_yaml_list_file = os.path.join(architect_pkg_build_dir, "autoware_architect_config_file_list.txt")
+    architecture_config.architecture_manifest_dir = os.path.join(architect_pkg_build_dir, "autoware_architect_config_file_list.txt")
     architecture_config.deployment_file = os.path.join(launcher_pkg_install_dir, deployment_file)
     architecture_config.output_root_dir = os.path.join(launcher_pkg_install_dir)
 
-    logger.info("Architecture YAML List File: %s", architecture_config.architecture_yaml_list_file)
+    logger.info("Architecture YAML List File: %s", architecture_config.architecture_manifest_dir)
     logger.info("Deployment File: %s", architecture_config.deployment_file)
     logger.info("Output Root Dir: %s", architecture_config.output_root_dir)
 
