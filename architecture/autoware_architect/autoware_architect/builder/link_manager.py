@@ -242,67 +242,30 @@ class LinkManager:
     ) -> tuple[OutPort | InPort, OutPort | InPort]:
         """Resolve concrete port objects for a connection, creating externals when needed."""
 
-        from_port = from_info.get("port") if from_info else None
-        to_port = to_info.get("port") if to_info else None
+        def _existing_port(info: Dict[str, Any] | None, accessor) -> OutPort | InPort | None:
+            if not info:
+                return None
+            port = info.get("port")
+            if port is not None:
+                return port
+            instance = info.get("instance")
+            if instance is None:
+                return None
+            return accessor(instance.link_manager, info["port_name"])
+
+        from_port = _existing_port(from_info, lambda lm, name: lm.get_out_port(name))
+        to_port = _existing_port(to_info, lambda lm, name: lm.get_in_port(name))
 
         if connection.type == ConnectionType.EXTERNAL_TO_INTERNAL:
-            if to_port is None:
-                if to_info and to_info.get("instance"):
-                    instance = to_info["instance"]
-                    to_port = instance.link_manager.get_in_port(to_info["port_name"])
-                else:
-                    raise ValueError(
-                        f"Target internal port not found for '{connection.to_instance}.{connection.to_port_name}'"
-                    )
-
-            msg_type = to_port.msg_type
-
-            if from_port is None:
-                port_name = from_info.get("port_name") if from_info else connection.from_port_name
-                from_port = InPort(port_name, msg_type, self.instance.namespace)
-
+            port_name = from_info.get("port_name") if from_info else connection.from_port_name
+            from_port = InPort(port_name, to_port.msg_type, self.instance.namespace)
         elif connection.type == ConnectionType.INTERNAL_TO_EXTERNAL:
-            if from_port is None:
-                if from_info and from_info.get("instance"):
-                    instance = from_info["instance"]
-                    from_port = instance.link_manager.get_out_port(from_info["port_name"])
-                else:
-                    raise ValueError(
-                        f"Source internal port not found for '{connection.from_instance}.{connection.from_port_name}'"
-                    )
-
-            msg_type = from_port.msg_type
-
-            if to_port is None:
-                port_name = to_info.get("port_name") if to_info else connection.to_port_name
-                to_port = OutPort(port_name, msg_type, self.instance.namespace)
-
-        else:  # INTERNAL_TO_INTERNAL
-            if from_port is None:
-                if from_info and from_info.get("instance"):
-                    instance = from_info["instance"]
-                    from_port = instance.link_manager.get_out_port(from_info["port_name"])
-                else:
-                    raise ValueError(
-                        f"Source internal port not found for '{connection.from_instance}.{connection.from_port_name}'"
-                    )
-
-            if to_port is None:
-                if to_info and to_info.get("instance"):
-                    instance = to_info["instance"]
-                    to_port = instance.link_manager.get_in_port(to_info["port_name"])
-                else:
-                    raise ValueError(
-                        f"Target internal port not found for '{connection.to_instance}.{connection.to_port_name}'"
-                    )
-
-            msg_type = from_port.msg_type if from_port else to_port.msg_type
-
-        if msg_type is None:
-            raise ValueError(
-                f"Unable to determine message type for connection '{connection.from_port_name}' -> '{connection.to_port_name}'"
-            )
-
+            port_name = to_info.get("port_name") if to_info else connection.to_port_name
+            to_port = OutPort(port_name, from_port.msg_type, self.instance.namespace)
+        else:
+            # do nothing, both ports must exist
+            pass
+            
         if from_info is not None:
             from_info["port"] = from_port
         if to_info is not None:
