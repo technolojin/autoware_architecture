@@ -350,7 +350,13 @@ class LinkManager:
 
         # Establish links based on connection type
         for connection in connection_list:
-            has_wildcard = "*" in connection.from_port_name or "*" in connection.to_port_name
+            wildcard_fields = [connection.from_port_name, connection.to_port_name]
+            if connection.from_instance:
+                wildcard_fields.append(connection.from_instance)
+            if connection.to_instance:
+                wildcard_fields.append(connection.to_instance)
+
+            has_wildcard = any("*" in field for field in wildcard_fields)
 
             if has_wildcard:
                 self._create_wildcard_links(connection, port_list_from, port_list_to)
