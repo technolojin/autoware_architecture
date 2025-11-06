@@ -32,11 +32,26 @@ debug_mode = True
 
 class Deployment:
     def __init__(self, architecture_config: ArchitectureConfig ):
-
-        # parse the architecture yaml configuration list
-        # the list is a text file that contains directories of the yaml files
-        with open(architecture_config.architecture_yaml_list_file, "r") as file:
-            architecture_yaml_list = file.read().splitlines()
+        # Parse architecture manifest directory: required (no legacy text file support)
+        architecture_yaml_list: list[str] = []
+        manifest_dir = architecture_config.architecture_manifest_dir
+        if not os.path.isdir(manifest_dir):
+            raise ValidationError(f"Architecture manifest directory not found or not a directory: {manifest_dir}")
+        logger.info(f"Loading per-package architecture manifests from directory: {manifest_dir}")
+        for entry in sorted(os.listdir(manifest_dir)):
+            if not entry.endswith('.yaml'):
+                continue
+            manifest_file = os.path.join(manifest_dir, entry)
+            try:
+                manifest_yaml = yaml_parser.load_config(manifest_file)
+                files = manifest_yaml.get('architecture_config_files', [])
+                for f in files:
+                    file_path = f.get('path')
+                    if file_path and file_path not in architecture_yaml_list:
+                        architecture_yaml_list.append(file_path)
+            except Exception as e:
+                logger.warning(f"Failed to load manifest {manifest_file}: {e}")
+        logger.info(f"Collected {len(architecture_yaml_list)} unique architecture config files from manifests.")
 
         # load yaml file
         self.config_yaml_dir = architecture_config.deployment_file

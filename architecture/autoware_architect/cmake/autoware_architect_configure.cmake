@@ -16,28 +16,34 @@
 # collect all yaml files in the architecture directory
 # store the list in a shared file
 macro(autoware_architect_configure)
+  # Collect all yaml files in the package's architecture directory
   file(GLOB_RECURSE YAML_FILES "${CMAKE_CURRENT_SOURCE_DIR}/architecture/*.yaml")
-  # define the path to the shared file
-  set(shared_file "${CMAKE_BINARY_DIR}/../autoware_architect/autoware_architect_config_file_list.txt")
+
+  # Directory to place per-package manifest resources
+  set(resource_dir "${CMAKE_BINARY_DIR}/../autoware_architect/resource")
+  file(MAKE_DIRECTORY ${resource_dir})
+
+  # Per-package manifest file
+  set(manifest_file "${resource_dir}/${PROJECT_NAME}.yaml")
+
+  # Start (overwrite) manifest
+  file(WRITE ${manifest_file} "architecture_config_files:\n")
 
   foreach(YAML_FILE ${YAML_FILES})
-    # read the current content of the shared file
-    if(EXISTS ${shared_file})
-      file(READ ${shared_file} yaml_files_content)
-      string(REPLACE "\n" ";" yaml_files_list ${yaml_files_content})
-    else()
-      set(yaml_files_list "")
+    # Infer type from filename pattern
+    set(file_type "unknown")
+    if(YAML_FILE MATCHES ".*\\.module\\.yaml$")
+      set(file_type "module")
+    elseif(YAML_FILE MATCHES ".*\\.pipeline\\.yaml$")
+      set(file_type "pipeline")
+    elseif(YAML_FILE MATCHES ".*architecture\\.yaml$")
+      set(file_type "architecture")
     endif()
 
-    # check if the yaml file is already in the list
-    list(FIND yaml_files_list ${YAML_FILE} index)
-    if(index EQUAL -1)
-      # append the new yaml file to the shared file
-      file(APPEND ${shared_file} "${YAML_FILE}\n")
-      message(STATUS "Added to autoware_architect_yaml_file: ${YAML_FILE}")
-    else()
-      message(STATUS "Already registered: ${YAML_FILE}")
-    endif()
-
+    # Append entry to manifest
+    file(APPEND ${manifest_file} "  - path: ${YAML_FILE}\n")
+    file(APPEND ${manifest_file} "    type: ${file_type}\n")
   endforeach()
+
+  message(STATUS "autoware_architect: generated per-package manifest ${manifest_file} (files: ${YAML_FILES})")
 endmacro()

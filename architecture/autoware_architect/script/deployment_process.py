@@ -19,11 +19,11 @@ from autoware_architect.config import ArchitectureConfig
 
 # build the deployment
 # search and connect the connections between the modules
-def build(deployment_file: str, architecture_yaml_list_file: str, output_root_dir: str):
+def build(deployment_file: str, architecture_manifest_dir: str, output_root_dir: str):
     # Inputs:
-    #   deployment_file: a yaml file that contains the deployment configuration
-    #   architecture_yaml_list: a list of yaml file directories that contain the architecture configuration
-    #   output_root_dir: the root directory for the output files
+    #   deployment_file: YAML deployment configuration
+    #   architecture_manifest_dir: directory containing per-package manifest YAML files (each lists architecture_config_files)
+    #   output_root_dir: root directory for generated exports
 
     # configure the architecture
     architecture_config = ArchitectureConfig()
@@ -31,7 +31,7 @@ def build(deployment_file: str, architecture_yaml_list_file: str, output_root_di
     architecture_config.log_level = "INFO"
 
     architecture_config.deployment_file = deployment_file
-    architecture_config.architecture_yaml_list_file = architecture_yaml_list_file
+    architecture_config.architecture_manifest_dir = architecture_manifest_dir
     architecture_config.output_root_dir = output_root_dir
 
     logger = architecture_config.set_logging()

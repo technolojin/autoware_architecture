@@ -31,7 +31,7 @@ class ArchitectureConfig:
 
     # paths
     deployment_file: str = ""
-    architecture_yaml_list_file: str = ""
+    architecture_manifest_dir: str = ""
     output_root_dir: str = "build"
 
     @classmethod

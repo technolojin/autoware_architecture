@@ -14,9 +14,6 @@ ament_auto_package(
 
 autoware_architect_configure()
 
-# Call the function to get the final list of YAML files
-# autoware_architect_get_module_list()
-
 # Add a dummy library to make a target
 add_library(${PROJECT_NAME} SHARED src/empty.cpp)
 
