@@ -15,8 +15,8 @@
 macro(autoware_architect_build_deploy project_name deployment_file)
   set(BUILD_PY_SCRIPT "${CMAKE_BINARY_DIR}/../autoware_architect/script/deployment_process.py")
   set(DEPLOYMENT_FILE "${CMAKE_SOURCE_DIR}/deployment/${deployment_file}.yaml")
-  # Pass directory containing per-package manifests instead of single text file
-  set(ARCHITECTURE_MANIFEST_DIR "${CMAKE_BINARY_DIR}/../autoware_architect/resource")
+  # Pass directory containing per-package manifests
+  set(ARCHITECTURE_RESOURCE_DIR "${CMAKE_BINARY_DIR}/../autoware_architect/resource")
   set(OUTPUT_ROOT_DIR "${CMAKE_INSTALL_PREFIX}/share/${CMAKE_PROJECT_NAME}/")
   # Use CMAKE_BINARY_DIR to get to workspace root, then navigate to log directory
   get_filename_component(WORKSPACE_ROOT "${CMAKE_BINARY_DIR}/../.." ABSOLUTE)
@@ -25,7 +25,7 @@ macro(autoware_architect_build_deploy project_name deployment_file)
 
   # run build.py script, without target
   add_custom_target(run_build_py_${deployment_file} ALL
-    COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${ARCHITECT_SOURCE_DIR}:$ENV{PYTHONPATH} python3 -d ${BUILD_PY_SCRIPT} ${DEPLOYMENT_FILE} ${ARCHITECTURE_MANIFEST_DIR} ${OUTPUT_ROOT_DIR} > ${LOG_FILE} 2>&1
+    COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${ARCHITECT_SOURCE_DIR}:$ENV{PYTHONPATH} python3 -d ${BUILD_PY_SCRIPT} ${DEPLOYMENT_FILE} ${ARCHITECTURE_RESOURCE_DIR} ${OUTPUT_ROOT_DIR} > ${LOG_FILE} 2>&1
     COMMENT "Running build.py script from autoware_architect package. Check the log file at ${LOG_FILE} for details."
   )
 
