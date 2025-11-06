@@ -35,15 +35,20 @@ class Deployment:
         # Parse architecture manifest directory: required (no legacy text file support)
         architecture_yaml_list: list[str] = []
         manifest_dir = architecture_config.architecture_manifest_dir
+        requested_domain = architecture_config.domain if architecture_config.domain else "shared"
         if not os.path.isdir(manifest_dir):
             raise ValidationError(f"Architecture manifest directory not found or not a directory: {manifest_dir}")
-        logger.info(f"Loading per-package architecture manifests from directory: {manifest_dir}")
+        logger.info(f"Loading per-package architecture manifests from directory: {manifest_dir} (domain filter='{requested_domain}' + shared)")
         for entry in sorted(os.listdir(manifest_dir)):
             if not entry.endswith('.yaml'):
                 continue
             manifest_file = os.path.join(manifest_dir, entry)
             try:
                 manifest_yaml = yaml_parser.load_config(manifest_file)
+                manifest_domain = manifest_yaml.get('domain', 'shared')
+                # Skip manifests not matching requested domain or shared
+                if manifest_domain != 'shared' and manifest_domain != requested_domain:
+                    continue
                 files = manifest_yaml.get('architecture_config_files', [])
                 for f in files:
                     file_path = f.get('path')
@@ -51,7 +56,9 @@ class Deployment:
                         architecture_yaml_list.append(file_path)
             except Exception as e:
                 logger.warning(f"Failed to load manifest {manifest_file}: {e}")
-        logger.info(f"Collected {len(architecture_yaml_list)} unique architecture config files from manifests.")
+        logger.info(f"Collected {len(architecture_yaml_list)} unique architecture config files for domain '{requested_domain}'.")
+        if not architecture_yaml_list:
+            raise ValidationError(f"No architecture config files found for domain '{requested_domain}'.")
 
         # load yaml file
         self.config_yaml_dir = architecture_config.deployment_file

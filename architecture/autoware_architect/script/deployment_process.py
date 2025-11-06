@@ -19,7 +19,7 @@ from autoware_architect.config import ArchitectureConfig
 
 # build the deployment
 # search and connect the connections between the modules
-def build(deployment_file: str, architecture_manifest_dir: str, output_root_dir: str):
+def build(deployment_file: str, architecture_manifest_dir: str, output_root_dir: str, domain: str):
     # Inputs:
     #   deployment_file: YAML deployment configuration
     #   architecture_manifest_dir: directory containing per-package manifest YAML files (each lists architecture_config_files)
@@ -33,6 +33,7 @@ def build(deployment_file: str, architecture_manifest_dir: str, output_root_dir:
     architecture_config.deployment_file = deployment_file
     architecture_config.architecture_manifest_dir = architecture_manifest_dir
     architecture_config.output_root_dir = output_root_dir
+    architecture_config.domain = domain
 
     logger = architecture_config.set_logging()
 
@@ -60,4 +61,6 @@ def build(deployment_file: str, architecture_manifest_dir: str, output_root_dir:
 
 
 if __name__ == "__main__":
-    build(sys.argv[1], sys.argv[2], sys.argv[3])
+    if len(sys.argv) < 5:
+        raise SystemExit("Usage: deployment_process.py <deployment_file> <manifest_dir> <output_root_dir> <domain>")
+    build(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])

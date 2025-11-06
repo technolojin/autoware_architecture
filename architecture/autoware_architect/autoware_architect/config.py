@@ -33,6 +33,7 @@ class ArchitectureConfig:
     deployment_file: str = ""
     architecture_manifest_dir: str = ""
     output_root_dir: str = "build"
+    domain: str = "shared"
 
     @classmethod
     def from_env(cls) -> 'ArchitectureConfig':
