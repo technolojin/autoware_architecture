@@ -222,13 +222,13 @@ class Deployment:
             # Create parameter template generator and generate the template
             generator = ParameterTemplateGenerator(deploy_instance)
             template_name = f"{self.name}_{mode_key}" if mode_key != "default" else self.name
-            output_path = generator.generate_parameter_set_template(
-                template_name, 
-                renderer, 
+            output_path_list = generator.generate_parameter_set_template(
+                template_name,
+                renderer,
                 mode_parameter_dir
             )
-            
-            output_paths[mode_key] = output_path
-            logger.info(f"Generated parameter set template for mode: {mode_key}")
+
+            output_paths[mode_key] = output_path_list
+            logger.info(f"Generated {len(output_path_list)} parameter set templates for mode: {mode_key}")
         
         return output_paths

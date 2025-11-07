@@ -45,49 +45,49 @@ class ParameterTemplateGenerator:
     # Public API Methods
     # =========================================================================
     
-    def generate_parameter_set_template(self, deployment_name: str, 
-                                      template_renderer, output_dir: str) -> str:
-        """Generate parameter set template for the entire deployment.
-        
-        Args:
-            deployment_name: Name of the deployment
-            template_renderer: Template renderer instance
-            output_dir: Output directory for the template file
-            
+    def generate_parameter_set_template(self, deployment_name: str,
+                                        template_renderer, output_dir: str) -> List[str]:
+        """Generate per-component parameter set templates.
+
+        Instead of one aggregated template, create a separate parameter_set
+        template (and directory structure) for each top-level component under
+        the deployment root instance.
+
         Returns:
-            Path to the generated template file
+            List of generated template file paths (one per component). If the
+            deployment has no children, a single template is generated for the
+            whole deployment.
         """
-        # Create parameter set directory structure
-        parameter_set_root = os.path.join(output_dir, f"{deployment_name}.parameter_set")
-        os.makedirs(parameter_set_root, exist_ok=True)
-        
-        # Collect all module parameter data
-        module_data = self.collect_module_parameter_files_for_template()
-        
-        # Copy config files to namespace structure and update paths
-        for module in module_data:
-            self._create_namespace_structure_and_copy_configs(module, parameter_set_root)
-        
-        # Prepare template data
-        template_data = {
-            "name": f"{deployment_name}.parameter_set",
-            "parameters": module_data
-        }
-        
-        # Generate output filename
-        output_filename = f"{deployment_name}.parameter_set.yaml"
-        output_path = os.path.join(output_dir, output_filename)
-        
-        # Render template
-        template_renderer.render_template_to_file(
-            "parameter_set.yaml.jinja2", 
-            output_path, 
-            **template_data
-        )
-        
-        logger.info(f"Generated parameter set template: {output_path}")
-        logger.info(f"Generated parameter set structure at: {parameter_set_root}")
-        return output_path
+
+        # Collect all component module data first (no file creation yet)
+        component_modules: Dict[str, List[Dict[str, Any]]] = {}
+        for comp_name, comp_instance in self.root_instance.children.items():
+            modules: List[Dict[str, Any]] = []
+            self._collect_module_parameter_files_recursive(comp_instance, modules, "")
+            component_modules[comp_name] = modules
+
+        # Single root directory for the whole architecture
+        architecture_root = os.path.join(output_dir, f"{deployment_name}.parameter_set")
+        os.makedirs(architecture_root, exist_ok=True)
+
+        # Create namespace structure and empty config files once (architecture-wide)
+        for modules in component_modules.values():
+            for module in modules:
+                self._create_namespace_structure_and_copy_configs(module, architecture_root)
+
+        # Generate per-component templates referencing shared architecture_root paths
+        generated: List[str] = []
+        for comp_name, modules in component_modules.items():
+            output_path = os.path.join(output_dir, f"{deployment_name}.{comp_name}.parameter_set.yaml")
+            template_renderer.render_template_to_file(
+                "parameter_set.yaml.jinja2",
+                output_path,
+                name=f"{deployment_name}.{comp_name}.parameter_set",
+                parameters=modules,
+            )
+            logger.info(f"Generated component parameter set template: {output_path} (shared root: {architecture_root})")
+            generated.append(output_path)
+        return generated
     
     def collect_module_parameter_files_for_template(self, base_namespace: str = "") -> List[Dict[str, Any]]:
         """Collect parameter template data for all modules in the deployment instance.
