@@ -36,11 +36,12 @@ macro(autoware_architect_build_deploy project_name)
   get_filename_component(WORKSPACE_ROOT "${CMAKE_BINARY_DIR}/../.." ABSOLUTE)
   set(LOG_FILE "${WORKSPACE_ROOT}/log/latest_build/${CMAKE_PROJECT_NAME}/build_${_INPUT_NAME}.log")
 
-  # Resolve actual file path based on extension only (no synthetic generation)
   if(_INPUT_NAME MATCHES ".*\\.architecture$")
+    # If the input is an architecture file, use it directly.
     set(_DEPLOYMENT_FILE "${_INPUT_NAME}")
     set(_LOG_DESC "(architecture=${_INPUT_NAME})")
   else()
+    # If it's a deployment name, resolve to the deployment file path.
     set(_DEPLOYMENT_FILE "${CMAKE_SOURCE_DIR}/deployment/${_INPUT_NAME}.yaml")
     set(_LOG_DESC "(deployment=${_INPUT_NAME})")
     if(NOT EXISTS "${_DEPLOYMENT_FILE}")
