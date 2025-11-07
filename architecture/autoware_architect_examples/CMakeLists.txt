@@ -18,4 +18,4 @@ autoware_architect_generate_launcher()
 # Add a dummy library to make a target
 add_library(${PROJECT_NAME} SHARED src/empty.cpp)
 
-autoware_architect_build_deploy(${PROJECT_NAME} vehicle_x.deployment example)
+autoware_architect_build_deploy(${PROJECT_NAME} vehicle_x.deployment example;dummy_modules)

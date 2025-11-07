@@ -65,23 +65,34 @@ class Deployment:
 
 
     def _get_architecture_list(self, architecture_config: ArchitectureConfig) -> list[str]:
-        architecture_list = []
+        architecture_list: list[str] = []
         manifest_dir = architecture_config.architecture_manifest_dir
         if not os.path.isdir(manifest_dir):
             raise ValidationError(f"Architecture manifest directory not found or not a directory: {manifest_dir}")
+
+        # domains to include (always includes 'shared')
+        domains_filter = set(architecture_config.effective_domains())
+        logger.info(f"Domain filter active: {sorted(domains_filter)}")
+
         for entry in sorted(os.listdir(manifest_dir)):
             if not entry.endswith('.yaml'):
                 continue
             manifest_file = os.path.join(manifest_dir, entry)
             try:
                 manifest_yaml = yaml_parser.load_config(manifest_file)
+                manifest_domain = manifest_yaml.get('domain', 'shared')
+                if manifest_domain not in domains_filter:
+                    logger.debug(f"Skipping manifest '{entry}' (domain='{manifest_domain}' not in filter)")
+                    continue
                 files = manifest_yaml.get('architecture_config_files', [])
                 for f in files:
-                    file_path = f.get('path')
+                    file_path = f.get('path') if isinstance(f, dict) else None
                     if file_path and file_path not in architecture_list:
                         architecture_list.append(file_path)
             except Exception as e:
                 logger.warning(f"Failed to load manifest {manifest_file}: {e}")
+        if not architecture_list:
+            raise ValidationError(f"No architecture configuration files collected (domains={sorted(domains_filter)}).")
         return architecture_list
 
     def _check_config(self) -> bool:

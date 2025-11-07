@@ -13,21 +13,28 @@
 # limitations under the License.
 
 macro(autoware_architect_build_deploy project_name)
-  # Invocation patterns:
-  #   autoware_architect_build_deploy(<project> <deployment_file>)
-  #   autoware_architect_build_deploy(<project> <domain> <deployment_file>)
+  # Supported invocation patterns (>=2 extra args):
+  #   autoware_architect_build_deploy(<project> <deployment_file> <domain>)
+  #   autoware_architect_build_deploy(<project> <deployment_file> <domain1> <domain2> ...)
+  #   autoware_architect_build_deploy(<project> <deployment_file> domain1;domain2)  # semicolon list as single arg
+  # Bracket list syntax is deprecated and no longer documented.
   set(_EXTRA_ARGS ${ARGN})
   list(LENGTH _EXTRA_ARGS _EXTRA_LEN)
-  if(_EXTRA_LEN EQUAL 1)
-    # Only deployment file provided
-    list(GET _EXTRA_ARGS 0 _DEPLOYMENT_FILE_NAME)
-    set(_DEPLOY_DOMAIN "shared")
-  elseif(_EXTRA_LEN EQUAL 2)
-    list(GET _EXTRA_ARGS 0 _DEPLOYMENT_FILE_NAME)
-    list(GET _EXTRA_ARGS 1 _DEPLOY_DOMAIN)
-  else()
-    message(FATAL_ERROR "autoware_architect_build_deploy: expected 1 or 2 extra args (deployment_file | domain deployment_file), got ${_EXTRA_LEN}: ${_EXTRA_ARGS}")
+  if(_EXTRA_LEN LESS 2)
+    message(FATAL_ERROR "autoware_architect_build_deploy: expected at least 2 extra args (<deployment_file> <domain>[ <domain>...]), got ${_EXTRA_LEN}: ${_EXTRA_ARGS}")
   endif()
+  # First arg is deployment file (without .yaml extension)
+  list(GET _EXTRA_ARGS 0 _DEPLOYMENT_FILE_NAME)
+  # Remaining args are domain tokens (one can be a semicolon list)
+  list(REMOVE_AT _EXTRA_ARGS 0)
+  # Flatten potential semicolon list into individual tokens
+  set(_FLATTENED_DOMAINS "")
+  foreach(_ITEM IN LISTS _EXTRA_ARGS)
+    string(REPLACE ";" ";" _ITEM_CLEAN "${_ITEM}")  # noop, keeps list semantics
+    list(APPEND _FLATTENED_DOMAINS ${_ITEM_CLEAN})
+  endforeach()
+  # Join all remaining domain tokens with semicolons for python script
+  string(JOIN ";" _DEPLOY_DOMAINS ${_FLATTENED_DOMAINS})
 
   if("${_DEPLOYMENT_FILE_NAME}" STREQUAL "")
     message(FATAL_ERROR "autoware_architect_build_deploy: empty deployment file name (args=${_EXTRA_ARGS})")
@@ -43,13 +50,13 @@ macro(autoware_architect_build_deploy project_name)
   set(ARCHITECT_SOURCE_DIR "${CMAKE_SOURCE_DIR}/../architecture/autoware_architect")
 
   # run build.py script, without target
-  if("${_DEPLOY_DOMAIN}" STREQUAL "")
-    set(_DEPLOY_DOMAIN "shared")
+  if("${_DEPLOY_DOMAINS}" STREQUAL "")
+    message(FATAL_ERROR "autoware_architect_build_deploy: domains list empty for deployment '${_DEPLOYMENT_FILE_NAME}'")
   endif()
 
   add_custom_target(run_build_py_${_DEPLOYMENT_FILE_NAME} ALL
-    COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${ARCHITECT_SOURCE_DIR}:$ENV{PYTHONPATH} python3 -d ${BUILD_PY_SCRIPT} ${DEPLOYMENT_FILE} ${ARCHITECTURE_RESOURCE_DIR} ${OUTPUT_ROOT_DIR} ${_DEPLOY_DOMAIN} > ${LOG_FILE} 2>&1
-    COMMENT "Running build.py script from autoware_architect package (domain=${_DEPLOY_DOMAIN}). Check the log file at ${LOG_FILE} for details."
+    COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${ARCHITECT_SOURCE_DIR}:$ENV{PYTHONPATH} python3 -d ${BUILD_PY_SCRIPT} ${DEPLOYMENT_FILE} ${ARCHITECTURE_RESOURCE_DIR} ${OUTPUT_ROOT_DIR} ${_DEPLOY_DOMAINS} > ${LOG_FILE} 2>&1
+    COMMENT "Running build.py script from autoware_architect package (domains=${_DEPLOY_DOMAINS}). Check the log file at ${LOG_FILE} for details."
   )
 
   # add dependencies to trigger the build.py script when building the project
