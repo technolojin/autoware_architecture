@@ -402,14 +402,12 @@ def generate_launch_description():
     add_launch_arg("traffic_light_recognition/use_high_accuracy_detection", default_value="true") # filter on/off
     add_launch_arg("traffic_light_recognition/high_accuracy_detection_type", default_value="fine_detection") # filter mode, whole_image_detection or fine_detection
 
-
-
     # determine mode
     deployment_file = "deployment/universe_perception_clr_centerpoint_serial.deployment.yaml"
 
     # Setup launcher file path
     launcher_pkg_install_dir = get_package_share_directory('tier4_perception_launch')
-    launcher_path = "exports/universe_perception_clr_centerpoint_serial.deployment/launcher/Runtime/main_ecu/perception/perception.launch.xml"
+    launcher_path = "exports/CameraLidarRadarCenterpointSerial.architecture.deployment/launcher/Runtime/main_ecu/perception/perception.launch.xml"
     launcher_file = os.path.join(launcher_pkg_install_dir, launcher_path)
 
     # Create the pointcloud container

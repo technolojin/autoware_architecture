@@ -80,7 +80,7 @@ class Deployment:
             manifest_file = os.path.join(manifest_dir, entry)
             try:
                 manifest_yaml = yaml_parser.load_config(manifest_file)
-                manifest_domain = manifest_yaml.get('domain', 'shared')
+                manifest_domain = manifest_yaml.get('domain', 'shared') # default to 'shared' if missing
                 if manifest_domain not in domains_filter:
                     logger.debug(f"Skipping manifest '{entry}' (domain='{manifest_domain}' not in filter)")
                     continue
@@ -107,18 +107,44 @@ class Deployment:
         return architecture_list
 
     def _check_config(self) -> bool:
-        # Check the name field
-        deployment_config_fields = [
-            "name",
-            "architecture",
-            "vehicle_parameters",
-            "environment_parameters",
-        ]
-        for field in deployment_config_fields:
+        """Validate & normalize deployment configuration.
+
+        Two supported input forms:
+        1. Deployment YAML (fields: name, architecture, vehicle_parameters, environment_parameters)
+        2. Raw Architecture YAML (only 'name' ending with '.architecture'). We synthesize a minimal
+           deployment in-memory (no vehicles / environment parameters) so downstream logic works.
+        """
+        is_wrapped_architecture = False
+        name_field = self.config_yaml.get('name')
+
+        # Detect architecture-only YAML: no 'architecture' key and name endswith .architecture
+        if 'architecture' not in self.config_yaml and isinstance(name_field, str) and name_field.endswith('.architecture'):
+            logger.info(f"Deployment: synthesizing minimal deployment from architecture file '{self.config_yaml_dir}'")
+            self.config_yaml['architecture'] = name_field
+            self.config_yaml.setdefault('vehicle_parameters', [])
+            self.config_yaml.setdefault('environment_parameters', [])
+            is_wrapped_architecture = True
+
+        # Validate required fields now present
+        for field in ['name', 'architecture']:
             if field not in self.config_yaml:
                 raise ValidationError(
                     f"Field '{field}' is required in deployment configuration file {self.config_yaml_dir}"
                 )
+
+        # Optional lists: default to empty if omitted
+        if 'vehicle_parameters' not in self.config_yaml:
+            self.config_yaml['vehicle_parameters'] = []
+        if 'environment_parameters' not in self.config_yaml:
+            self.config_yaml['environment_parameters'] = []
+
+        if is_wrapped_architecture:
+            logger.debug("Synthesized deployment config: %s", {
+                'name': self.config_yaml.get('name'),
+                'architecture': self.config_yaml.get('architecture'),
+                'vehicle_parameters': self.config_yaml.get('vehicle_parameters'),
+                'environment_parameters': self.config_yaml.get('environment_parameters'),
+            })
         return True
 
     def build(self):
