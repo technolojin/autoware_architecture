@@ -84,7 +84,18 @@ class Deployment:
                 if manifest_domain not in domains_filter:
                     logger.debug(f"Skipping manifest '{entry}' (domain='{manifest_domain}' not in filter)")
                     continue
-                files = manifest_yaml.get('architecture_config_files', [])
+                files = manifest_yaml.get('architecture_config_files')
+                # Allow the field to be empty or null without raising an error
+                if files in (None, []):
+                    logger.debug(
+                        f"Manifest '{entry}' has empty architecture_config_files; skipping."
+                    )
+                    continue
+                if not isinstance(files, list):
+                    logger.warning(
+                        f"Manifest '{entry}' has unexpected type for architecture_config_files: {type(files)}; skipping."
+                    )
+                    continue
                 for f in files:
                     file_path = f.get('path') if isinstance(f, dict) else None
                     if file_path and file_path not in architecture_list:
