@@ -13,34 +13,12 @@
 # limitations under the License.
 
 import sys
-from typing import List
-
 from autoware_architect.deployment import Deployment
 from autoware_architect.config import ArchitectureConfig
 
-
-def _parse_domains(domains_arg: str) -> List[str]:
-    """Parse a domain argument which may be:
-    - single token (e.g. "example")
-    - bracket list: "[example, deploy_a]"
-    - comma or semicolon separated list: "example,deploy_a" or "example;deploy_a"
-    Always append 'shared' if missing.
-    """
-    if not domains_arg:
-        return ["shared"]
-    s = domains_arg.strip()
-    if s.startswith("[") and s.endswith("]"):
-        s = s[1:-1]
-    # unify separators to comma
-    s = s.replace(";", ",")
-    parts = [p.strip() for p in s.split(",") if p.strip()]
-    if "shared" not in parts:
-        parts.append("shared")
-    return parts
-
 # build the deployment
 # search and connect the connections between the modules
-def build(deployment_file: str, architecture_manifest_dir: str, output_root_dir: str, domains_raw: str):
+def build(deployment_file: str, architecture_manifest_dir: str, output_root_dir: str, domains: list[str]):
     # Inputs:
     #   deployment_file: YAML deployment configuration
     #   architecture_manifest_dir: directory containing per-package manifest YAML files (each lists architecture_config_files)
@@ -54,8 +32,7 @@ def build(deployment_file: str, architecture_manifest_dir: str, output_root_dir:
     architecture_config.deployment_file = deployment_file
     architecture_config.architecture_manifest_dir = architecture_manifest_dir
     architecture_config.output_root_dir = output_root_dir
-    parsed_domains = _parse_domains(domains_raw)
-    architecture_config.domains = parsed_domains
+    architecture_config.domains = domains
 
     logger = architecture_config.set_logging()
 
@@ -83,14 +60,18 @@ def build(deployment_file: str, architecture_manifest_dir: str, output_root_dir:
 
 
 if __name__ == "__main__":
-    # Accept variable number of domain arguments:
-    #   deployment_process.py <deployment_file> <manifest_dir> <output_root_dir> <domain1> [domain2 ...]
-    # If multiple domains passed as separate args, we aggregate them.
-    if len(sys.argv) < 5:
-        raise SystemExit("Usage: deployment_process.py <deployment_file> <manifest_dir> <output_root_dir> <domain1> [domain2 ...]")
-    if len(sys.argv) == 5:
-        domains_arg = sys.argv[4]
+    # Usage: deployment_process.py <deployment_file> <manifest_dir> <output_root_dir> [domain1 [domain2 ...]]
+    # If no domains provided, pass empty list; 'shared' will be added later by effective_domains().
+    if len(sys.argv) < 4:
+        raise SystemExit("Usage: deployment_process.py <deployment_file> <manifest_dir> <output_root_dir> [domain1 [domain2 ...]]")
+    deployment_file = sys.argv[1]
+    manifest_dir = sys.argv[2]
+    output_root_dir = sys.argv[3]
+    domain_args = sys.argv[4:]
+
+    if len(domain_args) == 1 and (';' in domain_args[0]):
+        domains = [d.strip() for d in domain_args[0].split(';') if d.strip()]
     else:
-        # Join remaining domains into bracket list for parser clarity
-        domains_arg = "[" + ",".join(sys.argv[4:]) + "]"
-    build(sys.argv[1], sys.argv[2], sys.argv[3], domains_arg)
+        domains = [d.strip() for d in domain_args if d.strip()]
+
+    build(deployment_file, manifest_dir, output_root_dir, domains)
