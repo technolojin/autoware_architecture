@@ -266,6 +266,7 @@ def generate_autoware_architecture(deployment_file: str, mode: dict, parameters:
     architecture_config.architecture_manifest_dir = os.path.join(architect_pkg_build_dir, "resource")
     architecture_config.deployment_file = os.path.join(launcher_pkg_install_dir, deployment_file)
     architecture_config.output_root_dir = os.path.join(launcher_pkg_install_dir)
+    architecture_config.domains = ['shared', 'dummy_modules']
 
     logger.info("Architecture YAML List File: %s", architecture_config.architecture_manifest_dir)
     logger.info("Deployment File: %s", architecture_config.deployment_file)
