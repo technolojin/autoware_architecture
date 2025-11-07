@@ -21,8 +21,11 @@ from dataclasses import dataclass
 
 @dataclass
 class ArchitectureConfig:
-    """Configuration class for the architecture system."""
-    
+    """Configuration class for the architecture system.
+    domains:
+      - `domains` is the list of active domains provided externally.
+      - 'shared' is automatically appended if missing.
+    """
     debug_mode: bool = False
     layer_limit: int = 50
     log_level: str = "INFO"
@@ -33,7 +36,7 @@ class ArchitectureConfig:
     deployment_file: str = ""
     architecture_manifest_dir: str = ""
     output_root_dir: str = "build"
-    domain: str = "shared"
+    domains: list[str] | None = None
 
     @classmethod
     def from_env(cls) -> 'ArchitectureConfig':
@@ -45,29 +48,36 @@ class ArchitectureConfig:
             cache_enabled=os.getenv('AUTOWARE_ARCHITECT_CACHE_ENABLED', 'true').lower() == 'true',
             max_cache_size=int(os.getenv('AUTOWARE_ARCHITECT_MAX_CACHE_SIZE', '128'))
         )
-    
+
     def set_logging(self) -> logging.Logger:
         """Setup logging based on configuration."""
         logger = logging.getLogger('autoware_architect')
-        
         # Clear existing handlers
         logger.handlers.clear()
-        
         # Create handler
         handler = logging.StreamHandler()
-        formatter = logging.Formatter(
-            '%(name)s - %(levelname)s - %(message)s'
-        )
+        formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         logger.addHandler(handler)
-        
         # Set level
         level = getattr(logging, self.log_level.upper(), logging.INFO)
         if self.debug_mode:
             level = logging.DEBUG
         logger.setLevel(level)
-        
         return logger
+
+    def effective_domains(self) -> list[str]:
+        """Return active domains (deduped, ordered) including 'shared'."""
+        raw = [d.strip() for d in (self.domains or []) if d and d.strip()]
+        if 'shared' not in raw:
+            raw.append('shared')
+        ordered: list[str] = []
+        seen = set()
+        for d in raw:
+            if d not in seen:
+                ordered.append(d)
+                seen.add(d)
+        return ordered
 
 
 # Global configuration instance

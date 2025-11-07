@@ -18,5 +18,5 @@ autoware_architect_configure()
 add_library(${PROJECT_NAME} SHARED src/empty.cpp)
 
 # Call the function to build and deploy the modules
-autoware_architect_build_deploy(${PROJECT_NAME} catalog.deployment)
+autoware_architect_build_deploy(${PROJECT_NAME} catalog.deployment dummy_modules)
 
