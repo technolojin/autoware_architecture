@@ -1,8 +1,0 @@
-name: universe_perception_clr_centerpoint_parallel.deployment
-
-architecture: CameraLidarRadarCenterpointParallel.architecture
-
-vehicle_parameters:
-  - vehicle_id: virtual_vehicle_01
-
-environment_parameters: []

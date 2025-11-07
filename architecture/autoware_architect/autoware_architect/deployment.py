@@ -32,14 +32,30 @@ debug_mode = True
 
 class Deployment:
     def __init__(self, architecture_config: ArchitectureConfig ):
-        # load yaml file
-        self.config_yaml_dir = architecture_config.deployment_file
-        self.config_yaml = yaml_parser.load_config(self.config_yaml_dir)
-        self.name = self.config_yaml.get("name")
-
         # element collection
         architecture_yaml_list = self._get_architecture_list(architecture_config)
         self.config_registry = ConfigRegistry(architecture_yaml_list)
+
+        # detect mode of input file (deployment vs architecture only)
+        # if deployment_file ends with .architecture, it's an architecture-only file
+        logger.info("deployment init Deployment file: %s", architecture_config.deployment_file)
+        if architecture_config.deployment_file.endswith(".architecture"):
+            logger.info("Detected architecture-only deployment file.")
+            # need to parse the absolute path of the file from the config_registry
+            # generate deployment config in-memory
+            self.config_yaml_dir = architecture_config.deployment_file
+            self.config_yaml = {}
+            self.config_yaml['architecture'] = architecture_config.deployment_file
+            self.config_yaml['name'] = architecture_config.deployment_file
+            self.config_yaml.setdefault('vehicle_parameters', [])
+            self.config_yaml.setdefault('environment_parameters', [])
+            self.name = self.config_yaml.get("name")
+
+        else:
+            # input is a deployment file
+            self.config_yaml_dir = architecture_config.deployment_file
+            self.config_yaml = yaml_parser.load_config(self.config_yaml_dir)
+            self.name = self.config_yaml.get("name")
 
         # Check the configuration
         self._check_config()
@@ -114,17 +130,6 @@ class Deployment:
         2. Raw Architecture YAML (only 'name' ending with '.architecture'). We synthesize a minimal
            deployment in-memory (no vehicles / environment parameters) so downstream logic works.
         """
-        is_wrapped_architecture = False
-        name_field = self.config_yaml.get('name')
-
-        # Detect architecture-only YAML: no 'architecture' key and name endswith .architecture
-        if 'architecture' not in self.config_yaml and isinstance(name_field, str) and name_field.endswith('.architecture'):
-            logger.info(f"Deployment: synthesizing minimal deployment from architecture file '{self.config_yaml_dir}'")
-            self.config_yaml['architecture'] = name_field
-            self.config_yaml.setdefault('vehicle_parameters', [])
-            self.config_yaml.setdefault('environment_parameters', [])
-            is_wrapped_architecture = True
-
         # Validate required fields now present
         for field in ['name', 'architecture']:
             if field not in self.config_yaml:
@@ -138,13 +143,6 @@ class Deployment:
         if 'environment_parameters' not in self.config_yaml:
             self.config_yaml['environment_parameters'] = []
 
-        if is_wrapped_architecture:
-            logger.debug("Synthesized deployment config: %s", {
-                'name': self.config_yaml.get('name'),
-                'architecture': self.config_yaml.get('architecture'),
-                'vehicle_parameters': self.config_yaml.get('vehicle_parameters'),
-                'environment_parameters': self.config_yaml.get('environment_parameters'),
-            })
         return True
 
     def build(self):

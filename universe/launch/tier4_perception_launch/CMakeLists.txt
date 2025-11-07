@@ -25,3 +25,5 @@ autoware_architect_build_deploy(${PROJECT_NAME} CameraLidarRadarCenterpointSeria
 autoware_architect_build_deploy(${PROJECT_NAME} CameraLidarRadarPointpaintingSerial.architecture dummy_modules)
 autoware_architect_build_deploy(${PROJECT_NAME} LidarCenterpoint.architecture dummy_modules)
 autoware_architect_build_deploy(${PROJECT_NAME} LidarTransfusion.architecture dummy_modules)
+
+autoware_architect_build_deploy(${PROJECT_NAME} universe_perception_clr_centerpoint_serial.deployment dummy_modules)
