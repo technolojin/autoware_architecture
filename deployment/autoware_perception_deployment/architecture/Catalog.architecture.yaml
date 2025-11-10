@@ -1,36 +1,5 @@
 name: Catalog.architecture
 
-depends:
-  # dummy
-  - CameraDummy.pipeline
-
-  # segmentation
-  - VoxelBasedCompareMapFilter.module
-  - ScanGroundFilter.module
-  # camera-lidar fusion
-  - PointPaintingFusion.module
-  - RoiDetectedObjectFusion.module
-
-  # filter
-  - ObjectLaneletFilter.module
-  # merger
-  - DecorativeTrackerMerger.module
-  - ObjectAssociationMerger.module
-
-  # tracker
-  - DetectionByTracker.module
-  - MultiObjectTracker.module
-
-  # pipeline
-  - CameraLidarFusion.pipeline
-  - LidarClusteringCameraFusion.pipeline
-  - LidarCenterpoint.pipeline
-  - ObjectDetectionCLRMergedCenterpoint.pipeline
-  - ObjectTrackingTrackerMergerRadarFusion.pipeline
-  - ObjectPredictionMapBased.pipeline
-  - Camera2dDetection.pipeline
-  - OccupancyGridMapMultiLidar.pipeline
-
 components:
   - component: camera
     element: CameraDummy.pipeline

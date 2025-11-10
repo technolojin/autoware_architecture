@@ -1,27 +1,22 @@
 name: RadarDummy.pipeline
 
-depends:
-  - RadarDummyDriver.module
-  - SimpleObjectMerger.module
-  - SimpleTrackedObjectMerger.module
-
-nodes:
-  - node: radar_front_center
+instances:
+  - instance: radar_front_center
     element: RadarDummyDriver.module
-  - node: radar_front_left
+  - instance: radar_front_left
     element: RadarDummyDriver.module
-  - node: radar_front_right
+  - instance: radar_front_right
     element: RadarDummyDriver.module
-  - node: radar_rear_center
+  - instance: radar_rear_center
     element: RadarDummyDriver.module
-  - node: radar_rear_left
+  - instance: radar_rear_left
     element: RadarDummyDriver.module
-  - node: radar_rear_right
+  - instance: radar_rear_right
     element: RadarDummyDriver.module
 
-  - node: simple_object_merger
+  - instance: simple_object_merger
     element: SimpleObjectMerger.module
-  - node: simple_tracked_object_merger
+  - instance: simple_tracked_object_merger
     element: SimpleTrackedObjectMerger.module
 
 external_interfaces:

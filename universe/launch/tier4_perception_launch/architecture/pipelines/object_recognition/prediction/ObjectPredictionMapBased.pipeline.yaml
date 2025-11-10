@@ -1,10 +1,7 @@
 name: ObjectPredictionMapBased.pipeline
 
-depends:
-  - MapBasedPrediction.module
-
-nodes:
-  - node: map_based_prediction
+instances:
+  - instance: map_based_prediction
     element: MapBasedPrediction.module
 
 external_interfaces:

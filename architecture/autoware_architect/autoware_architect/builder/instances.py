@@ -295,10 +295,14 @@ class Instance:
 
     def _create_pipeline_children(self, config_registry: ConfigRegistry):
         """Create child instances for pipeline elements."""
-        cfg_node_list = self.configuration.nodes
+        cfg_node_list = self.configuration.instances
         for cfg_node in cfg_node_list:
+            # check if cfg_node has 'node' and 'element'
+            if "instance" not in cfg_node or "element" not in cfg_node:
+                raise ValidationError(f"Pipeline instance configuration must have 'node' and 'element' fields, at {self.configuration.file_path}")
+
             instance = Instance(
-                cfg_node.get("node"), self.compute_unit, self.namespace, self.layer + 1
+                cfg_node.get("instance"), self.compute_unit, self.namespace, self.layer + 1
             )
             instance.parent = self
             instance.parent_pipeline_list = self.parent_pipeline_list.copy()

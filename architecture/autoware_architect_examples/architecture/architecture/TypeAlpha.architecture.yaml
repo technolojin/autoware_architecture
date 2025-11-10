@@ -1,14 +1,5 @@
 name: TypeAlpha.architecture
 
-depends:
-  - LidarDummy.pipeline
-  - MapDummy.module
-  - LocalizationDummy.module
-  - PerceptionA.pipeline
-  - PerceptionB.pipeline
-  - PlanningDummy.module
-  - PerceptionPipelineA.parameter_set
-
 modes:
   - name: default
     description: Default mode

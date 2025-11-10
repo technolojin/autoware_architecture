@@ -1,13 +1,9 @@
 name: DetectorA.pipeline
 
-depends:
-  - DetectorA.module
-  - FilterA.module
-
-nodes:
-  - node: node_detector
+instances:
+  - instance: node_detector
     element: DetectorA.module
-  - node: node_filter
+  - instance: node_filter
     element: FilterA.module
 
 external_interfaces:

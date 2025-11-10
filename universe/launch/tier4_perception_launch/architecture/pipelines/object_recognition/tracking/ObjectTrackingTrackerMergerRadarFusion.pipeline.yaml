@@ -1,21 +1,14 @@
 name: ObjectTrackingTrackerMergerRadarFusion.pipeline
 
-depends:
-  - MultiObjectTracker.module
-  - RadarObjectTracker.module
-  - DecorativeTrackerMerger.module
-  - DetectedObjectSorter.module
-
-nodes:
-  - node: multi_object_tracker
+instances:
+  - instance: multi_object_tracker
     element: MultiObjectTracker.module
-  - node: radar_object_filter
+  - instance: radar_object_filter
     element: DetectedObjectSorter.module
-  - node: radar_object_tracker
+  - instance: radar_object_tracker
     element: RadarObjectTracker.module
-  - node: decorative_tracker_merger
+  - instance: decorative_tracker_merger
     element: DecorativeTrackerMerger.module
-
 
 external_interfaces:
   input:

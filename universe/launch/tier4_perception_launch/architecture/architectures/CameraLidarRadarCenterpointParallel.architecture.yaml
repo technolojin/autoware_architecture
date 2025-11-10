@@ -1,25 +1,5 @@
 name: CameraLidarRadarCenterpointParallel.architecture
 
-depends:
-  # dummy
-  - CameraDummy.pipeline
-  - LidarDummy.pipeline
-  - RadarDummy.pipeline
-  - MapDummy.module
-  - LocalizationDummy.module
-  - PlanningDummy.module
-
-  # perception
-  - ObjectSegmentation.pipeline
-  - ObjectRecognitionCLRParallel.pipeline
-  - LidarCenterpoint.pipeline
-  - Camera2dDetection.pipeline
-  - OccupancyGridMapPointcloudBased.pipeline
-
-  # parameter sets
-  - TypeBeta2PerceptionCamera2dDetection.parameter_set
-  - TypeBeta2PerceptionPipeline.parameter_set
-
 modes:
   - name: Runtime
     description: on-vehicle runtime mode

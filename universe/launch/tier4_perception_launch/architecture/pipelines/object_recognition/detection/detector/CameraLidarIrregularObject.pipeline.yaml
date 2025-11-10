@@ -1,22 +1,15 @@
 name: CameraLidarIrregularObject.pipeline
 
-depends:
-  - CropBoxFilter.module
-  - ScanGroundFilter.module
-  - RoiPointCloudFusion.module
-  - ShapeEstimation.module
-  - DetectedObjectFeatureRemover.module
-
-nodes:
-  - node: crop_box_filter
+instances:
+  - instance: crop_box_filter
     element: CropBoxFilter.module
-  - node: ground_filter
+  - instance: ground_filter
     element: ScanGroundFilter.module
-  - node: roi_pointcloud_fusion
+  - instance: roi_pointcloud_fusion
     element: RoiPointCloudFusion.module
-  - node: shape_estimation
+  - instance: shape_estimation
     element: ShapeEstimation.module
-  - node: detected_object_feature_remover
+  - instance: detected_object_feature_remover
     element: DetectedObjectFeatureRemover.module
 
 external_interfaces:

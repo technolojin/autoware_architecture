@@ -94,8 +94,7 @@ class ConfigParser:
         elif element_type == ConfigType.PIPELINE:
             return PipelineConfig(
                 **base_data,
-                depends=config.get('depends'),
-                nodes=config.get('nodes'),
+                instances=config.get('instances'),
                 external_interfaces=config.get('external_interfaces'),
                 connections=config.get('connections')
             )

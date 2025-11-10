@@ -1,41 +1,27 @@
 name: ObjectRecognitionCLRParallel.pipeline
 
-depends:
-  # detector
-  - LidarClusteringCameraFusion.pipeline
-  - CameraLidarIrregularObject.pipeline
-  - DetectionByTracker.module
-  # filter
-  - VoxelBasedCompareMapFilter.module
-  - ObjectLaneletFilter.module
-  - RadarFilter.pipeline
-  # tracker
-  - ObjectTrackingMultiChannel.pipeline
-  # predictor
-  - ObjectPredictionMapBased.pipeline
+instances:
 
-nodes:
-
-  - node: detection/compare_map_filter
+  - instance: detection/compare_map_filter
     element: VoxelBasedCompareMapFilter.module
 
   # detectors
-  - node: detection/clustering
+  - instance: detection/clustering
     element: LidarClusteringCameraFusion.pipeline
-  - node: detection/irregular_object
+  - instance: detection/irregular_object
     element: CameraLidarIrregularObject.pipeline
-  - node: detection/detection_by_tracker
+  - instance: detection/detection_by_tracker
     element: DetectionByTracker.module
 
   # filter
-  - node: detection/object_lanelet_filter
+  - instance: detection/object_lanelet_filter
     element: ObjectLaneletFilter.module
-  - node: detection/radar
+  - instance: detection/radar
     element: RadarFilter.pipeline
 
-  - node: tracking
+  - instance: tracking
     element: ObjectTrackingMultiChannel.pipeline
-  - node: prediction
+  - instance: prediction
     element: ObjectPredictionMapBased.pipeline
 
 external_interfaces:

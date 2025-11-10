@@ -1,32 +1,21 @@
 name: ObjectDetectionLidar.pipeline
 
-depends:
-  # detectors
-  - LidarClustering.pipeline
-  - DetectionByTracker.module
-  # filter
-  - VoxelBasedCompareMapFilter.module
-  - ObjectLaneletFilter.module
-  # merger
-  - RoiDetectedObjectFusion.module
-  - ObjectAssociationMerger.module
-
-nodes:
+instances:
   # compare map filter
-  - node: compare_map_filter
+  - instance: compare_map_filter
     element: VoxelBasedCompareMapFilter.module
   # detectors
-  - node: clustering
+  - instance: clustering
     element: LidarClustering.pipeline
-  - node: detection_by_tracker
+  - instance: detection_by_tracker
     element: DetectionByTracker.module
   # merger
-  - node: object_association_merger_alpha
+  - instance: object_association_merger_alpha
     element: ObjectAssociationMerger.module
-  - node: object_association_merger_beta
+  - instance: object_association_merger_beta
     element: ObjectAssociationMerger.module
   # filter
-  - node: object_lanelet_filter
+  - instance: object_lanelet_filter
     element: ObjectLaneletFilter.module
 
 external_interfaces:

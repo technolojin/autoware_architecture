@@ -1,13 +1,9 @@
 name: LidarCenterpoint.pipeline
 
-depends:
-  - LidarCenterpoint.module
-  - ObstaclePointCloudBasedValidator.module
-
-nodes:
-  - node: lidar_centerpoint
+instances:
+  - instance: lidar_centerpoint
     element: LidarCenterpoint.module
-  - node: validation
+  - instance: validation
     element: ObstaclePointCloudBasedValidator.module
 
 external_interfaces:

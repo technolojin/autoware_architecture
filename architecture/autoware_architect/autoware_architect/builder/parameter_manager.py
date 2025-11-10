@@ -29,7 +29,7 @@ class ParameterManager:
     """Manages parameter operations for Instance objects.
     
     This class handles:
-    1. Applying parameters from parameter sets to target nodes
+    1. Applying parameters from parameter sets to target instances
     2. Initializing module parameters from configuration
     3. Managing parameter values and configurations
     4. Resolving parameter file paths with package prefixes
