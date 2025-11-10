@@ -1,4 +1,4 @@
-name: PerceptionPipelineABuild.parameter_set
+name: PerceptionModuleABuild.parameter_set
 parameters:
   - node: /perception/object_recognition/detector_a1/node_detector
     configurations:

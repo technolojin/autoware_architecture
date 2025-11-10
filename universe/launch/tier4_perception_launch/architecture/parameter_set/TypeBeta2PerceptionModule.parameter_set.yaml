@@ -1,4 +1,4 @@
-name: TypeBeta2PerceptionPipeline.parameter_set
+name: TypeBeta2PerceptionModule.parameter_set
 parameters:
   - node: /perception/object_recognition/detection/compare_map_filter
     parameter_files:

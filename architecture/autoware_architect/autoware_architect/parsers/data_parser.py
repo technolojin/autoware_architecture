@@ -18,7 +18,7 @@ import logging
 
 from ..parsers.yaml_parser import yaml_parser
 from .data_validator import ValidatorFactory, entity_name_decode
-from ..models.config import Config, NodeConfig, PipelineConfig, ParameterSetConfig, ArchitectureConfig, ConfigType
+from ..models.config import Config, NodeConfig, ModuleConfig, ParameterSetConfig, ArchitectureConfig, ConfigType
 from ..exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
@@ -91,8 +91,8 @@ class ConfigParser:
                 configurations=configurations,
                 processes=config.get('processes')
             )
-        elif entity_type == ConfigType.PIPELINE:
-            return PipelineConfig(
+        elif entity_type == ConfigType.MODULE:
+            return ModuleConfig(
                 **base_data,
                 instances=config.get('instances'),
                 external_interfaces=config.get('external_interfaces'),

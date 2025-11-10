@@ -19,14 +19,14 @@ from pathlib import Path
 class ConfigType:
     """Constants for entity types."""
     NODE = "node"
-    PIPELINE = "pipeline"
+    MODULE = "pipeline"
     PARAMETER_SET = "parameter_set"
     ARCHITECTURE = "architecture"
 
     @classmethod
     def get_all_types(cls) -> List[str]:
         """Get all valid entity types."""
-        return [cls.NODE, cls.PIPELINE, cls.PARAMETER_SET, cls.ARCHITECTURE]
+        return [cls.NODE, cls.MODULE, cls.PARAMETER_SET, cls.ARCHITECTURE]
 
 @dataclass
 class Config:
@@ -53,7 +53,7 @@ class NodeConfig(Config):
     processes: List[Dict[str, Any]] = None
 
 @dataclass
-class PipelineConfig(Config):
+class ModuleConfig(Config):
     """Data structure for pipeline entities."""
     instances: List[Dict[str, Any]] = None
     external_interfaces: Any = None  # Can be dict or list

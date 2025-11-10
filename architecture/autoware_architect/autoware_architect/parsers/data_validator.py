@@ -143,7 +143,7 @@ class NodeValidator(BaseValidator):
             'processes': {'type': 'array'}
         }
 
-class PipelineValidator(BaseValidator):
+class ModuleValidator(BaseValidator):
     """Validator for pipeline entities."""
     
     def get_required_fields(self) -> List[str]:
@@ -188,7 +188,7 @@ class ValidatorFactory:
     
     _validators = {
         ConfigType.NODE: NodeValidator,
-        ConfigType.PIPELINE: PipelineValidator,
+        ConfigType.MODULE: ModuleValidator,
         ConfigType.PARAMETER_SET: ParameterSetValidator,
         ConfigType.ARCHITECTURE: ArchitectureValidator,
     }

@@ -15,7 +15,7 @@
 import logging
 from typing import List, Dict
 
-from ..models.config import Config, NodeConfig, PipelineConfig, ParameterSetConfig, ArchitectureConfig
+from ..models.config import Config, NodeConfig, ModuleConfig, ParameterSetConfig, ArchitectureConfig
 from ..parsers.data_parser import entity_name_decode
 from ..config import config
 from ..exceptions import ValidationError
@@ -111,7 +111,7 @@ class Instance:
             raise ValidationError(f"Instance layer is too deep (limit: {config.layer_limit})")
 
         # configuration
-        self.configuration: NodeConfig | PipelineConfig | ParameterSetConfig | ArchitectureConfig | None = None
+        self.configuration: NodeConfig | ModuleConfig | ParameterSetConfig | ArchitectureConfig | None = None
 
         # instance topology
         self.entity_type: str = None
@@ -299,7 +299,7 @@ class Instance:
         for cfg_node in cfg_node_list:
             # check if cfg_node has 'node' and 'entity'
             if "instance" not in cfg_node or "entity" not in cfg_node:
-                raise ValidationError(f"Pipeline instance configuration must have 'node' and 'entity' fields, at {self.configuration.file_path}")
+                raise ValidationError(f"Module instance configuration must have 'node' and 'entity' fields, at {self.configuration.file_path}")
 
             instance = Instance(
                 cfg_node.get("instance"), self.compute_unit, self.namespace, self.layer + 1

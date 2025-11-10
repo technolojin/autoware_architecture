@@ -25,7 +25,7 @@ components:
     entity: ObjectSegmentation.pipeline
     namespace: perception
     compute_unit: main_ecu
-    parameter_set: TypeBeta2PerceptionPipeline.parameter_set
+    parameter_set: TypeBeta2PerceptionModule.parameter_set
   - component: transfusion
     entity: LidarTransfusion.pipeline
     namespace: perception/object_recognition/detection
@@ -34,12 +34,12 @@ components:
     entity: ObjectRecognitionLidar.pipeline
     namespace: perception
     compute_unit: main_ecu
-    parameter_set: TypeBeta2PerceptionPipeline.parameter_set
+    parameter_set: TypeBeta2PerceptionModule.parameter_set
   - component: occupancy_grid_map
     entity: OccupancyGridMapPointcloudBased.pipeline
     namespace: perception
     compute_unit: main_ecu
-    parameter_set: TypeBeta2PerceptionPipeline.parameter_set
+    parameter_set: TypeBeta2PerceptionModule.parameter_set
 
   # planner
   - component: planner

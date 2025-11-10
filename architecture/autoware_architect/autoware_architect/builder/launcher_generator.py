@@ -274,7 +274,7 @@ def generate_pipeline_launch_file(instance: Instance, output_dir: str):
             _generate_component_launcher(compute_unit, namespace, components, output_dir)
     
     elif instance.entity_type == "pipeline":
-        # Pipelines are now handled within component launchers, no separate files needed
+        # Modules are now handled within component launchers, no separate files needed
         logger.debug(f"Skipping separate pipeline launcher for {instance.name} - handled in component launcher")
         return
     

@@ -24,7 +24,7 @@ components:
     namespace: perception
     compute_unit: main_ecu
     parameter_set: [
-      PerceptionPipelineA.parameter_set
+      PerceptionModuleA.parameter_set
     ]
     mode: [default]
   - component: object_recognition
@@ -32,8 +32,8 @@ components:
     namespace: perception
     compute_unit: main_ecu
     parameter_set: [
-      PerceptionPipelineA.parameter_set,  
-      PerceptionPipelineABuild.parameter_set,
+      PerceptionModuleA.parameter_set,  
+      PerceptionModuleABuild.parameter_set,
     ]
     mode: simulation
   - component: planner

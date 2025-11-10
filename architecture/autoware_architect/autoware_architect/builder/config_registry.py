@@ -16,7 +16,7 @@ from typing import List, Dict, Optional
 import logging
 
 from ..parsers.data_parser import ConfigParser
-from ..models.config import Config, ConfigType, NodeConfig, PipelineConfig, ParameterSetConfig, ArchitectureConfig
+from ..models.config import Config, ConfigType, NodeConfig, ModuleConfig, ParameterSetConfig, ArchitectureConfig
 from ..exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ class ConfigRegistry:
         self.entities: Dict[str, Config] = {}  # full_name → Config
         self._type_map: Dict[str, Dict[str, Config]] = {
             ConfigType.NODE: {},
-            ConfigType.PIPELINE: {},
+            ConfigType.MODULE: {},
             ConfigType.PARAMETER_SET: {},
             ConfigType.ARCHITECTURE: {}
         }
@@ -75,12 +75,12 @@ class ConfigRegistry:
             raise ValidationError(f"Node '{name}' not found. Available nodes: {available}")
         return entity
     
-    def get_pipeline(self, name: str) -> PipelineConfig:
+    def get_pipeline(self, name: str) -> ModuleConfig:
         """Get a pipeline entity by name."""
-        entity = self._type_map[ConfigType.PIPELINE].get(name)
+        entity = self._type_map[ConfigType.MODULE].get(name)
         if entity is None:
-            available = list(self._type_map[ConfigType.PIPELINE].keys())
-            raise ValidationError(f"Pipeline '{name}' not found. Available pipelines: {available}")
+            available = list(self._type_map[ConfigType.MODULE].keys())
+            raise ValidationError(f"Module '{name}' not found. Available pipelines: {available}")
         return entity
     
     def get_parameter_set(self, name: str) -> ParameterSetConfig:
@@ -103,7 +103,7 @@ class ConfigRegistry:
         """Get an entity by name and type."""
         if entity_type == ConfigType.NODE:
             return self.get_node(name)
-        elif entity_type == ConfigType.PIPELINE:
+        elif entity_type == ConfigType.MODULE:
             return self.get_pipeline(name)
         elif entity_type == ConfigType.PARAMETER_SET:
             return self.get_parameter_set(name)
