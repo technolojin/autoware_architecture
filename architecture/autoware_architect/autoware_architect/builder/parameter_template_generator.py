@@ -159,12 +159,12 @@ class ParameterTemplateGenerator:
             param_name = param.name
             param_type = param.param_type
             
-            if param_type.value == "parameter":  # ParameterType.PARAMETER_FILE
+            if param_type.value == "parameter_file":  # ParameterType.PARAMETER_FILE
                 # Generate template path based on namespace and parameter name
                 template_path = f"{base_path}/{param_name}.param.yaml"
                 parameter_files[param_name] = template_path
             
-            elif param_type.value == "configuration":  # ParameterType.PARAMETER
+            elif param_type.value == "parameter":  # ParameterType.PARAMETER
                 configuration = {
                     "name": param_name,
                     "type": param.data_type,
