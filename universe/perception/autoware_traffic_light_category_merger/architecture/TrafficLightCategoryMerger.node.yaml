@@ -24,17 +24,15 @@ outputs:
       durability: transient_local
 
 # parameters
-parameter_files:
-  - name: parameters
-    default: config/traffic_light_category_merger.param.yaml
-
+parameter_files: []
 parameters: []
 
 # processes
 processes:
-  - name: dummy_process
+  - name: merge
     trigger_conditions:
       - and:
-          - on_input: message_in
+          - on_input: car_signals
+          - on_input: pedestrian_signals
     outcomes:
-      - to_output: message_out
+      - to_output: traffic_signals

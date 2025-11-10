@@ -16,7 +16,6 @@ rclcpp_components_register_node(traffic_light_category_merger_cpp
 ament_auto_package(
   INSTALL_TO_SHARE
   architecture
-  schema
 )
 
 autoware_architect_configure()
