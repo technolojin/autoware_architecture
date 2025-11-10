@@ -1,8 +1,5 @@
 name: ObjectTrackingSingleChannel.pipeline
 
-depends:
-  - MultiObjectTracker.module
-
 nodes:
   - node: multi_object_tracker
     element: MultiObjectTracker.module

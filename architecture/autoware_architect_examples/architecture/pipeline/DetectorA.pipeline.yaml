@@ -1,9 +1,5 @@
 name: DetectorA.pipeline
 
-depends:
-  - DetectorA.module
-  - FilterA.module
-
 nodes:
   - node: node_detector
     element: DetectorA.module

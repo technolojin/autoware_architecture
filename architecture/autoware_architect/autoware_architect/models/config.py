@@ -55,7 +55,6 @@ class ModuleConfig(Config):
 @dataclass
 class PipelineConfig(Config):
     """Data structure for pipeline elements."""
-    depends: List[str] = None
     nodes: List[Dict[str, Any]] = None
     external_interfaces: Any = None  # Can be dict or list
     connections: List[Dict[str, Any]] = None

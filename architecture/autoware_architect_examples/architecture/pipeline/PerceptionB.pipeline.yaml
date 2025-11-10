@@ -1,10 +1,5 @@
 name: PerceptionB.pipeline
 
-depends:
-  - DetectorA.pipeline
-  - Tracker.module
-  - Predictor.module
-
 nodes:
   - node: detector_a1
     element: DetectorA.pipeline

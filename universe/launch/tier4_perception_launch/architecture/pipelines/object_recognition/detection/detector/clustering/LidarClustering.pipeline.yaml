@@ -1,10 +1,5 @@
 name: LidarClustering.pipeline
 
-depends:
-  - VoxelGridBasedEuclideanCluster.module
-  - ShapeEstimation.module
-  - DetectedObjectFeatureRemover.module
-
 nodes:
   - node: voxel_grid_based_euclidean_cluster
     element: VoxelGridBasedEuclideanCluster.module

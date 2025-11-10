@@ -1,11 +1,5 @@
 name: LidarApollo.pipeline
 
-depends:
-  - LidarApolloInstanceSegmentation.module
-  - ShapeEstimation.module
-  - DetectedObjectFeatureRemover.module
-  - ObstaclePointCloudBasedValidator.module
-
 nodes:
   - node: lidar_apollo_instance_segmentation
     element: LidarApolloInstanceSegmentation.module

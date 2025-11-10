@@ -1,9 +1,5 @@
 name: ObjectSegmentation.pipeline
 
-depends:
-  - CropBoxFilter.module
-  - ScanGroundFilter.module
-
 nodes:
   - node: crop_box_filter
     element: CropBoxFilter.module

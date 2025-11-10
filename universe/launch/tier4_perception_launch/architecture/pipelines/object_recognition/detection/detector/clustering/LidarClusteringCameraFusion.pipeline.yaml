@@ -1,10 +1,5 @@
 name: LidarClusteringCameraFusion.pipeline
 
-depends:
-  - VoxelGridBasedEuclideanCluster.module
-  - ShapeEstimation.module
-  - CameraLidarFusion.pipeline
-
 nodes:
   - node: voxel_grid_based_euclidean_cluster
     element: VoxelGridBasedEuclideanCluster.module

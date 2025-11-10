@@ -1,8 +1,5 @@
 name: LidarDummy.pipeline
 
-depends:
-  - LidarDummyDriver.module
-  - ConcatenatePointcloud.module
 nodes:
   - node: lidar_top
     element: LidarDummyDriver.module

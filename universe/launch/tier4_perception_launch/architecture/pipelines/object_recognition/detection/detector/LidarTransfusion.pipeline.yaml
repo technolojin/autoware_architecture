@@ -1,9 +1,5 @@
 name: LidarTransfusion.pipeline
 
-depends:
-  - LidarTransfusion.module
-  - ObstaclePointCloudBasedValidator.module
-
 nodes:
   - node: lidar_transfusion
     element: LidarTransfusion.module

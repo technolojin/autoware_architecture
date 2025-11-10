@@ -1,11 +1,5 @@
 name: CameraLidarFusion.pipeline
 
-depends:
-  - RoiClusterFusion.module
-  - LowIntensityClusterFilter.module
-  - ShapeEstimation.module
-  - DetectedObjectFeatureRemover.module
-
 nodes:
   - node: roi_cluster_fusion
     element: RoiClusterFusion.module

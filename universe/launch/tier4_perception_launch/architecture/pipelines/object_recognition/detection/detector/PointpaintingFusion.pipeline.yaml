@@ -1,9 +1,5 @@
 name: PointpaintingFusion.pipeline
 
-depends:
-  - PointPaintingFusion.module
-  - ObstaclePointCloudBasedValidator.module
-
 nodes:
   - node: pointpainting_fusion
     element: PointPaintingFusion.module

@@ -1,16 +1,5 @@
 name: ObjectDetectionLidar.pipeline
 
-depends:
-  # detectors
-  - LidarClustering.pipeline
-  - DetectionByTracker.module
-  # filter
-  - VoxelBasedCompareMapFilter.module
-  - ObjectLaneletFilter.module
-  # merger
-  - RoiDetectedObjectFusion.module
-  - ObjectAssociationMerger.module
-
 nodes:
   # compare map filter
   - node: compare_map_filter

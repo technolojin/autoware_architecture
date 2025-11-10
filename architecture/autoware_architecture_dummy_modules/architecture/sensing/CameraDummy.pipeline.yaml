@@ -1,8 +1,5 @@
 name: CameraDummy.pipeline
 
-depends:
-  - CameraDummyDriver.module
-
 nodes:
   - node: camera_0
     element: CameraDummyDriver.module

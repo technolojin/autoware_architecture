@@ -1,10 +1,5 @@
 name: ObjectRecognitionLidar.pipeline
 
-depends:
-  - ObjectDetectionLidar.pipeline
-  - ObjectTrackingSingleChannel.pipeline
-  - ObjectPredictionMapBased.pipeline
-
 nodes:
   - node: detection
     element: ObjectDetectionLidar.pipeline

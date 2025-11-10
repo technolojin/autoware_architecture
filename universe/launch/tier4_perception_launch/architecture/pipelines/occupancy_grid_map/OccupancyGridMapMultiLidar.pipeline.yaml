@@ -1,10 +1,5 @@
 name: OccupancyGridMapMultiLidar.pipeline
 
-depends:
-  - PickupBasedVoxelGridDownsampleFilter.module
-  - PointcloudBasedOccupancyGridMap.module
-  - SynchronizedGridMapFusion.module
-
 nodes:
   - node: obstacle_pc_downsample_filter
     element: PickupBasedVoxelGridDownsampleFilter.module

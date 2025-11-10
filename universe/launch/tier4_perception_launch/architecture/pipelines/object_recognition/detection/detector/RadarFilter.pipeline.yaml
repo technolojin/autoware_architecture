@@ -1,9 +1,5 @@
 name: RadarFilter.pipeline
 
-depends:
-  - DetectedObjectSorter.module
-  - ObjectLaneletFilter.module
-
 nodes:
   # filter
   - node: object_lanelet_filter

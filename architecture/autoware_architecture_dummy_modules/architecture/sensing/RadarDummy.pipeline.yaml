@@ -1,10 +1,5 @@
 name: RadarDummy.pipeline
 
-depends:
-  - RadarDummyDriver.module
-  - SimpleObjectMerger.module
-  - SimpleTrackedObjectMerger.module
-
 nodes:
   - node: radar_front_center
     element: RadarDummyDriver.module

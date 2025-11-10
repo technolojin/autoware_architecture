@@ -1,8 +1,5 @@
 name: Camera2dDetection.pipeline
 
-depends:
-  - TensorrtYolox.module
-
 nodes:
   - node: tensorrt_yolox0
     element: TensorrtYolox.module

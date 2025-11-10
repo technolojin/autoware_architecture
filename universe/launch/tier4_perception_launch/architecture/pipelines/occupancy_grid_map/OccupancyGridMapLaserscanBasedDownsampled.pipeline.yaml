@@ -1,9 +1,5 @@
 name: OccupancyGridMapLaserscanBasedDownsampled.pipeline
 
-depends:
-  - PickupBasedVoxelGridDownsampleFilter.module
-  - LaserscanBasedOccupancyGridMap.module
-
 nodes:
   - node: raw_pc_downsample_filter
     element: PickupBasedVoxelGridDownsampleFilter.module

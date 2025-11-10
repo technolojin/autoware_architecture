@@ -1,22 +1,5 @@
 name: LidarTransfusion.architecture
 
-depends:
-  # dummy
-  - LidarDummy.pipeline
-  - MapDummy.module
-  - LocalizationDummy.module
-  - PlanningDummy.module
-
-  # perception
-  - ObjectSegmentation.pipeline
-  - ObjectRecognitionLidar.pipeline
-  - LidarTransfusion.pipeline
-  - OccupancyGridMapPointcloudBased.pipeline
-
-  # parameter sets
-  - TypeBeta2PerceptionCamera2dDetection.parameter_set
-  - TypeBeta2PerceptionPipeline.parameter_set
-
 modes:
   - name: Runtime
     description: on-vehicle runtime mode
