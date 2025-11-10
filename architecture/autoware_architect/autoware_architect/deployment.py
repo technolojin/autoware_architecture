@@ -32,14 +32,30 @@ debug_mode = True
 
 class Deployment:
     def __init__(self, architecture_config: ArchitectureConfig ):
-        # load yaml file
-        self.config_yaml_dir = architecture_config.deployment_file
-        self.config_yaml = yaml_parser.load_config(self.config_yaml_dir)
-        self.name = self.config_yaml.get("name")
-
         # element collection
         architecture_yaml_list = self._get_architecture_list(architecture_config)
         self.config_registry = ConfigRegistry(architecture_yaml_list)
+
+        # detect mode of input file (deployment vs architecture only)
+        # if deployment_file ends with .architecture, it's an architecture-only file
+        logger.info("deployment init Deployment file: %s", architecture_config.deployment_file)
+        if architecture_config.deployment_file.endswith(".architecture"):
+            logger.info("Detected architecture-only deployment file.")
+            # need to parse the absolute path of the file from the config_registry
+            # generate deployment config in-memory
+            self.config_yaml_dir = architecture_config.deployment_file
+            self.config_yaml = {}
+            self.config_yaml['architecture'] = architecture_config.deployment_file
+            self.config_yaml['name'] = architecture_config.deployment_file
+            self.config_yaml.setdefault('vehicle_parameters', [])
+            self.config_yaml.setdefault('environment_parameters', [])
+            self.name = self.config_yaml.get("name")
+
+        else:
+            # input is a deployment file
+            self.config_yaml_dir = architecture_config.deployment_file
+            self.config_yaml = yaml_parser.load_config(self.config_yaml_dir)
+            self.name = self.config_yaml.get("name")
 
         # Check the configuration
         self._check_config()
@@ -80,7 +96,7 @@ class Deployment:
             manifest_file = os.path.join(manifest_dir, entry)
             try:
                 manifest_yaml = yaml_parser.load_config(manifest_file)
-                manifest_domain = manifest_yaml.get('domain', 'shared')
+                manifest_domain = manifest_yaml.get('domain', 'shared') # default to 'shared' if missing
                 if manifest_domain not in domains_filter:
                     logger.debug(f"Skipping manifest '{entry}' (domain='{manifest_domain}' not in filter)")
                     continue
@@ -107,18 +123,26 @@ class Deployment:
         return architecture_list
 
     def _check_config(self) -> bool:
-        # Check the name field
-        deployment_config_fields = [
-            "name",
-            "architecture",
-            "vehicle_parameters",
-            "environment_parameters",
-        ]
-        for field in deployment_config_fields:
+        """Validate & normalize deployment configuration.
+
+        Two supported input forms:
+        1. Deployment YAML (fields: name, architecture, vehicle_parameters, environment_parameters)
+        2. Raw Architecture YAML (only 'name' ending with '.architecture'). We synthesize a minimal
+           deployment in-memory (no vehicles / environment parameters) so downstream logic works.
+        """
+        # Validate required fields now present
+        for field in ['name', 'architecture']:
             if field not in self.config_yaml:
                 raise ValidationError(
                     f"Field '{field}' is required in deployment configuration file {self.config_yaml_dir}"
                 )
+
+        # Optional lists: default to empty if omitted
+        if 'vehicle_parameters' not in self.config_yaml:
+            self.config_yaml['vehicle_parameters'] = []
+        if 'environment_parameters' not in self.config_yaml:
+            self.config_yaml['environment_parameters'] = []
+
         return True
 
     def build(self):
