@@ -139,8 +139,8 @@ class Instance:
 
         try:
             entity_name, entity_type = entity_name_decode(entity_id)
-            if entity_type == "architecture":
-                self._set_architecture_instances(config_registry)
+            if entity_type == "system":
+                self._set_system_instances(config_registry)
             elif entity_type == "module":
                 self._set_module_instances(entity_id, entity_name, config_registry)
             elif entity_type == "node":
@@ -148,8 +148,8 @@ class Instance:
         except Exception as e:
             raise ValidationError(f"Error setting instances for {entity_id}, at {self.configuration.file_path}")
 
-    def _set_architecture_instances(self, config_registry: ConfigRegistry):
-        """Set instances for architecture entity type."""
+    def _set_system_instances(self, config_registry: ConfigRegistry):
+        """Set instances for system entity type."""
         # Determine which components to instantiate based on mode
         components_to_instantiate = self.configuration.components
         
@@ -400,28 +400,28 @@ class DeploymentInstance(Instance):
         super().__init__(name)
         self.mode = mode  # Store mode for this deployment instance
 
-    def set_architecture(
+    def set_system(
         self,
-        architecture: Config,
+        system: Config,
         config_registry,
         mode: str = None,
     ):
-        """Set architecture for this deployment instance.
+        """Set system for this deployment instance.
         
         Args:
-            architecture: System configuration
+            system: System configuration
             config_registry: Registry of all configurations
             mode: Optional mode name to filter components (None means no filtering)
         """
         self.mode = mode
-        logger.info(f"Setting architecture {architecture.full_name} for instance {self.name}" + 
+        logger.info(f"Setting system {system.full_name} for instance {self.name}" + 
                    (f" (mode: {mode})" if mode else ""))
-        self.configuration = architecture
-        self.entity_type = "architecture"
+        self.configuration = system
+        self.entity_type = "system"
 
         # 1. set component instances
         logger.info(f"Instance '{self.name}': setting component instances")
-        self.set_instances(architecture.full_name, config_registry)
+        self.set_instances(system.full_name, config_registry)
 
         # 2. set connections
         logger.info(f"Instance '{self.name}': setting connections")

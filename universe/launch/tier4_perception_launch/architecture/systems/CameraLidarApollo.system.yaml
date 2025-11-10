@@ -1,4 +1,4 @@
-name: CameraLidarPointpainting.architecture
+name: CameraLidarApollo.system
 
 modes:
   - name: Runtime
@@ -30,8 +30,8 @@ components:
     namespace: perception/object_recognition/detection
     compute_unit: perception_ecu_1
     parameter_set: TypeBeta2PerceptionCamera2dDetection.parameter_set
-  - component: pointpainting
-    entity: PointpaintingFusion.module
+  - component: apollo
+    entity: LidarApollo.module
     namespace: perception/object_recognition/detection
     compute_unit: main_ecu
   - component: object_segmentation
@@ -70,14 +70,10 @@ connections:
     to: object_recognition.input.camera_info*
 
   - from: lidar.output.concatenated/pointcloud
-    to: pointpainting.input.pointcloud
+    to: apollo.input.pointcloud
   - from: object_recognition.output.map_filtered_obstacle_pointcloud
-    to: pointpainting.input.obstacle_pointcloud
-  - from: camera.output.camera*/camera_info
-    to: pointpainting.input.camera_info*
-  - from: camera_2d_detection.output.rois*
-    to: pointpainting.input.rois*
-  - from: pointpainting.output.detected_objects
+    to: apollo.input.obstacle_pointcloud
+  - from: apollo.output.detected_objects
     to: object_recognition.input.lidar_ml_objects
 
   - from: lidar.output.concatenated/pointcloud

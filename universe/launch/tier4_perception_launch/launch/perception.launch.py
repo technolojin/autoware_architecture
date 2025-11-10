@@ -248,7 +248,7 @@ def determine_mode(context) -> dict:
 
 def generate_autoware_system(deployment_file: str, mode: dict, parameters: dict):
     """Generate Autoware System deployment."""
-    # Load architecture configuration from YAML file
+    # Load system configuration from YAML file
 
     system_config = SystemConfig()
     system_config.debug_mode = True
@@ -320,7 +320,7 @@ def opaque_generate_autoware_system(context, deployment_file: str):
     return []
 
 def generate_launch_description():
-    """ Generate autoware architecture and launch the generated launch file. """
+    """ Generate autoware system and launch the generated launch file. """
 
     # set launch arguments 
     launch_arguments = []
@@ -343,7 +343,7 @@ def generate_launch_description():
 
 
 
-    # 1. pipeline junctions: switches to change SW architecture 
+    # 1. pipeline junctions: switches to change SW system 
 
     # Simulation / Evaluation
     add_launch_arg("use_empty_dynamic_object_publisher", default_value="false")
@@ -407,7 +407,7 @@ def generate_launch_description():
 
     # Setup launcher file path
     launcher_pkg_install_dir = get_package_share_directory('tier4_perception_launch')
-    launcher_path = "exports/CameraLidarRadarCenterpointSerial.architecture.deployment/launcher/Runtime/main_ecu/perception/perception.launch.xml"
+    launcher_path = "exports/CameraLidarRadarCenterpointSerial.system/launcher/Runtime/main_ecu/perception/perception.launch.xml"
     launcher_file = os.path.join(launcher_pkg_install_dir, launcher_path)
 
     # Create the pointcloud container

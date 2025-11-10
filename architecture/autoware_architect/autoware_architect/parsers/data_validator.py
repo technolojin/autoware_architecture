@@ -170,7 +170,7 @@ class ParameterSetValidator(BaseValidator):
         }
 
 class SystemValidator(BaseValidator):
-    """Validator for architecture entities."""
+    """Validator for system entities."""
     
     def get_required_fields(self) -> List[str]:
         return ["name", "components", "connections"]

@@ -21,7 +21,7 @@ class ConfigType:
     NODE = "node"
     MODULE = "module"
     PARAMETER_SET = "parameter_set"
-    SYSTEM = "architecture"
+    SYSTEM = "system"
 
     @classmethod
     def get_all_types(cls) -> List[str]:

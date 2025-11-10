@@ -1,6 +1,6 @@
 name: vehicle_x.deployment
 
-architecture: TypeAlpha.architecture
+system: TypeAlpha.system
 
 # vehicle specific parameters, such as sensor calibration, vehicle dimensions
 vehicle_parameters: []

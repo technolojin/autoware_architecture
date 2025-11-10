@@ -249,7 +249,7 @@ def generate_module_launch_file(instance: Instance, output_dir: str):
     """Main entry point for launcher generation."""
     logger.debug(f"Generating launcher for {instance.name} (type: {instance.entity_type}) in {output_dir}")
     
-    if instance.entity_type == "architecture":
+    if instance.entity_type == "system":
         # Group components by compute unit
         compute_unit_map = {}
         for child in instance.children.values():

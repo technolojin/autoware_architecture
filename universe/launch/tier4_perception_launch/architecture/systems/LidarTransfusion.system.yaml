@@ -1,4 +1,4 @@
-name: CameraLidarRadarPointpaintingSerial.architecture
+name: LidarTransfusion.system
 
 modes:
   - name: Runtime
@@ -11,14 +11,6 @@ components:
     entity: LidarDummy.module
     namespace: sensing
     compute_unit: perception_ecu_1
-  - component: camera
-    entity: CameraDummy.module
-    namespace: sensing
-    compute_unit: perception_ecu_1
-  - component: radar
-    entity: RadarDummy.module
-    namespace: sensing
-    compute_unit: perception_ecu_1
   - component: map_loader
     entity: MapDummy.node
     namespace: map
@@ -29,22 +21,17 @@ components:
     compute_unit: dummy_ecu
 
   # perception
-  - component: camera_2d_detection
-    entity: Camera2dDetection.module
-    namespace: perception/object_recognition/detection
-    compute_unit: perception_ecu_1
-    parameter_set: TypeBeta2PerceptionCamera2dDetection.parameter_set
-  - component: pointpainting
-    entity: PointpaintingFusion.module
-    namespace: perception/object_recognition/detection
-    compute_unit: main_ecu
   - component: object_segmentation
     entity: ObjectSegmentation.module
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionModule.parameter_set
+  - component: transfusion
+    entity: LidarTransfusion.module
+    namespace: perception/object_recognition/detection
+    compute_unit: main_ecu
   - component: object_recognition
-    entity: ObjectRecognitionCLRMerged.module
+    entity: ObjectRecognitionLidar.module
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionModule.parameter_set
@@ -66,24 +53,11 @@ connections:
   - from: object_segmentation.output.pointcloud
     to: object_recognition.input.obstacle_pointcloud
 
-  - from: camera.output.camera*/image
-    to: camera_2d_detection.input.image_raw*
-  - from: camera_2d_detection.output.rois*
-    to: object_recognition.input.rois*
-  - from: camera.output.camera*/camera_info
-    to: object_recognition.input.camera_info*
-  - from: radar.output.detected_objects
-    to: object_recognition.input.radar_objects
-
   - from: lidar.output.concatenated/pointcloud
-    to: pointpainting.input.pointcloud
+    to: transfusion.input.pointcloud
   - from: object_recognition.output.map_filtered_obstacle_pointcloud
-    to: pointpainting.input.obstacle_pointcloud
-  - from: camera.output.camera*/camera_info
-    to: pointpainting.input.camera_info*
-  - from: camera_2d_detection.output.rois*
-    to: pointpainting.input.rois*
-  - from: pointpainting.output.detected_objects
+    to: transfusion.input.obstacle_pointcloud
+  - from: transfusion.output.detected_objects
     to: object_recognition.input.lidar_ml_objects
 
   - from: lidar.output.concatenated/pointcloud

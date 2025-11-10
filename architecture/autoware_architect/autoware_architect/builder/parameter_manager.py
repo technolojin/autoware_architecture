@@ -190,9 +190,9 @@ class ParameterManager:
         while current_instance.parent is not None:
             current_instance = current_instance.parent
             
-        # If we're at the deployment root (entity_type == "architecture"),
+        # If we're at the deployment root (entity_type == "system"),
         # search in its children directly since parameter_set paths don't include the deployment name
-        if current_instance.entity_type == "architecture":
+        if current_instance.entity_type == "system":
             for child in current_instance.children.values():
                 result = self._traverse_to_namespace(child, target_namespace)
                 if result is not None:

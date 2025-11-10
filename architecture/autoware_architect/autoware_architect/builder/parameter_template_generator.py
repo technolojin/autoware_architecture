@@ -66,16 +66,16 @@ class ParameterTemplateGenerator:
             self._collect_node_parameter_files_recursive(comp_instance, nodes, "")
             component_nodes[comp_name] = nodes
 
-        # Single root directory for the whole architecture
-        architecture_root = os.path.join(output_dir, f"{deployment_name}.parameter_set")
-        os.makedirs(architecture_root, exist_ok=True)
+        # Single root directory for the whole system
+        system_root = os.path.join(output_dir, f"{deployment_name}.parameter_set")
+        os.makedirs(system_root, exist_ok=True)
 
-        # Create namespace structure and empty config files once (architecture-wide)
+        # Create namespace structure and empty config files once (system-wide)
         for nodes in component_nodes.values():
             for node in nodes:
-                self._create_namespace_structure_and_copy_configs(node, architecture_root)
+                self._create_namespace_structure_and_copy_configs(node, system_root)
 
-        # Generate per-component templates referencing shared architecture_root paths
+        # Generate per-component templates referencing shared system_root paths
         generated: List[str] = []
         for comp_name, nodes in component_nodes.items():
             output_path = os.path.join(output_dir, f"{deployment_name}.{comp_name}.parameter_set.yaml")
@@ -85,7 +85,7 @@ class ParameterTemplateGenerator:
                 name=f"{deployment_name}.{comp_name}.parameter_set",
                 parameters=nodes,
             )
-            logger.info(f"Generated component parameter set template: {output_path} (shared root: {architecture_root})")
+            logger.info(f"Generated component parameter set template: {output_path} (shared root: {system_root})")
             generated.append(output_path)
         return generated
     

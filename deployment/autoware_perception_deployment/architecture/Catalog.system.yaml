@@ -1,4 +1,4 @@
-name: Catalog.architecture
+name: Catalog.system
 
 components:
   - component: camera

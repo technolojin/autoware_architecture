@@ -1,4 +1,4 @@
-name: CameraLidarRadarCenterpointSerial.architecture
+name: CameraLidarRadarCenterpointSerial.system
 
 modes:
   - name: Runtime

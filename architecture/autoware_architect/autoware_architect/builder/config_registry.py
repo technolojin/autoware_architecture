@@ -91,7 +91,7 @@ class ConfigRegistry:
             raise ValidationError(f"Parameter set '{name}' not found. Available parameter sets: {available}")
         return entity
     
-    def get_architecture(self, name: str) -> SystemConfig:
+    def get_system(self, name: str) -> SystemConfig:
         """Get an system entity by name."""
         entity = self._type_map[ConfigType.SYSTEM].get(name)
         if entity is None:
@@ -108,7 +108,7 @@ class ConfigRegistry:
         elif entity_type == ConfigType.PARAMETER_SET:
             return self.get_parameter_set(name)
         elif entity_type == ConfigType.SYSTEM:
-            return self.get_architecture(name)
+            return self.get_system(name)
         else:
             raise ValidationError(f"Unknown entity type: {entity_type}")
 

@@ -1,4 +1,4 @@
-name: CameraLidarRadarCenterpointParallel.architecture
+name: CameraLidarCenterpoint.system
 
 modes:
   - name: Runtime
@@ -13,10 +13,6 @@ components:
     compute_unit: perception_ecu_1
   - component: camera
     entity: CameraDummy.module
-    namespace: sensing
-    compute_unit: perception_ecu_1
-  - component: radar
-    entity: RadarDummy.module
     namespace: sensing
     compute_unit: perception_ecu_1
   - component: map_loader
@@ -44,7 +40,7 @@ components:
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionModule.parameter_set
   - component: object_recognition
-    entity: ObjectRecognitionCLRParallel.module
+    entity: ObjectRecognitionCLMerged.module
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionModule.parameter_set
@@ -72,8 +68,6 @@ connections:
     to: object_recognition.input.rois*
   - from: camera.output.camera*/camera_info
     to: object_recognition.input.camera_info*
-  - from: radar.output.detected_objects
-    to: object_recognition.input.radar_objects
 
   - from: lidar.output.concatenated/pointcloud
     to: centerpoint.input.pointcloud
