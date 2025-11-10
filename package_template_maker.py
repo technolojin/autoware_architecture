@@ -282,6 +282,7 @@ def main():
     package_names = [
         "autoware_traffic_light_classifier",
         "autoware_traffic_light_fine_detector",
+        "autoware_traffic_light_category_merger",
     ]
     
     # Optional: Override from command line arguments

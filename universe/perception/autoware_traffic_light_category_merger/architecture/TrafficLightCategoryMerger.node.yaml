@@ -1,0 +1,40 @@
+# node information
+name: TrafficLightCategoryMerger.node
+
+launch:
+  package: autoware_traffic_light_category_merger
+  plugin: autoware::traffic_light::TrafficLightCategoryMergerNode
+  executable: traffic_light_category_merger_node
+  node_output: screen
+  use_container: false
+  container_name: pointcloud_container
+
+# interfaces
+inputs:
+  - name: car_signals
+    message_type: tier4_perception_msgs/msg/TrafficLightArray
+  - name: pedestrian_signals
+    message_type: tier4_perception_msgs/msg/TrafficLightArray
+
+outputs:
+  - name: traffic_signals
+    message_type: tier4_perception_msgs/msg/TrafficLightArray
+    qos:
+      reliability: reliable
+      durability: transient_local
+
+# parameters
+parameter_files:
+  - name: parameters
+    default: config/traffic_light_category_merger.param.yaml
+
+parameters: []
+
+# processes
+processes:
+  - name: dummy_process
+    trigger_conditions:
+      - and:
+          - on_input: message_in
+    outcomes:
+      - to_output: message_out
