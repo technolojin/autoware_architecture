@@ -2,22 +2,22 @@ name: ObjectDetectionCLMerged.pipeline
 
 instances:
   # compare map filter
-  - node: compare_map_filter
+  - instance: compare_map_filter
     element: VoxelBasedCompareMapFilter.module
   # detectors
-  - node: clustering
+  - instance: clustering
     element: LidarClusteringCameraFusion.pipeline
-  - node: detection_by_tracker
+  - instance: detection_by_tracker
     element: DetectionByTracker.module
   # merger
-  - node: roi_detected_object_fusion
+  - instance: roi_detected_object_fusion
     element: RoiDetectedObjectFusion.module
-  - node: object_association_merger_alpha
+  - instance: object_association_merger_alpha
     element: ObjectAssociationMerger.module
-  - node: object_association_merger_beta
+  - instance: object_association_merger_beta
     element: ObjectAssociationMerger.module
   # filter
-  - node: object_lanelet_filter
+  - instance: object_lanelet_filter
     element: ObjectLaneletFilter.module
 
 external_interfaces:

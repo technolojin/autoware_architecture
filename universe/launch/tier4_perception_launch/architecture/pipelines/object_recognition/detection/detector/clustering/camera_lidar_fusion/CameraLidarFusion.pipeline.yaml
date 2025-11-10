@@ -1,13 +1,13 @@
 name: CameraLidarFusion.pipeline
 
 instances:
-  - node: roi_cluster_fusion
+  - instance: roi_cluster_fusion
     element: RoiClusterFusion.module
-  - node: low_intensity_cluster_filter
+  - instance: low_intensity_cluster_filter
     element: LowIntensityClusterFilter.module
-  - node: shape_estimation
+  - instance: shape_estimation
     element: ShapeEstimation.module
-  - node: detected_object_feature_remover
+  - instance: detected_object_feature_remover
     element: DetectedObjectFeatureRemover.module
 
 external_interfaces:

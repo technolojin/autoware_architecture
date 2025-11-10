@@ -1,21 +1,21 @@
 name: CameraDummy.pipeline
 
 instances:
-  - node: camera_0
+  - instance: camera_0
     element: CameraDummyDriver.module
-  - node: camera_1
+  - instance: camera_1
     element: CameraDummyDriver.module
-  - node: camera_2
+  - instance: camera_2
     element: CameraDummyDriver.module
-  - node: camera_3
+  - instance: camera_3
     element: CameraDummyDriver.module
-  - node: camera_4
+  - instance: camera_4
     element: CameraDummyDriver.module
-  - node: camera_5
+  - instance: camera_5
     element: CameraDummyDriver.module
-  - node: camera_6
+  - instance: camera_6
     element: CameraDummyDriver.module
-  - node: camera_7
+  - instance: camera_7
     element: CameraDummyDriver.module
 
 external_interfaces:

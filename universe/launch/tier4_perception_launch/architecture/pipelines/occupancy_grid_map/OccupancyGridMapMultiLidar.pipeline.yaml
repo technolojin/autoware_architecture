@@ -1,24 +1,24 @@
 name: OccupancyGridMapMultiLidar.pipeline
 
 instances:
-  - node: obstacle_pc_downsample_filter
+  - instance: obstacle_pc_downsample_filter
     element: PickupBasedVoxelGridDownsampleFilter.module
 
-  - node: raw_pc_downsample_filter_1
+  - instance: raw_pc_downsample_filter_1
     element: PickupBasedVoxelGridDownsampleFilter.module
-  - node: raw_pc_downsample_filter_2
+  - instance: raw_pc_downsample_filter_2
     element: PickupBasedVoxelGridDownsampleFilter.module
-  - node: raw_pc_downsample_filter_3
+  - instance: raw_pc_downsample_filter_3
     element: PickupBasedVoxelGridDownsampleFilter.module
 
-  - node: occupancy_grid_map_node_1
+  - instance: occupancy_grid_map_node_1
     element: PointcloudBasedOccupancyGridMap.module
-  - node: occupancy_grid_map_node_2
+  - instance: occupancy_grid_map_node_2
     element: PointcloudBasedOccupancyGridMap.module
-  - node: occupancy_grid_map_node_3
+  - instance: occupancy_grid_map_node_3
     element: PointcloudBasedOccupancyGridMap.module
 
-  - node: occupancy_grid_map_fusion_node
+  - instance: occupancy_grid_map_fusion_node
     element: SynchronizedGridMapFusion.module
 
 external_interfaces:

@@ -1,11 +1,11 @@
 name: PerceptionB.pipeline
 
 instances:
-  - node: detector_a1
+  - instance: detector_a1
     element: DetectorA.pipeline
-  - node: node_tracker
+  - instance: node_tracker
     element: Tracker.module
-  - node: node_predictor
+  - instance: node_predictor
     element: Predictor.module
 
 external_interfaces:

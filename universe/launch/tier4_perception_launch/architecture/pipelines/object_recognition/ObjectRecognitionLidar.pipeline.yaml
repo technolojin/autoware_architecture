@@ -1,11 +1,11 @@
 name: ObjectRecognitionLidar.pipeline
 
 instances:
-  - node: detection
+  - instance: detection
     element: ObjectDetectionLidar.pipeline
-  - node: tracking
+  - instance: tracking
     element: ObjectTrackingSingleChannel.pipeline
-  - node: prediction
+  - instance: prediction
     element: ObjectPredictionMapBased.pipeline
 
 external_interfaces:

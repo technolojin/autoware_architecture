@@ -1,11 +1,11 @@
 name: ObjectRecognitionCLRMerged.pipeline
 
 instances:
-  - node: detection
+  - instance: detection
     element: ObjectDetectionCLMerged.pipeline
-  - node: tracking
+  - instance: tracking
     element: ObjectTrackingTrackerMergerRadarFusion.pipeline
-  - node: prediction
+  - instance: prediction
     element: ObjectPredictionMapBased.pipeline
 
 external_interfaces:

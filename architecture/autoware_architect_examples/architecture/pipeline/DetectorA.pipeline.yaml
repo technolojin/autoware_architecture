@@ -1,9 +1,9 @@
 name: DetectorA.pipeline
 
 instances:
-  - node: node_detector
+  - instance: node_detector
     element: DetectorA.module
-  - node: node_filter
+  - instance: node_filter
     element: FilterA.module
 
 external_interfaces:

@@ -1,7 +1,7 @@
 name: OccupancyGridMapPointcloudBased.pipeline
 
 instances:
-  - node: occupancy_grid_map_node
+  - instance: occupancy_grid_map_node
     element: PointcloudBasedOccupancyGridMap.module
 
 external_interfaces:

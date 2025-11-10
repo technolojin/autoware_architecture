@@ -1,9 +1,9 @@
 name: PointpaintingFusion.pipeline
 
 instances:
-  - node: pointpainting_fusion
+  - instance: pointpainting_fusion
     element: PointPaintingFusion.module
-  - node: validation
+  - instance: validation
     element: ObstaclePointCloudBasedValidator.module
 
 external_interfaces:
