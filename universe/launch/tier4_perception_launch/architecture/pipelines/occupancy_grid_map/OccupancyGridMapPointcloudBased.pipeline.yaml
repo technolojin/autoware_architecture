@@ -1,6 +1,6 @@
 name: OccupancyGridMapPointcloudBased.pipeline
 
-nodes:
+instances:
   - node: occupancy_grid_map_node
     element: PointcloudBasedOccupancyGridMap.module
 

@@ -1,6 +1,6 @@
 name: CameraLidarFusion.pipeline
 
-nodes:
+instances:
   - node: roi_cluster_fusion
     element: RoiClusterFusion.module
   - node: low_intensity_cluster_filter

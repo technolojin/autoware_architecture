@@ -1,6 +1,6 @@
 name: ObjectDetectionLidar.pipeline
 
-nodes:
+instances:
   # compare map filter
   - node: compare_map_filter
     element: VoxelBasedCompareMapFilter.module

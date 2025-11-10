@@ -1,6 +1,6 @@
 name: ObjectRecognitionCLRMerged.pipeline
 
-nodes:
+instances:
   - node: detection
     element: ObjectDetectionCLMerged.pipeline
   - node: tracking

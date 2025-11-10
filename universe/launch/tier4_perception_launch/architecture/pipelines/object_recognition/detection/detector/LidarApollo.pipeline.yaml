@@ -1,6 +1,6 @@
 name: LidarApollo.pipeline
 
-nodes:
+instances:
   - node: lidar_apollo_instance_segmentation
     element: LidarApolloInstanceSegmentation.module
   - node: shape_estimation

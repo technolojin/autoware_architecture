@@ -1,6 +1,6 @@
 name: PointpaintingFusion.pipeline
 
-nodes:
+instances:
   - node: pointpainting_fusion
     element: PointPaintingFusion.module
   - node: validation

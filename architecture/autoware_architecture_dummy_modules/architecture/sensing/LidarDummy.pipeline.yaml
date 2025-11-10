@@ -1,6 +1,6 @@
 name: LidarDummy.pipeline
 
-nodes:
+instances:
   - node: lidar_top
     element: LidarDummyDriver.module
   - node: lidar_left
@@ -11,6 +11,7 @@ nodes:
     element: LidarDummyDriver.module
   - node: lidar_concatenate
     element: ConcatenatePointcloud.module
+
 external_interfaces:
   input: []
   output:

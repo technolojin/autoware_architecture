@@ -1,6 +1,6 @@
 name: OccupancyGridMapMultiLidar.pipeline
 
-nodes:
+instances:
   - node: obstacle_pc_downsample_filter
     element: PickupBasedVoxelGridDownsampleFilter.module
 

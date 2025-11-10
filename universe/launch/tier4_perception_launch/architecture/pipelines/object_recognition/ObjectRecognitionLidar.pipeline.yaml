@@ -1,6 +1,6 @@
 name: ObjectRecognitionLidar.pipeline
 
-nodes:
+instances:
   - node: detection
     element: ObjectDetectionLidar.pipeline
   - node: tracking

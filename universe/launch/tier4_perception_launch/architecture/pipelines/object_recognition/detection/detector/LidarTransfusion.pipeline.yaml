@@ -1,6 +1,6 @@
 name: LidarTransfusion.pipeline
 
-nodes:
+instances:
   - node: lidar_transfusion
     element: LidarTransfusion.module
   - node: validation

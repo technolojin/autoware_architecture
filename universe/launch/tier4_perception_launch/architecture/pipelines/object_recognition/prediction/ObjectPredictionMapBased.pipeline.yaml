@@ -1,6 +1,6 @@
 name: ObjectPredictionMapBased.pipeline
 
-nodes:
+instances:
   - node: map_based_prediction
     element: MapBasedPrediction.module
 

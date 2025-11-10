@@ -1,6 +1,6 @@
 name: LidarCenterpoint.pipeline
 
-nodes:
+instances:
   - node: lidar_centerpoint
     element: LidarCenterpoint.module
   - node: validation

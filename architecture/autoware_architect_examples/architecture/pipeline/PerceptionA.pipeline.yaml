@@ -1,6 +1,6 @@
 name: PerceptionA.pipeline
 
-nodes:
+instances:
   - node: detector_a1
     element: DetectorA.pipeline
   - node: detector_a2

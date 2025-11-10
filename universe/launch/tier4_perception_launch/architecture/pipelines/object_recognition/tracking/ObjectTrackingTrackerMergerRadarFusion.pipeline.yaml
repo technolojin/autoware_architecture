@@ -1,6 +1,6 @@
 name: ObjectTrackingTrackerMergerRadarFusion.pipeline
 
-nodes:
+instances:
   - node: multi_object_tracker
     element: MultiObjectTracker.module
   - node: radar_object_filter

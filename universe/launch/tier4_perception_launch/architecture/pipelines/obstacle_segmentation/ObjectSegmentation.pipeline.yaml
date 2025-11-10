@@ -1,6 +1,6 @@
 name: ObjectSegmentation.pipeline
 
-nodes:
+instances:
   - node: crop_box_filter
     element: CropBoxFilter.module
   - node: common_ground_filter

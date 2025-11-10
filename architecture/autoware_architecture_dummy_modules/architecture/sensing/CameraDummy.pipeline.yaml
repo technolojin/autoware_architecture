@@ -1,6 +1,6 @@
 name: CameraDummy.pipeline
 
-nodes:
+instances:
   - node: camera_0
     element: CameraDummyDriver.module
   - node: camera_1

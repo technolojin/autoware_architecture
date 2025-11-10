@@ -1,6 +1,6 @@
 name: ObjectRecognitionCLRParallel.pipeline
 
-nodes:
+instances:
 
   - node: detection/compare_map_filter
     element: VoxelBasedCompareMapFilter.module

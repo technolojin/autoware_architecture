@@ -1,6 +1,6 @@
 name: RadarDummy.pipeline
 
-nodes:
+instances:
   - node: radar_front_center
     element: RadarDummyDriver.module
   - node: radar_front_left

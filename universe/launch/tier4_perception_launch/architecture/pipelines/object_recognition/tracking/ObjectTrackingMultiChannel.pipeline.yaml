@@ -1,6 +1,6 @@
 name: ObjectTrackingMultiChannel.pipeline
 
-nodes:
+instances:
   - node: multi_object_tracker
     element: MultiObjectTracker.module
 

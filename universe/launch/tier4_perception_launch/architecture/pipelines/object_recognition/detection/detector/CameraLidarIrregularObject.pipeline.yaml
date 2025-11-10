@@ -1,6 +1,6 @@
 name: CameraLidarIrregularObject.pipeline
 
-nodes:
+instances:
   - node: crop_box_filter
     element: CropBoxFilter.module
   - node: ground_filter

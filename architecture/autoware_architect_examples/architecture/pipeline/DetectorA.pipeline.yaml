@@ -1,6 +1,6 @@
 name: DetectorA.pipeline
 
-nodes:
+instances:
   - node: node_detector
     element: DetectorA.module
   - node: node_filter

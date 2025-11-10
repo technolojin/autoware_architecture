@@ -1,6 +1,6 @@
 name: PerceptionB.pipeline
 
-nodes:
+instances:
   - node: detector_a1
     element: DetectorA.pipeline
   - node: node_tracker

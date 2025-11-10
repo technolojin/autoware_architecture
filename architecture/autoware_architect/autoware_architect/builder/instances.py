@@ -295,7 +295,7 @@ class Instance:
 
     def _create_pipeline_children(self, config_registry: ConfigRegistry):
         """Create child instances for pipeline elements."""
-        cfg_node_list = self.configuration.nodes
+        cfg_node_list = self.configuration.instances
         for cfg_node in cfg_node_list:
             instance = Instance(
                 cfg_node.get("node"), self.compute_unit, self.namespace, self.layer + 1
