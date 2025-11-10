@@ -109,12 +109,12 @@ outputs:
       reliability: reliable
       durability: transient_local
 
-# configurations
+# parameters
 parameter_files:
   - name: parameters
     default: config/{node_name}.param.yaml
 
-configurations: []
+parameter: []
 
 # processes
 processes:

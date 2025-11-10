@@ -49,11 +49,11 @@ def create_node_launcher_xml(node_yaml) -> str:
     input_list = node_yaml.get("inputs", [])
     output_list = node_yaml.get("outputs", [])
 
-    # Extract parameter information
+    # Extract parameter set information
     param_path_list = node_yaml.get("parameter_files", [])
 
-    # Extract configuration information
-    configuration_list = node_yaml.get("configurations", [])
+    # Extract parameter information
+    parameter_list = node_yaml.get("parameters", [])
 
     # node name is snake case of the node name which the original is in pascal case
     # e.g. ObjectDetector.node -> object_detector
@@ -71,24 +71,24 @@ def create_node_launcher_xml(node_yaml) -> str:
         'container_name': container_name,
         'inputs': input_list,
         'outputs': output_list,
+        'parameter_files': [
+            {
+                'name': param_file.get('name'),
+                'default': _process_parameter_path(param_file.get('default'), package_name),
+                'allow_substs': str(param_file.get('allow_substs', False)).lower()
+            }
+            for param_file in param_path_list
+        ],
         'parameters': [
             {
                 'name': param.get('name'),
-                'default': _process_parameter_path(param.get('default'), package_name),
-                'allow_substs': str(param.get('allow_substs', False)).lower()
-            }
-            for param in param_path_list
-        ],
-        'configurations': [
-            {
-                'name': config.get('name'),
                 'default_value': (
-                    str(config.get('default')).lower()
-                    if config.get('type') == 'bool'
-                    else config.get('default')
+                    str(param.get('default')).lower()
+                    if param.get('type') == 'bool'
+                    else param.get('default')
                 )
             }
-            for config in configuration_list
+            for param in parameter_list
         ]
     }
 

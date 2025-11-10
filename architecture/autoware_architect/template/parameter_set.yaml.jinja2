@@ -10,14 +10,14 @@ parameters:
 {% else %}
     parameter_files: []
 {% endif %}
-{% if node.configurations %}
-    configurations:
-{% for config in node.configurations %}
+{% if node.parameters %}
+    parameters:
+{% for config in node.parameters %}
       - name: {{ config.name }}
         type: {{ config.type }}
         value: {{ config.value }}
 {% endfor %}
 {% else %}
-    configurations: []
+    parameters: []
 {% endif %}
 {% endfor %}

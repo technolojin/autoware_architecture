@@ -86,5 +86,26 @@ java -Xmx16384m -DPLANTUML_LIMIT_SIZE=65536 -jar /usr/share/plantuml/plantuml.ja
   * link -> route
   * event
 
+------ 
+new definitions
 
+* definition/entity
+  * system
+  * module
+  * node
+  * parameter set
+  * parameter
+  * port
+  * process
+
+* instance
+  * deployment
+  * component
+  * channel
+  * topic
+  * parameter
+
+* abstraction
+  * event
+  * route
 

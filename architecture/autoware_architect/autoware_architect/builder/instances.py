@@ -274,7 +274,7 @@ class Instance:
                             continue
                         
                         parameter_files_raw = param_config.get("parameter_files", [])
-                        configurations = param_config.get("configurations", [])
+                        parameters = param_config.get("parameters", [])
                         
                         # Validate parameter_files format (should be list of dicts)
                         parameter_files = []
@@ -287,9 +287,9 @@ class Instance:
                         
                         # Apply parameters directly to the target node
                         instance.parameter_manager.apply_node_parameters(
-                            node_namespace, parameter_files, configurations
+                            node_namespace, parameter_files, parameters
                         )
-                        logger.debug(f"Applied parameters to node '{node_namespace}' from set '{param_set_name}' files={len(parameter_files)} configs={len(configurations)}")
+                        logger.debug(f"Applied parameters to node '{node_namespace}' from set '{param_set_name}' files={len(parameter_files)} configs={len(parameters)}")
             except Exception as e:
                 raise ValidationError(f"Error in applying parameter set '{param_set_name}' to instance '{instance.name}': {e}")
 

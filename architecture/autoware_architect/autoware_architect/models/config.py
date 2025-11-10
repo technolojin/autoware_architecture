@@ -49,7 +49,7 @@ class NodeConfig(Config):
     inputs: List[Dict[str, Any]] = None
     outputs: List[Dict[str, Any]] = None
     parameter_files: Any = None  # Can be dict or list
-    configurations: Any = None  # Can be dict or list
+    parameters: Any = None  # Can be dict or list
     processes: List[Dict[str, Any]] = None
 
 @dataclass

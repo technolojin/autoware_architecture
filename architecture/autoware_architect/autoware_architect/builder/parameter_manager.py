@@ -31,7 +31,7 @@ class ParameterManager:
     This class handles:
     1. Applying parameters from parameter sets to target instances
     2. Initializing node parameters from configuration
-    3. Managing parameter values and configurations
+    3. Managing parameter values and parameters
     4. Resolving parameter file paths with package prefixes
     """
     
@@ -68,13 +68,13 @@ class ParameterManager:
         
         return result
     
-    def get_configurations_for_launch(self) -> List[Dict[str, Any]]:
+    def get_parameters_for_launch(self) -> List[Dict[str, Any]]:
         """Get configurations formatted for launcher generation.
         
         Returns list of dicts with 'name' and 'value' keys, filtering out 'none' values.
         """
         result = []
-        for param in self.parameter_files.get_configurations():
+        for param in self.parameter_files.get_parameters():
             # Only include if value is not None and not "none"
             if param.value is not None and param.value != "none":
                 result.append({
@@ -114,18 +114,18 @@ class ParameterManager:
     # Parameter Application (from parameter sets)
     # =========================================================================
     
-    def apply_node_parameters(self, node_namespace: str, parameter_files: list, configurations: list):
+    def apply_node_parameters(self, node_namespace: str, parameter_files: list, parameters: list):
         """Apply parameters directly to a target node using new parameter set format.
         
         This method finds a node by its absolute namespace and applies both parameter_files 
-        and configurations directly to it. Configurations will override parameter_files.
+        and parameters directly to it. Parameters will override parameter_files.
         
         Args:
             node_namespace: Absolute namespace path to the target node 
                            (e.g., "/perception/object_recognition/node_tracker")
             parameter_files: List of parameter file mappings 
                             (e.g., [{"model_param_path": "path/to/file.yaml"}])
-            configurations: List of direct parameter configurations 
+            parameters: List of direct parameters
                            (e.g., [{"name": "build_only", "type": "bool", "value": false}])
         """
         target_instance = self._find_node_by_namespace(node_namespace)
@@ -146,26 +146,26 @@ class ParameterManager:
                     target_instance.parameter_manager.parameter_files.set_parameter(
                         param_name,
                         param_path,
-                        param_type=ParameterType.PARAMETER_FILES,
+                        param_type=ParameterType.PARAMETER_FILE,
                         data_type="path",
                         allow_substs=True,
                         is_default=False  # Parameter set overrides are not defaults
                     )
         
-        # Apply configurations (these override parameter files)
-        if configurations:
-            for config in configurations:
-                config_name = config.get("name")
-                config_type = config.get("type", "string")
-                config_value = config.get("value")
-                
+        # Apply parameters (these override parameter files)
+        if parameters:
+            for param in parameters:
+                param_name = param.get("name")
+                param_type = param.get("type", "string")
+                param_value = param.get("value")
+
                 target_instance.parameter_manager.parameter_files.set_parameter(
-                    config_name,
-                    config_value,
-                    param_type=ParameterType.CONFIGURATION,
-                    data_type=config_type,
+                    param_name,
+                    param_value,
+                    param_type=ParameterType.PARAMETER,
+                    data_type=param_type,
                     allow_substs=True,
-                    is_default=False  # Parameter set configurations are not defaults
+                    is_default=False  # Parameter set are not defaults
                 )
 
     # =========================================================================
@@ -247,27 +247,27 @@ class ParameterManager:
                 self.parameter_files.set_parameter(
                     param_name, 
                     param_value,
-                    param_type=ParameterType.PARAMETER_FILES,
+                    param_type=ParameterType.PARAMETER_FILE,
                     data_type="string",
                     schema_path=param_schema,
                     allow_substs=cfg_param.get("allow_substs", True),
                     is_default=True  # These are default parameter files
                 )
         
-        # 2. Set default configurations from node configuration
-        if hasattr(self.instance.configuration, 'configurations') and self.instance.configuration.configurations:
-            for cfg_config in self.instance.configuration.configurations:
-                config_name = cfg_config.get("name")
-                config_value = cfg_config.get("value", cfg_config.get("default"))
-                config_type = cfg_config.get("type", "string")
-                
+        # 2. Set default parameters from node parameters
+        if hasattr(self.instance.configuration, 'parameters') and self.instance.configuration.parameters:
+            for cfg_param in self.instance.configuration.parameters:
+                param_name = cfg_param.get("name")
+                param_value = cfg_param.get("value", cfg_param.get("default"))
+                param_type = cfg_param.get("type", "string")
+
                 # Only set if a default value is provided
-                if config_value is not None:
+                if param_value is not None:
                     self.parameter_files.set_parameter(
-                        config_name,
-                        config_value,
-                        param_type=ParameterType.CONFIGURATION,
-                        data_type=config_type,
+                        param_name,
+                        param_value,
+                        param_type=ParameterType.PARAMETER,
+                        data_type=param_type,
                         allow_substs=True,
-                        is_default=True  # These are default configurations
+                        is_default=True  # These are default parameters
                     )

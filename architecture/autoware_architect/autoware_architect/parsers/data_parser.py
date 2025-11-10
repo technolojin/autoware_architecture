@@ -75,20 +75,20 @@ class ConfigParser:
         }
         
         if entity_type == ConfigType.NODE:
-            # Initialize configuration values from defaults
-            configurations = config.get('configurations', [])
-            if configurations:
-                for cfg in configurations:
-                    if 'default' in cfg and 'value' not in cfg:
-                        cfg['value'] = cfg['default']
-            
+            # Initialize parameter values from defaults
+            parameters = config.get('parameters', [])
+            if parameters:
+                for param in parameters:
+                    if 'default' in param and 'value' not in param:
+                        param['value'] = param['default']
+
             return NodeConfig(
                 **base_data,
                 launch=config.get('launch'),
                 inputs=config.get('inputs'),
                 outputs=config.get('outputs'),
                 parameter_files=config.get('parameter_files'),
-                configurations=configurations,
+                parameters=parameters,
                 processes=config.get('processes')
             )
         elif entity_type == ConfigType.MODULE:

@@ -27,9 +27,9 @@
 {% endfor %}
 {% endif %}
 
-      <!-- Configurations -->
-{% for config in node.configurations %}
-      <param name="{{ config.name }}" value="{{ config.value }}"/>
+      <!-- Parameters -->
+{% for param in node.parameter_files %}
+      <param name="{{ param.name }}" value="{{ param.value }}"/>
 {% endfor %}
     </composable_node>
   </load_composable_node>
@@ -47,9 +47,9 @@
 {% endfor %}
 {% endif %}
 
-    <!-- Configurations -->
-{% for config in node.configurations %}
-    <param name="{{ config.name }}" value="{{ config.value }}"/>
+    <!-- Parameters -->
+{% for param in node.parameters %}
+    <param name="{{ param.name }}" value="{{ param.value }}"/>
 {% endfor %}
   </node>
 {% endif %}
@@ -76,9 +76,9 @@
 {% endfor %}
 {% endif %}
 
-        <!-- Configurations -->
-{% for config in node.configurations %}
-        <param name="{{ config.name }}" value="{{ config.value }}"/>
+        <!-- Parameters -->
+{% for param in node.parameters %}
+        <param name="{{ param.name }}" value="{{ param.value }}"/>
 {% endfor %}
       </composable_node>
     </load_composable_node>
@@ -95,10 +95,9 @@
       <param from="{{ param_file.path }}"/>
 {% endfor %}
 {% endif %}
-
-      <!-- Configurations -->
-{% for config in node.configurations %}
-      <param name="{{ config.name }}" value="{{ config.value }}"/>
+        <!-- Parameters -->
+{% for param in node.parameters %}
+      <param name="{{ param.name }}" value="{{ param.value }}"/>
 {% endfor %}
     </node>
 {% endif %}

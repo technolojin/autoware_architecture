@@ -121,13 +121,13 @@ class ParameterTemplateGenerator:
             full_namespace = instance.namespace_str
             
             # Get parameter information from parameter_manager
-            parameter_files, configurations = self._extract_parameters_from_manager(instance)
+            parameter_files, parameters = self._extract_parameters_from_manager(instance)
             
-            if parameter_files or configurations:
+            if parameter_files or parameters:
                 node_info = {
                     "node": full_namespace,
                     "parameter_files": parameter_files,
-                    "configurations": configurations,
+                    "parameters": parameters,
                     "package": instance.configuration.launch.get("package", "unknown_package")
                 }
                 node_data.append(node_info)
@@ -138,16 +138,16 @@ class ParameterTemplateGenerator:
                 self._collect_node_parameter_files_recursive(child, node_data, current_namespace)
     
     def _extract_parameters_from_manager(self, node_instance: 'Instance') -> tuple[Dict[str, str], List[Dict[str, Any]]]:
-        """Extract parameter files and configurations from parameter manager.
+        """Extract parameter files and parameters from parameter manager.
         
         Args:
             node_instance: Node instance to extract parameters from
             
         Returns:
-            Tuple of (parameter_files_dict, configurations_list)
+            Tuple of (parameter_files_dict, parameters_list)
         """
         parameter_files = {}
-        configurations = []
+        parameters = []
         
         # Get all parameters from the parameter manager
         all_parameters = node_instance.parameter_manager.get_all_parameter_files()
@@ -159,20 +159,20 @@ class ParameterTemplateGenerator:
             param_name = param.name
             param_type = param.param_type
             
-            if param_type.value == "parameter":  # ParameterType.PARAMETER_FILES
+            if param_type.value == "parameter":  # ParameterType.PARAMETER_FILE
                 # Generate template path based on namespace and parameter name
                 template_path = f"{base_path}/{param_name}.param.yaml"
                 parameter_files[param_name] = template_path
             
-            elif param_type.value == "configuration":  # ParameterType.CONFIGURATION
+            elif param_type.value == "configuration":  # ParameterType.PARAMETER
                 configuration = {
                     "name": param_name,
                     "type": param.data_type,
                     "value": param.value
                 }
-                configurations.append(configuration)
+                parameters.append(configuration)
         
-        return parameter_files, configurations
+        return parameter_files, parameters
     
     def _create_namespace_structure_and_copy_configs(self, node_data: Dict[str, Any], 
                                                    parameter_set_root: str) -> None:

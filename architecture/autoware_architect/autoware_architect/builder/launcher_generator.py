@@ -117,9 +117,9 @@ def _extract_node_data(node_instance: Instance, module_path: List[str]) -> Dict[
             "topic": topic
         })
     
-    # Get parameter files and configurations from parameter_manager (already parsed and ordered)
+    # Get parameter files and parameters from parameter_manager (already parsed and ordered)
     parameter_files = node_instance.parameter_manager.get_parameter_files_for_launch()
-    configurations = node_instance.parameter_manager.get_configurations_for_launch()
+    parameters = node_instance.parameter_manager.get_parameters_for_launch()
     
     return {
         "name": node_instance.name,
@@ -133,7 +133,7 @@ def _extract_node_data(node_instance: Instance, module_path: List[str]) -> Dict[
         "full_namespace_path": full_namespace_path,
         "ports": ports,
         "parameter_files": parameter_files,
-        "configurations": configurations
+        "parameters": parameters
     }
 
 
