@@ -21,12 +21,12 @@ class ConfigType:
     NODE = "node"
     MODULE = "module"
     PARAMETER_SET = "parameter_set"
-    ARCHITECTURE = "architecture"
+    SYSTEM = "architecture"
 
     @classmethod
     def get_all_types(cls) -> List[str]:
         """Get all valid entity types."""
-        return [cls.NODE, cls.MODULE, cls.PARAMETER_SET, cls.ARCHITECTURE]
+        return [cls.NODE, cls.MODULE, cls.PARAMETER_SET, cls.SYSTEM]
 
 @dataclass
 class Config:
@@ -65,8 +65,8 @@ class ParameterSetConfig(Config):
     parameters: Any = None  # Can be dict or list
 
 @dataclass
-class ArchitectureConfig(Config):
-    """Data structure for architecture entities."""
+class SystemConfig(Config):
+    """Data structure for system entities."""
     modes: List[Dict[str, Any]] = None
     components: List[Dict[str, Any]] = None
     connections: List[Dict[str, Any]] = None

@@ -16,7 +16,7 @@
 import os
 import logging
 from typing import Dict
-from .config import ArchitectureConfig
+from .config import SystemConfig
 from .models.config import Config
 from .builder.config_registry import ConfigRegistry
 from .builder.instances import DeploymentInstance
@@ -31,29 +31,29 @@ logger = logging.getLogger(__name__)
 debug_mode = True
 
 class Deployment:
-    def __init__(self, architecture_config: ArchitectureConfig ):
+    def __init__(self, system_config: SystemConfig ):
         # entity collection
-        architecture_yaml_list = self._get_architecture_list(architecture_config)
+        architecture_yaml_list = self._get_architecture_list(system_config)
         self.config_registry = ConfigRegistry(architecture_yaml_list)
 
         # detect mode of input file (deployment vs architecture only)
         # if deployment_file ends with .architecture, it's an architecture-only file
-        logger.info("deployment init Deployment file: %s", architecture_config.deployment_file)
-        if architecture_config.deployment_file.endswith(".architecture"):
+        logger.info("deployment init Deployment file: %s", system_config.deployment_file)
+        if system_config.deployment_file.endswith(".architecture"):
             logger.info("Detected architecture-only deployment file.")
             # need to parse the absolute path of the file from the config_registry
             # generate deployment config in-memory
-            self.config_yaml_dir = architecture_config.deployment_file
+            self.config_yaml_dir = system_config.deployment_file
             self.config_yaml = {}
-            self.config_yaml['architecture'] = architecture_config.deployment_file
-            self.config_yaml['name'] = architecture_config.deployment_file
+            self.config_yaml['architecture'] = system_config.deployment_file
+            self.config_yaml['name'] = system_config.deployment_file
             self.config_yaml.setdefault('vehicle_parameters', [])
             self.config_yaml.setdefault('environment_parameters', [])
             self.name = self.config_yaml.get("name")
 
         else:
             # input is a deployment file
-            self.config_yaml_dir = architecture_config.deployment_file
+            self.config_yaml_dir = system_config.deployment_file
             self.config_yaml = yaml_parser.load_config(self.config_yaml_dir)
             self.name = self.config_yaml.get("name")
 
@@ -67,7 +67,7 @@ class Deployment:
         self.map_yaml = None
 
         # output paths
-        self.output_root_dir = architecture_config.output_root_dir
+        self.output_root_dir = system_config.output_root_dir
         self.launcher_dir = os.path.join(self.output_root_dir, "exports", self.name, "launcher/")
         self.system_monitor_dir = os.path.join(self.output_root_dir, "exports", self.name, "system_monitor/")
         self.visualization_dir = os.path.join(self.output_root_dir, "exports", self.name,"visualization/")
@@ -80,14 +80,14 @@ class Deployment:
         #   sensor calibration, vehicle parameters, map, etc.
 
 
-    def _get_architecture_list(self, architecture_config: ArchitectureConfig) -> list[str]:
+    def _get_architecture_list(self, system_config: SystemConfig) -> list[str]:
         architecture_list: list[str] = []
-        manifest_dir = architecture_config.architecture_manifest_dir
+        manifest_dir = system_config.manifest_dir
         if not os.path.isdir(manifest_dir):
             raise ValidationError(f"Architecture manifest directory not found or not a directory: {manifest_dir}")
 
         # domains to include (always includes 'shared')
-        domains_filter = set(architecture_config.effective_domains())
+        domains_filter = set(system_config.effective_domains())
         logger.info(f"Domain filter active: {sorted(domains_filter)}")
 
         for entry in sorted(os.listdir(manifest_dir)):
@@ -100,16 +100,16 @@ class Deployment:
                 if manifest_domain not in domains_filter:
                     logger.debug(f"Skipping manifest '{entry}' (domain='{manifest_domain}' not in filter)")
                     continue
-                files = manifest_yaml.get('architecture_config_files')
+                files = manifest_yaml.get('system_config_files')
                 # Allow the field to be empty or null without raising an error
                 if files in (None, []):
                     logger.debug(
-                        f"Manifest '{entry}' has empty architecture_config_files; skipping."
+                        f"Manifest '{entry}' has empty system_config_files; skipping."
                     )
                     continue
                 if not isinstance(files, list):
                     logger.warning(
-                        f"Manifest '{entry}' has unexpected type for architecture_config_files: {type(files)}; skipping."
+                        f"Manifest '{entry}' has unexpected type for system_config_files: {type(files)}; skipping."
                     )
                     continue
                 for f in files:

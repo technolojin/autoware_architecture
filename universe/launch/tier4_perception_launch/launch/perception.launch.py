@@ -12,7 +12,7 @@ from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
 from ament_index_python.packages import get_package_share_directory, get_package_prefix
 
 from autoware_architect.deployment import Deployment
-from autoware_architect.config import ArchitectureConfig
+from autoware_architect.config import SystemConfig
 import pprint
 
 
@@ -250,11 +250,11 @@ def generate_autoware_architecture(deployment_file: str, mode: dict, parameters:
     """Generate Autoware Architecture deployment."""
     # Load architecture configuration from YAML file
 
-    architecture_config = ArchitectureConfig()
-    architecture_config.debug_mode = True
-    architecture_config.log_level = "INFO"
+    system_config = SystemConfig()
+    system_config.debug_mode = True
+    system_config.log_level = "INFO"
 
-    logger = architecture_config.set_logging()
+    logger = system_config.set_logging()
     
     logger.info("=== Determined mode: %s ===", pprint.pformat(mode, indent=2))
     logger.info("=== Parameters: %s ===", pprint.pformat(parameters, indent=2))
@@ -263,18 +263,18 @@ def generate_autoware_architecture(deployment_file: str, mode: dict, parameters:
     architect_pkg_build_dir = os.path.join(workspace_root, 'build', 'autoware_architect')
     launcher_pkg_install_dir = get_package_share_directory('tier4_perception_launch')
 
-    architecture_config.architecture_manifest_dir = os.path.join(architect_pkg_build_dir, "resource")
-    architecture_config.deployment_file = os.path.join(launcher_pkg_install_dir, deployment_file)
-    architecture_config.output_root_dir = os.path.join(launcher_pkg_install_dir)
-    architecture_config.domains = ['shared', 'dummy_modules']
+    system_config.manifest_dir = os.path.join(architect_pkg_build_dir, "resource")
+    system_config.deployment_file = os.path.join(launcher_pkg_install_dir, deployment_file)
+    system_config.output_root_dir = os.path.join(launcher_pkg_install_dir)
+    system_config.domains = ['shared', 'dummy_modules']
 
-    logger.info("Architecture YAML List File: %s", architecture_config.architecture_manifest_dir)
-    logger.info("Deployment File: %s", architecture_config.deployment_file)
-    logger.info("Output Root Dir: %s", architecture_config.output_root_dir)
+    logger.info("Architecture YAML List File: %s", system_config.manifest_dir)
+    logger.info("Deployment File: %s", system_config.deployment_file)
+    logger.info("Output Root Dir: %s", system_config.output_root_dir)
 
     # load and build the deployment
     logger.info("autoware architect: Building deployment...")
-    deployment = Deployment(architecture_config)
+    deployment = Deployment(system_config)
 
     # generate the system visualization
     logger.info("autoware architect: Generating visualization...")

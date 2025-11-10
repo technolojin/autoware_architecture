@@ -43,7 +43,7 @@ macro(autoware_architect_configure)
 
   # Start (overwrite) manifest
   file(WRITE ${manifest_file} "domain: ${_ARCH_DOMAIN_FINAL}\n")
-  file(APPEND ${manifest_file} "architecture_config_files:\n")
+  file(APPEND ${manifest_file} "system_config_files:\n")
 
   foreach(YAML_FILE ${YAML_FILES})
     # Infer type from filename pattern

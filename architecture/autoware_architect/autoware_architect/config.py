@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Configuration management for the autoware architecture system."""
+"""Configuration management for the autoware system."""
 
 import os
 import logging
@@ -20,8 +20,8 @@ from dataclasses import dataclass
 
 
 @dataclass
-class ArchitectureConfig:
-    """Configuration class for the architecture system.
+class SystemConfig:
+    """Configuration class for the autoware system deployment.
     domains:
       - `domains` is the list of active domains provided externally.
       - 'shared' is automatically appended if missing.
@@ -34,12 +34,12 @@ class ArchitectureConfig:
 
     # paths
     deployment_file: str = ""
-    architecture_manifest_dir: str = ""
+    manifest_dir: str = ""
     output_root_dir: str = "build"
     domains: list[str] | None = None
 
     @classmethod
-    def from_env(cls) -> 'ArchitectureConfig':
+    def from_env(cls) -> 'SystemConfig':
         """Create configuration from environment variables."""
         return cls(
             debug_mode=os.getenv('AUTOWARE_ARCHITECT_DEBUG', 'false').lower() == 'true',
@@ -81,4 +81,4 @@ class ArchitectureConfig:
 
 
 # Global configuration instance
-config = ArchitectureConfig.from_env()
+config = SystemConfig.from_env()

@@ -15,7 +15,7 @@
 import logging
 from typing import List, Dict
 
-from ..models.config import Config, NodeConfig, ModuleConfig, ParameterSetConfig, ArchitectureConfig
+from ..models.config import Config, NodeConfig, ModuleConfig, ParameterSetConfig, SystemConfig
 from ..parsers.data_parser import entity_name_decode
 from ..config import config
 from ..exceptions import ValidationError
@@ -111,7 +111,7 @@ class Instance:
             raise ValidationError(f"Instance layer is too deep (limit: {config.layer_limit})")
 
         # configuration
-        self.configuration: NodeConfig | ModuleConfig | ParameterSetConfig | ArchitectureConfig | None = None
+        self.configuration: NodeConfig | ModuleConfig | ParameterSetConfig | SystemConfig | None = None
 
         # instance topology
         self.entity_type: str = None

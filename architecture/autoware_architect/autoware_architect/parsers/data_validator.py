@@ -190,7 +190,7 @@ class ValidatorFactory:
         ConfigType.NODE: NodeValidator,
         ConfigType.MODULE: ModuleValidator,
         ConfigType.PARAMETER_SET: ParameterSetValidator,
-        ConfigType.ARCHITECTURE: ArchitectureValidator,
+        ConfigType.SYSTEM: ArchitectureValidator,
     }
     
     @classmethod

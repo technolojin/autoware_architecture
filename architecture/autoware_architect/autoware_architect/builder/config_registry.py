@@ -16,7 +16,7 @@ from typing import List, Dict, Optional
 import logging
 
 from ..parsers.data_parser import ConfigParser
-from ..models.config import Config, ConfigType, NodeConfig, ModuleConfig, ParameterSetConfig, ArchitectureConfig
+from ..models.config import Config, ConfigType, NodeConfig, ModuleConfig, ParameterSetConfig, SystemConfig
 from ..exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ class ConfigRegistry:
             ConfigType.NODE: {},
             ConfigType.MODULE: {},
             ConfigType.PARAMETER_SET: {},
-            ConfigType.ARCHITECTURE: {}
+            ConfigType.SYSTEM: {}
         }
         
         self.parser = ConfigParser()
@@ -91,11 +91,11 @@ class ConfigRegistry:
             raise ValidationError(f"Parameter set '{name}' not found. Available parameter sets: {available}")
         return entity
     
-    def get_architecture(self, name: str) -> ArchitectureConfig:
+    def get_architecture(self, name: str) -> SystemConfig:
         """Get an architecture entity by name."""
-        entity = self._type_map[ConfigType.ARCHITECTURE].get(name)
+        entity = self._type_map[ConfigType.SYSTEM].get(name)
         if entity is None:
-            available = list(self._type_map[ConfigType.ARCHITECTURE].keys())
+            available = list(self._type_map[ConfigType.SYSTEM].keys())
             raise ValidationError(f"Architecture '{name}' not found. Available architectures: {available}")
         return entity
     
@@ -107,7 +107,7 @@ class ConfigRegistry:
             return self.get_module(name)
         elif entity_type == ConfigType.PARAMETER_SET:
             return self.get_parameter_set(name)
-        elif entity_type == ConfigType.ARCHITECTURE:
+        elif entity_type == ConfigType.SYSTEM:
             return self.get_architecture(name)
         else:
             raise ValidationError(f"Unknown entity type: {entity_type}")
