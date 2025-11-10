@@ -1,0 +1,49 @@
+# node information
+name: TrafficLightClassifierPedestrian.node
+
+launch:
+  package: autoware_traffic_light_classifier
+  plugin: autoware::traffic_light::TrafficLightClassifierNodelet
+  executable: traffic_light_classifier_node
+  node_output: screen
+  use_container: false
+  container_name: pointcloud_container
+
+# interfaces
+inputs:
+  - name: image
+    message_type: sensor_msgs/msg/Image
+  - name: rois
+    message_type: tier4_perception_msgs/msg/DetectedObjectsWithFeature
+
+outputs:
+  - name: traffic_signals
+    message_type: tier4_perception_msgs/msg/TrafficLightArray
+    qos:
+      reliability: reliable
+      durability: transient_local
+
+# parameters
+parameter_files:
+  - name: param_path
+    default: config/pedestrian_traffic_light_classifier.param.yaml
+  - name: model_path
+    default: $(var data_path)/traffic_light_classifier/ped_traffic_light_classifier_mobilenetv2_batch_6.onnx
+  - name: label_path
+    default: $(var data_path)/traffic_light_classifier/lamp_labels_ped.txt
+
+parameters:
+  - name: build_only
+    type: bool
+    default: false
+    description: If true, the node will only build the model and exit.
+
+# processes
+processes:
+  - name: classify
+    trigger_conditions:
+      - and:
+          - on_input: image
+          - on_input: rois
+    outcomes:
+      - to_output: traffic_signals

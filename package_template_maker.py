@@ -114,7 +114,7 @@ parameter_files:
   - name: parameters
     default: config/{node_name}.param.yaml
 
-parameter: []
+parameters: []
 
 # processes
 processes:
@@ -280,26 +280,8 @@ def main():
     # Configuration
     target_dir = "./universe/perception"
     package_names = [
-        "autoware_tensorrt_yolox",
-        "autoware_euclidean_cluster",
-        "autoware_detected_object_feature_remover",
-        "autoware_shape_estimation",
-        "autoware_map_based_prediction",
-        "autoware_lidar_centerpoint",
-        "autoware_detected_object_validation",
-        "autoware_ground_segmentation",
-        "autoware_object_sorter",
-        "autoware_raindrop_cluster_filter",
-        "autoware_cluster_merger",
-        "autoware_tracking_object_merger",
-        "autoware_compare_map_segmentation",
-        "autoware_detection_by_tracker",
-        "autoware_object_merger",
-        "autoware_radar_object_tracker",
-        "autoware_probabilistic_occupancy_grid_map",
-        "autoware_lidar_apollo_instance_segmentation",
-        "autoware_lidar_transfusion",
-        "autoware_simple_object_merger"
+        "autoware_traffic_light_classifier",
+        "autoware_traffic_light_fine_detector",
     ]
     
     # Optional: Override from command line arguments
