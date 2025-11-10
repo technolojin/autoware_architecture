@@ -100,7 +100,7 @@ class Link:
 
 
 class Connection:
-    # Connection is a connection between two elements
+    # Connection is a connection between two entities
     # In other words, it is a configuration to create link(s)
     def __init__(self, connection_dict: dict):
 

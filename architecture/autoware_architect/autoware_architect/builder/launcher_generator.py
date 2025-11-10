@@ -42,40 +42,40 @@ def _render_template_to_file(template_name: str, output_file_path: str, template
         raise
 
 
-def _collect_all_modules_recursively(instance: Instance) -> List[Dict[str, Any]]:
-    """Recursively collect all modules within a component, tracking their namespace paths."""
-    modules = []
+def _collect_all_nodes_recursively(instance: Instance) -> List[Dict[str, Any]]:
+    """Recursively collect all nodes within a component, tracking their namespace paths."""
+    nodes = []
     
-    def traverse(current_instance: Instance, pipeline_path: List[str]):
-        """Recursively traverse instance tree to find all modules."""
+    def traverse(current_instance: Instance, module_path: List[str]):
+        """Recursively traverse instance tree to find all nodes."""
         for child_name, child_instance in current_instance.children.items():
-            if child_instance.element_type == "module":
-                # Extract module information
-                module_data = _extract_module_data(child_instance, pipeline_path)
-                modules.append(module_data)
-            elif child_instance.element_type == "pipeline":
-                # For pipelines, add to the namespace path and continue traversing
-                new_pipeline_path = pipeline_path + [child_name]
-                traverse(child_instance, new_pipeline_path)
+            if child_instance.entity_type == "node":
+                # Extract node information
+                node_data = _extract_node_data(child_instance, module_path)
+                nodes.append(node_data)
+            elif child_instance.entity_type == "module":
+                # For modules, add to the namespace path and continue traversing
+                new_module_path = module_path + [child_name]
+                traverse(child_instance, new_module_path)
     
-    # Start traversal from the root component (which could be a pipeline or module)
-    if instance.element_type == "pipeline":
+    # Start traversal from the root component (which could be a module or node)
+    if instance.entity_type == "module":
         traverse(instance, [])
-    elif instance.element_type == "module":
-        # If it's already a module at the top level, just extract it
-        module_data = _extract_module_data(instance, [])
-        modules.append(module_data)
+    elif instance.entity_type == "node":
+        # If it's already a node at the top level, just extract it
+        node_data = _extract_node_data(instance, [])
+        nodes.append(node_data)
     
-    return modules
+    return nodes
 
 
-def _extract_module_data(module_instance: Instance, pipeline_path: List[str]) -> Dict[str, Any]:
-    """Extract all necessary data from a module instance for launcher generation.
+def _extract_node_data(node_instance: Instance, module_path: List[str]) -> Dict[str, Any]:
+    """Extract all necessary data from a node instance for launcher generation.
     
     This function uses the already-parsed parameters from parameter_manager instead of
-    re-parsing the module configuration.
+    re-parsing the node configuration.
     """
-    launch_config = module_instance.configuration.launch
+    launch_config = node_instance.configuration.launch
     
     # Extract launch information
     package = launch_config.get("package", "")
@@ -86,17 +86,17 @@ def _extract_module_data(module_instance: Instance, pipeline_path: List[str]) ->
     node_output = launch_config.get("node_output", "screen")
     
     # Calculate namespace groups for nested push-ros-namespace
-    # pipeline_path contains the intermediate pipeline names
-    namespace_groups = pipeline_path.copy()
+    # module_path contains the intermediate module names
+    namespace_groups = module_path.copy()
     
     # Calculate full namespace path for documentation
-    full_namespace_path = "/".join(pipeline_path) if pipeline_path else ""
+    full_namespace_path = "/".join(module_path) if module_path else ""
     
     # Collect ports with resolved topics
     ports = []
     
     # Add input ports
-    for port in module_instance.link_manager.get_all_in_ports():
+    for port in node_instance.link_manager.get_all_in_ports():
         topic = port.get_topic()
         if topic == "":
             continue
@@ -107,7 +107,7 @@ def _extract_module_data(module_instance: Instance, pipeline_path: List[str]) ->
         })
     
     # Add output ports
-    for port in module_instance.link_manager.get_all_out_ports():
+    for port in node_instance.link_manager.get_all_out_ports():
         topic = port.get_topic()
         if topic == "":
             continue
@@ -117,12 +117,12 @@ def _extract_module_data(module_instance: Instance, pipeline_path: List[str]) ->
             "topic": topic
         })
     
-    # Get parameter files and configurations from parameter_manager (already parsed and ordered)
-    parameter_files = module_instance.parameter_manager.get_parameter_files_for_launch()
-    configurations = module_instance.parameter_manager.get_configurations_for_launch()
+    # Get parameter files and parameters from parameter_manager (already parsed and ordered)
+    parameter_files = node_instance.parameter_manager.get_parameter_files_for_launch()
+    parameters = node_instance.parameter_manager.get_parameters_for_launch()
     
     return {
-        "name": module_instance.name,
+        "name": node_instance.name,
         "package": package,
         "plugin": plugin,
         "executable": executable,
@@ -133,7 +133,7 @@ def _extract_module_data(module_instance: Instance, pipeline_path: List[str]) ->
         "full_namespace_path": full_namespace_path,
         "ports": ports,
         "parameter_files": parameter_files,
-        "configurations": configurations
+        "parameters": parameters
     }
 
 
@@ -172,11 +172,11 @@ def _generate_compute_unit_launcher(compute_unit: str, components: list, output_
     _render_template_to_file('compute_unit_launcher.xml.jinja2', launcher_file, template_data)
 
 
-def _build_namespace_tree(modules: List[Dict[str, Any]], base_namespace: List[str]) -> Dict:
-    """Build a tree structure from modules based on their namespace paths.
+def _build_namespace_tree(nodes: List[Dict[str, Any]], base_namespace: List[str]) -> Dict:
+    """Build a tree structure from nodes based on their namespace paths.
     
     Args:
-        modules: List of module data dictionaries
+        nodes: List of node data dictionaries
         base_namespace: Base namespace from the component (e.g., ['perception', 'object_recognition'])
     
     Returns:
@@ -184,27 +184,27 @@ def _build_namespace_tree(modules: List[Dict[str, Any]], base_namespace: List[st
     """
     tree = {}
     
-    for module in modules:
-        # Combine base namespace with module's namespace groups
-        full_namespace = base_namespace + module['namespace_groups']
+    for node in nodes:
+        # Combine base namespace with node's namespace groups
+        full_namespace = base_namespace + node['namespace_groups']
         
-        # Add module to the leaf node
+        # Add node to the leaf node
         if not full_namespace:
-            # Module at root level
+            # Node at root level
             if '__root__' not in tree:
-                tree['__root__'] = {'modules': [], 'children': {}}
-            tree['__root__']['modules'].append(module)
+                tree['__root__'] = {'nodes': [], 'children': {}}
+            tree['__root__']['nodes'].append(node)
         else:
-            # Navigate/create the tree structure and add module at the end
+            # Navigate/create the tree structure and add node at the end
             # Start with the root tree, then navigate through children
             current = tree
             for i, ns in enumerate(full_namespace):
                 if ns not in current:
-                    current[ns] = {'modules': [], 'children': {}}
+                    current[ns] = {'nodes': [], 'children': {}}
                 
-                # If this is the last namespace in the path, add the module here
+                # If this is the last namespace in the path, add the node here
                 if i == len(full_namespace) - 1:
-                    current[ns]['modules'].append(module)
+                    current[ns]['nodes'].append(node)
                 else:
                     # Otherwise, continue navigating down into children
                     current = current[ns]['children']
@@ -213,7 +213,7 @@ def _build_namespace_tree(modules: List[Dict[str, Any]], base_namespace: List[st
 
 
 def _generate_component_launcher(compute_unit: str, namespace: str, components: list, output_dir: str):
-    """Generate component launcher file that directly launches all modules in the component."""
+    """Generate component launcher file that directly launches all nodes in the component."""
     component_dir = os.path.join(output_dir, compute_unit, namespace)
     _ensure_directory(component_dir)
     
@@ -221,18 +221,18 @@ def _generate_component_launcher(compute_unit: str, namespace: str, components: 
     
     logger.debug(f"Creating component launcher: {launcher_file}")
     
-    # Collect all modules recursively from all components in this namespace
-    all_modules = []
+    # Collect all nodes recursively from all components in this namespace
+    all_nodes = []
     component_full_namespace = []
     for component in components:
-        modules = _collect_all_modules_recursively(component)
-        all_modules.extend(modules)
+        nodes = _collect_all_nodes_recursively(component)
+        all_nodes.extend(nodes)
         # Extract the full namespace from the component (should be same for all components in this group)
         if not component_full_namespace and hasattr(component, 'namespace'):
             component_full_namespace = component.namespace.copy()
     
     # Build namespace tree
-    namespace_tree = _build_namespace_tree(all_modules, component_full_namespace)
+    namespace_tree = _build_namespace_tree(all_nodes, component_full_namespace)
     
     # Prepare template data
     template_data = {
@@ -245,11 +245,11 @@ def _generate_component_launcher(compute_unit: str, namespace: str, components: 
     _render_template_to_file('component_launcher.xml.jinja2', launcher_file, template_data)
 
 
-def generate_pipeline_launch_file(instance: Instance, output_dir: str):
+def generate_module_launch_file(instance: Instance, output_dir: str):
     """Main entry point for launcher generation."""
-    logger.debug(f"Generating launcher for {instance.name} (type: {instance.element_type}) in {output_dir}")
+    logger.debug(f"Generating launcher for {instance.name} (type: {instance.entity_type}) in {output_dir}")
     
-    if instance.element_type == "architecture":
+    if instance.entity_type == "system":
         # Group components by compute unit
         compute_unit_map = {}
         for child in instance.children.values():
@@ -269,16 +269,16 @@ def generate_pipeline_launch_file(instance: Instance, output_dir: str):
         for compute_unit, components in compute_unit_map.items():
             _generate_compute_unit_launcher(compute_unit, components, output_dir)
 
-        # Generate component launchers (flattened, no pipeline launchers)
+        # Generate component launchers (flattened, no module launchers)
         for (compute_unit, namespace), components in namespace_map.items():
             _generate_component_launcher(compute_unit, namespace, components, output_dir)
     
-    elif instance.element_type == "pipeline":
-        # Pipelines are now handled within component launchers, no separate files needed
-        logger.debug(f"Skipping separate pipeline launcher for {instance.name} - handled in component launcher")
+    elif instance.entity_type == "module":
+        # Modules are now handled within component launchers, no separate files needed
+        logger.debug(f"Skipping separate module launcher for {instance.name} - handled in component launcher")
         return
     
-    elif instance.element_type == "module":
-        # Module launch files are generated by the package build process
-        logger.debug(f"Skipping module launcher for {instance.name} - handled by package")
+    elif instance.entity_type == "node":
+        # Node launch files are generated by the package build process
+        logger.debug(f"Skipping node launcher for {instance.name} - handled by package")
         return

@@ -12,7 +12,7 @@ from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
 from ament_index_python.packages import get_package_share_directory, get_package_prefix
 
 from autoware_architect.deployment import Deployment
-from autoware_architect.config import ArchitectureConfig
+from autoware_architect.config import SystemConfig
 import pprint
 
 
@@ -246,15 +246,15 @@ def determine_mode(context) -> dict:
 
     return modes, parameters
 
-def generate_autoware_architecture(deployment_file: str, mode: dict, parameters: dict):
-    """Generate Autoware Architecture deployment."""
-    # Load architecture configuration from YAML file
+def generate_autoware_system(deployment_file: str, mode: dict, parameters: dict):
+    """Generate Autoware System deployment."""
+    # Load system configuration from YAML file
 
-    architecture_config = ArchitectureConfig()
-    architecture_config.debug_mode = True
-    architecture_config.log_level = "INFO"
+    system_config = SystemConfig()
+    system_config.debug_mode = True
+    system_config.log_level = "INFO"
 
-    logger = architecture_config.set_logging()
+    logger = system_config.set_logging()
     
     logger.info("=== Determined mode: %s ===", pprint.pformat(mode, indent=2))
     logger.info("=== Parameters: %s ===", pprint.pformat(parameters, indent=2))
@@ -263,17 +263,18 @@ def generate_autoware_architecture(deployment_file: str, mode: dict, parameters:
     architect_pkg_build_dir = os.path.join(workspace_root, 'build', 'autoware_architect')
     launcher_pkg_install_dir = get_package_share_directory('tier4_perception_launch')
 
-    architecture_config.architecture_manifest_dir = os.path.join(architect_pkg_build_dir, "autoware_architect_config_file_list.txt")
-    architecture_config.deployment_file = os.path.join(launcher_pkg_install_dir, deployment_file)
-    architecture_config.output_root_dir = os.path.join(launcher_pkg_install_dir)
+    system_config.manifest_dir = os.path.join(architect_pkg_build_dir, "resource")
+    system_config.deployment_file = os.path.join(launcher_pkg_install_dir, deployment_file)
+    system_config.output_root_dir = os.path.join(launcher_pkg_install_dir)
+    system_config.domains = ['shared', 'dummy_modules']
 
-    logger.info("Architecture YAML List File: %s", architecture_config.architecture_manifest_dir)
-    logger.info("Deployment File: %s", architecture_config.deployment_file)
-    logger.info("Output Root Dir: %s", architecture_config.output_root_dir)
+    logger.info("System YAML List File: %s", system_config.manifest_dir)
+    logger.info("Deployment File: %s", system_config.deployment_file)
+    logger.info("Output Root Dir: %s", system_config.output_root_dir)
 
     # load and build the deployment
     logger.info("autoware architect: Building deployment...")
-    deployment = Deployment(architecture_config)
+    deployment = Deployment(system_config)
 
     # generate the system visualization
     logger.info("autoware architect: Generating visualization...")
@@ -296,10 +297,10 @@ def create_pointcloud_container():
     )
 
 def launch_generated_launch_file(launch_arguments_names, launcher_file: str):
-    """Launch the generated Autoware Architecture launch file."""
+    """Launch the generated Autoware System launch file."""
     # Here we would normally load and execute the generated launch file.
     # For simplicity, we will just print a message.
-    print("Launching generated Autoware Architecture launch file...")
+    print("Launching generated Autoware System launch file...")
 
     # Build launch arguments dictionary using LaunchConfiguration for each argument
     launch_args_dict = {name: LaunchConfiguration(name) for name in launch_arguments_names}
@@ -309,17 +310,17 @@ def launch_generated_launch_file(launch_arguments_names, launcher_file: str):
         launch_arguments=launch_args_dict.items()
     )
 
-def opaque_generate_autoware_architecture(context, deployment_file: str):
-    """OpaqueFunction wrapper to generate Autoware Architecture at launch time."""
+def opaque_generate_autoware_system(context, deployment_file: str):
+    """OpaqueFunction wrapper to generate Autoware System at launch time."""
     mode, parameters = determine_mode(context)
     
     deployment_file = "deployment/universe_perception_clr_centerpoint_serial.deployment.yaml"
-    generate_autoware_architecture(deployment_file, mode, parameters)
+    generate_autoware_system(deployment_file, mode, parameters)
 
     return []
 
 def generate_launch_description():
-    """ Generate autoware architecture and launch the generated launch file. """
+    """ Generate autoware system and launch the generated launch file. """
 
     # set launch arguments 
     launch_arguments = []
@@ -342,7 +343,7 @@ def generate_launch_description():
 
 
 
-    # 1. pipeline junctions: switches to change SW architecture 
+    # 1. pipeline junctions: switches to change SW system 
 
     # Simulation / Evaluation
     add_launch_arg("use_empty_dynamic_object_publisher", default_value="false")
@@ -401,14 +402,12 @@ def generate_launch_description():
     add_launch_arg("traffic_light_recognition/use_high_accuracy_detection", default_value="true") # filter on/off
     add_launch_arg("traffic_light_recognition/high_accuracy_detection_type", default_value="fine_detection") # filter mode, whole_image_detection or fine_detection
 
-
-
     # determine mode
     deployment_file = "deployment/universe_perception_clr_centerpoint_serial.deployment.yaml"
 
     # Setup launcher file path
     launcher_pkg_install_dir = get_package_share_directory('tier4_perception_launch')
-    launcher_path = "exports/universe_perception_clr_centerpoint_serial.deployment/launcher/Runtime/main_ecu/perception/perception.launch.xml"
+    launcher_path = "exports/CameraLidarRadarCenterpointSerial.system/launcher/Runtime/main_ecu/perception/perception.launch.xml"
     launcher_file = os.path.join(launcher_pkg_install_dir, launcher_path)
 
     # Create the pointcloud container
@@ -417,7 +416,7 @@ def generate_launch_description():
     # Then launch the generated launch file
     return LaunchDescription(
         launch_arguments + [
-            OpaqueFunction(function=lambda context: opaque_generate_autoware_architecture(context, deployment_file)),
+            OpaqueFunction(function=lambda context: opaque_generate_autoware_system(context, deployment_file)),
             pointcloud_container, 
             launch_generated_launch_file(launch_argument_names, launcher_file)
         ]

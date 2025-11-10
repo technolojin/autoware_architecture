@@ -18,7 +18,7 @@ macro(autoware_architect_generate_launcher)
   
   if(EXISTS ${ARCHITECTURE_DIR})
     # Set up paths - use absolute path to the script
-    set(GENERATE_LAUNCHER_PY_SCRIPT "${CMAKE_BINARY_DIR}/../autoware_architect/script/component_process.py")
+    set(GENERATE_LAUNCHER_PY_SCRIPT "${CMAKE_BINARY_DIR}/../autoware_architect/script/generate_node_launcher.py")
     set(LAUNCHER_FILE_DIR "${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}/launcher/")
     
     # Set up logging
@@ -26,29 +26,29 @@ macro(autoware_architect_generate_launcher)
     set(LOG_DIR "${WORKSPACE_ROOT}/log/latest_build/${PROJECT_NAME}")
     set(LOG_FILE "${LOG_DIR}/launcher_generation.log")
     
-    # Find all module YAML files recursively
-    file(GLOB_RECURSE MODULE_YAML_FILES "${ARCHITECTURE_DIR}/*.module.yaml")
+    # Find all node YAML files recursively
+    file(GLOB_RECURSE NODE_YAML_FILES "${ARCHITECTURE_DIR}/*.node.yaml")
     
-    if(MODULE_YAML_FILES)
-      message(STATUS "Found module YAML files in ${PROJECT_NAME}: ${MODULE_YAML_FILES}")
+    if(NODE_YAML_FILES)
+      message(STATUS "Found node YAML files in ${PROJECT_NAME}: ${NODE_YAML_FILES}")
       
       # Create output files list for dependencies and individual commands
       set(LAUNCHER_FILES "")
       set(LAUNCHER_COMMANDS "")
       
-      foreach(MODULE_YAML_FILE ${MODULE_YAML_FILES})
-        get_filename_component(MODULE_NAME ${MODULE_YAML_FILE} NAME_WE)
-        set(LAUNCHER_FILE "${LAUNCHER_FILE_DIR}/${MODULE_NAME}.launch.xml")
+      foreach(NODE_YAML_FILE ${NODE_YAML_FILES})
+        get_filename_component(NODE_NAME ${NODE_YAML_FILE} NAME_WE)
+        set(LAUNCHER_FILE "${LAUNCHER_FILE_DIR}/${NODE_NAME}.launch.xml")
         list(APPEND LAUNCHER_FILES ${LAUNCHER_FILE})
         
-        # Create individual custom command for each module
+        # Create individual custom command for each node
         add_custom_command(
           OUTPUT ${LAUNCHER_FILE}
           COMMAND ${CMAKE_COMMAND} -E make_directory ${LAUNCHER_FILE_DIR}
           COMMAND ${CMAKE_COMMAND} -E make_directory ${LOG_DIR}
-          COMMAND python3 ${GENERATE_LAUNCHER_PY_SCRIPT} ${MODULE_YAML_FILE} ${LAUNCHER_FILE_DIR} >> ${LOG_FILE} 2>&1
-          DEPENDS ${MODULE_YAML_FILE} ${GENERATE_LAUNCHER_PY_SCRIPT}
-          COMMENT "Generating launcher file ${MODULE_NAME}.launch.xml. Check log: ${LOG_FILE}"
+          COMMAND python3 ${GENERATE_LAUNCHER_PY_SCRIPT} ${NODE_YAML_FILE} ${LAUNCHER_FILE_DIR} >> ${LOG_FILE} 2>&1
+          DEPENDS ${NODE_YAML_FILE} ${GENERATE_LAUNCHER_PY_SCRIPT}
+          COMMENT "Generating launcher file ${NODE_NAME}.launch.xml. Check log: ${LOG_FILE}"
           VERBATIM
         )
       endforeach()
@@ -70,7 +70,7 @@ macro(autoware_architect_generate_launcher)
       )
       
     else()
-      message(STATUS "No module YAML files found for ${PROJECT_NAME} in ${ARCHITECTURE_DIR}")
+      message(STATUS "No node YAML files found for ${PROJECT_NAME} in ${ARCHITECTURE_DIR}")
     endif()
     
   else()

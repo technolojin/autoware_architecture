@@ -1,0 +1,35 @@
+# node information
+name: DetectedObjectFeatureRemover.node
+
+launch:
+  package: autoware_detected_object_feature_remover
+  plugin: autoware::detected_object_feature_remover::DetectedObjectFeatureRemoverNode
+  executable: detected_object_feature_remover_node
+  node_output: screen
+
+# interfaces
+inputs:
+  - name: input
+    message_type: tier4_perception_msgs/msg/DetectedObjectsWithFeature
+
+outputs:
+  - name: output
+    message_type: autoware_perception_msgs/msg/DetectedObjects
+    qos:
+      reliability: reliable
+      durability: transient_local
+
+# parameters
+parameter_files:
+  - name: parameters
+    default: config/detected_object_feature_remover.param.yaml
+
+parameters: []
+
+# processes
+processes:
+  - name: convert
+    trigger_conditions:
+      - on_input: input
+    outcomes:
+      - to_output: output

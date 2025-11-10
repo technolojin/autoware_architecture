@@ -1,6 +1,6 @@
 name: catalog_all_modules.deployment
 
-architecture: Catalog.architecture
+system: Catalog.system
 
 # vehicle specific parameters, such as sensor calibration, vehicle dimensions
 vehicle_parameters: []
