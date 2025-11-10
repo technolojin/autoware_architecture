@@ -143,8 +143,8 @@ class Instance:
                 self._set_architecture_instances(config_registry)
             elif entity_type == "pipeline":
                 self._set_pipeline_instances(entity_id, entity_name, config_registry)
-            elif entity_type == "module":
-                self._set_module_instances(entity_id, entity_name, config_registry)
+            elif entity_type == "node":
+                self._set_node_instances(entity_id, entity_name, config_registry)
         except Exception as e:
             raise ValidationError(f"Error setting instances for {entity_id}, at {self.configuration.file_path}")
 
@@ -223,14 +223,14 @@ class Instance:
         # recursive call is finished
         self.is_initialized = True
 
-    def _set_module_instances(self, entity_id: str, entity_name: str, config_registry: ConfigRegistry):
-        """Set instances for module entity type."""
-        logger.info(f"Setting module entity {entity_id} for instance {self.namespace_str}")
-        self.configuration = config_registry.get_module(entity_name)
-        self.entity_type = "module"
+    def _set_node_instances(self, entity_id: str, entity_name: str, config_registry: ConfigRegistry):
+        """Set instances for node entity type."""
+        logger.info(f"Setting node entity {entity_id} for instance {self.namespace_str}")
+        self.configuration = config_registry.get_node(entity_name)
+        self.entity_type = "node"
 
-        # run the module configuration
-        self._run_module_configuration()
+        # run the node configuration
+        self._run_node_configuration()
 
         # recursive call is finished
         self.is_initialized = True
@@ -329,18 +329,18 @@ class Instance:
         # log pipeline configuration
         self.link_manager.log_pipeline_configuration()
 
-    def _run_module_configuration(self):
-        if self.entity_type != "module":
-            raise ValidationError(f"run_module_configuration is only supported for module, at {self.configuration.file_path}")
+    def _run_node_configuration(self):
+        if self.entity_type != "node":
+            raise ValidationError(f"run_node_configuration is only supported for node, at {self.configuration.file_path}")
 
         # set ports
-        self.link_manager.initialize_module_ports()
+        self.link_manager.initialize_node_ports()
 
         # set parameters
-        self.parameter_manager.initialize_module_parameters()
+        self.parameter_manager.initialize_node_parameters()
 
         # initialize processes and events
-        self.event_manager.initialize_module_processes()
+        self.event_manager.initialize_node_processes()
 
     def get_child(self, name: str):
         if name in self.children:

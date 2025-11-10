@@ -2,9 +2,9 @@ name: LidarClusteringCameraFusion.pipeline
 
 instances:
   - instance: voxel_grid_based_euclidean_cluster
-    entity: VoxelGridBasedEuclideanCluster.module
+    entity: VoxelGridBasedEuclideanCluster.node
   - instance: shape_estimation
-    entity: ShapeEstimation.module
+    entity: ShapeEstimation.node
   - instance: camera_lidar_fusion
     entity: CameraLidarFusion.pipeline
 

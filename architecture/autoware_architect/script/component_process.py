@@ -23,18 +23,18 @@ from autoware_architect.utils import pascal_to_snake
 from autoware_architect.template_utils import TemplateRenderer
 
 
-def create_module_launcher_xml(module_yaml) -> str:
+def create_node_launcher_xml(node_yaml) -> str:
     """
     Generate XML launcher content using Jinja2 template.
     
     Args:
-        module_yaml: Dictionary containing module configuration
+        node_yaml: Dictionary containing node configuration
         
     Returns:
         Generated XML content as string
     """
-    # Extract necessary information from the module YAML
-    launch_config = module_yaml.get("launch")
+    # Extract necessary information from the node YAML
+    launch_config = node_yaml.get("launch")
     package_name = launch_config.get("package")
     plugin_name = launch_config.get("plugin")
     executable_name = launch_config.get("executable")
@@ -46,18 +46,18 @@ def create_module_launcher_xml(module_yaml) -> str:
     container_name = launch_config.get("container_name")
 
     # Extract interface information
-    input_list = module_yaml.get("inputs", [])
-    output_list = module_yaml.get("outputs", [])
+    input_list = node_yaml.get("inputs", [])
+    output_list = node_yaml.get("outputs", [])
 
     # Extract parameter information
-    param_path_list = module_yaml.get("parameter_files", [])
+    param_path_list = node_yaml.get("parameter_files", [])
 
     # Extract configuration information
-    configuration_list = module_yaml.get("configurations", [])
+    configuration_list = node_yaml.get("configurations", [])
 
-    # node name is snake case of the module name which the original is in pascal case
-    # e.g. ObjectDetector.module -> object_detector
-    node_name = module_yaml.get("name").split(".")[0]
+    # node name is snake case of the node name which the original is in pascal case
+    # e.g. ObjectDetector.node -> object_detector
+    node_name = node_yaml.get("name").split(".")[0]
     node_name = pascal_to_snake(node_name)
 
     # Prepare template data
@@ -96,45 +96,45 @@ def create_module_launcher_xml(module_yaml) -> str:
     renderer = TemplateRenderer()
     
     # Render the template
-    launcher_xml = renderer.render_template('module_launcher.xml.jinja2', **template_data)
+    launcher_xml = renderer.render_template('node_launcher.xml.jinja2', **template_data)
     
     return launcher_xml
 
 
-def generate_launcher(module_yaml_dir, launch_file_dir) -> None:
+def generate_launcher(node_yaml_dir, launch_file_dir) -> None:
 
     logger = logging.getLogger(__name__)
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
     # parse the architecture yaml configuration
-    with open(module_yaml_dir, "r") as stream:
+    with open(node_yaml_dir, "r") as stream:
         try:
-            module_yaml = yaml.safe_load(stream)
+            node_yaml = yaml.safe_load(stream)
         except yaml.YAMLError as exc:
-            logger.error(f"Error parsing YAML file {module_yaml_dir}: {exc}")
+            logger.error(f"Error parsing YAML file {node_yaml_dir}: {exc}")
             return
-    if "name" not in module_yaml:
-        logger.error(f"Field 'name' is required in module configuration., {module_yaml_dir}")
+    if "name" not in node_yaml:
+        logger.error(f"Field 'name' is required in node configuration., {node_yaml_dir}")
         return
     
     # Check if launch configuration exists and has required fields
-    if "launch" not in module_yaml:
-        logger.error(f"Field 'launch' is required in module configuration., {module_yaml_dir}")
+    if "launch" not in node_yaml:
+        logger.error(f"Field 'launch' is required in node configuration., {node_yaml_dir}")
         return
     
-    launch_config = module_yaml.get("launch")
+    launch_config = node_yaml.get("launch")
     if "executable" not in launch_config:
-        logger.error(f"Field 'executable' is required in launch configuration., {module_yaml_dir}")
+        logger.error(f"Field 'executable' is required in launch configuration., {node_yaml_dir}")
         return
     
-    module_name = module_yaml.get("name")
-    node_name = module_name.split(".")[0]
+    node_name = node_yaml.get("name")
+    node_name = node_name.split(".")[0]
     node_name = pascal_to_snake(node_name)
 
-    logger.info(f"Generating launcher for module: {module_name}")
+    logger.info(f"Generating launcher for node: {node_name}")
 
     # generate xml launcher file
-    launcher_xml = create_module_launcher_xml(module_yaml)
+    launcher_xml = create_node_launcher_xml(node_yaml)
 
     # generate the launch file
     launch_file = f"{node_name}.launch.xml"
@@ -160,7 +160,7 @@ def _process_parameter_path(path, package_name):
     Process parameter path and add package prefix for relative paths.
     
     Args:
-        path: Parameter path from module YAML
+        path: Parameter path from node YAML
         package_name: Package name to prefix relative paths with
     
     Returns:

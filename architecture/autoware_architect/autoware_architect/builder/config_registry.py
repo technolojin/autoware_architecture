@@ -67,12 +67,12 @@ class ConfigRegistry:
         return self.entities.get(name, default)
     
     # Enhanced methods for type-safe entity access
-    def get_module(self, name: str) -> NodeConfig:
-        """Get a module entity by name."""
+    def get_node(self, name: str) -> NodeConfig:
+        """Get a node entity by name."""
         entity = self._type_map[ConfigType.NODE].get(name)
         if entity is None:
             available = list(self._type_map[ConfigType.NODE].keys())
-            raise ValidationError(f"Node '{name}' not found. Available modules: {available}")
+            raise ValidationError(f"Node '{name}' not found. Available nodes: {available}")
         return entity
     
     def get_pipeline(self, name: str) -> PipelineConfig:
@@ -102,7 +102,7 @@ class ConfigRegistry:
     def get_entity_by_type(self, name: str, entity_type: str) -> Config:
         """Get an entity by name and type."""
         if entity_type == ConfigType.NODE:
-            return self.get_module(name)
+            return self.get_node(name)
         elif entity_type == ConfigType.PIPELINE:
             return self.get_pipeline(name)
         elif entity_type == ConfigType.PARAMETER_SET:

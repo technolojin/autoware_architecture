@@ -21,7 +21,7 @@ class ArchitectureError(Exception):
 
 
 class NodeConfigurationError(ArchitectureError):
-    """Exception raised for module configuration errors."""
+    """Exception raised for node configuration errors."""
     pass
 
 

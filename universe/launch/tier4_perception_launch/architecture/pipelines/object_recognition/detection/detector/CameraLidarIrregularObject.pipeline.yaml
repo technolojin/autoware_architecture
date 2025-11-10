@@ -2,15 +2,15 @@ name: CameraLidarIrregularObject.pipeline
 
 instances:
   - instance: crop_box_filter
-    entity: CropBoxFilter.module
+    entity: CropBoxFilter.node
   - instance: ground_filter
-    entity: ScanGroundFilter.module
+    entity: ScanGroundFilter.node
   - instance: roi_pointcloud_fusion
-    entity: RoiPointCloudFusion.module
+    entity: RoiPointCloudFusion.node
   - instance: shape_estimation
-    entity: ShapeEstimation.module
+    entity: ShapeEstimation.node
   - instance: detected_object_feature_remover
-    entity: DetectedObjectFeatureRemover.module
+    entity: DetectedObjectFeatureRemover.node
 
 external_interfaces:
   input:

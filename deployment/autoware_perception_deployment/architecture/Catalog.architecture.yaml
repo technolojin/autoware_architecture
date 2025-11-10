@@ -12,17 +12,17 @@ components:
     compute_unit: perception_ecu_2
 
   - component: scan_ground_filter
-    entity: ScanGroundFilter.module
+    entity: ScanGroundFilter.node
     namespace: perception
     compute_unit: main_ecu
 
   - component: pointpainting_fusion
-    entity: PointPaintingFusion.module
+    entity: PointPaintingFusion.node
     namespace: perception
     compute_unit: main_ecu
 
   - component: roi_pointcloud_fusion
-    entity: RoiPointCloudFusion.module
+    entity: RoiPointCloudFusion.node
     namespace: perception
     compute_unit: main_ecu
 

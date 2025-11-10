@@ -30,7 +30,7 @@ class ParameterManager:
     
     This class handles:
     1. Applying parameters from parameter sets to target instances
-    2. Initializing module parameters from configuration
+    2. Initializing node parameters from configuration
     3. Managing parameter values and configurations
     4. Resolving parameter file paths with package prefixes
     """
@@ -57,7 +57,7 @@ class ParameterManager:
         Returns list of dicts with 'path' key, in order (defaults first, then overrides).
         """
         package_name = None
-        if self.instance.entity_type == "module" and self.instance.configuration:
+        if self.instance.entity_type == "node" and self.instance.configuration:
             launch_config = self.instance.configuration.launch
             package_name = launch_config.get("package")
         
@@ -133,8 +133,8 @@ class ParameterManager:
             logger.warning(f"Target node not found: {node_namespace}")
             return
             
-        if target_instance.entity_type != "module":
-            logger.warning(f"Target node is not a module: {node_namespace} (type: {target_instance.entity_type})")
+        if target_instance.entity_type != "node":
+            logger.warning(f"Target node is not a node: {node_namespace} (type: {target_instance.entity_type})")
             return
         
         logger.info(f"Applying parameters to node: {node_namespace}")
@@ -229,16 +229,16 @@ class ParameterManager:
     # Node Parameter Initialization
     # =========================================================================
     
-    def initialize_module_parameters(self):
-        """Initialize parameters for module entity during module configuration.
+    def initialize_node_parameters(self):
+        """Initialize parameters for node entity during node configuration.
         
         This method initializes both default parameter_files and default configurations
-        from the module's configuration file.
+        from the node's configuration file.
         """
-        if self.instance.entity_type != "module":
+        if self.instance.entity_type != "node":
             return
         
-        # 1. Set default parameter_files from module configuration
+        # 1. Set default parameter_files from node configuration
         if hasattr(self.instance.configuration, 'parameter_files') and self.instance.configuration.parameter_files:
             for cfg_param in self.instance.configuration.parameter_files:
                 param_name = cfg_param.get("name")
@@ -254,7 +254,7 @@ class ParameterManager:
                     is_default=True  # These are default parameter files
                 )
         
-        # 2. Set default configurations from module configuration
+        # 2. Set default configurations from node configuration
         if hasattr(self.instance.configuration, 'configurations') and self.instance.configuration.configurations:
             for cfg_config in self.instance.configuration.configurations:
                 config_name = cfg_config.get("name")

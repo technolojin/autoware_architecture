@@ -3,20 +3,20 @@ name: ObjectDetectionLidar.pipeline
 instances:
   # compare map filter
   - instance: compare_map_filter
-    entity: VoxelBasedCompareMapFilter.module
+    entity: VoxelBasedCompareMapFilter.node
   # detectors
   - instance: clustering
     entity: LidarClustering.pipeline
   - instance: detection_by_tracker
-    entity: DetectionByTracker.module
+    entity: DetectionByTracker.node
   # merger
   - instance: object_association_merger_alpha
-    entity: ObjectAssociationMerger.module
+    entity: ObjectAssociationMerger.node
   - instance: object_association_merger_beta
-    entity: ObjectAssociationMerger.module
+    entity: ObjectAssociationMerger.node
   # filter
   - instance: object_lanelet_filter
-    entity: ObjectLaneletFilter.module
+    entity: ObjectLaneletFilter.node
 
 external_interfaces:
   input:

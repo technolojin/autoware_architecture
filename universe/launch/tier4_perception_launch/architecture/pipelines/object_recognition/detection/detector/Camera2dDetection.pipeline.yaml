@@ -2,21 +2,21 @@ name: Camera2dDetection.pipeline
 
 instances:
   - instance: tensorrt_yolox0
-    entity: TensorrtYolox.module
+    entity: TensorrtYolox.node
   - instance: tensorrt_yolox1
-    entity: TensorrtYolox.module
+    entity: TensorrtYolox.node
   - instance: tensorrt_yolox2
-    entity: TensorrtYolox.module
+    entity: TensorrtYolox.node
   - instance: tensorrt_yolox3
-    entity: TensorrtYolox.module
+    entity: TensorrtYolox.node
   - instance: tensorrt_yolox4
-    entity: TensorrtYolox.module
+    entity: TensorrtYolox.node
   - instance: tensorrt_yolox5
-    entity: TensorrtYolox.module
+    entity: TensorrtYolox.node
   - instance: tensorrt_yolox6
-    entity: TensorrtYolox.module
+    entity: TensorrtYolox.node
   - instance: tensorrt_yolox7
-    entity: TensorrtYolox.module
+    entity: TensorrtYolox.node
 
 external_interfaces:
   input:

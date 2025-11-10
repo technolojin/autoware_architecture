@@ -4,9 +4,9 @@ instances:
   - instance: detector_a1
     entity: DetectorA.pipeline
   - instance: node_tracker
-    entity: Tracker.module
+    entity: Tracker.node
   - instance: node_predictor
-    entity: Predictor.module
+    entity: Predictor.node
 
 external_interfaces:
   input:

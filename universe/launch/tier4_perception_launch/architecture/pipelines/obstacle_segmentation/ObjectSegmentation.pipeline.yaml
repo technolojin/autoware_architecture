@@ -2,9 +2,9 @@ name: ObjectSegmentation.pipeline
 
 instances:
   - instance: crop_box_filter
-    entity: CropBoxFilter.module
+    entity: CropBoxFilter.node
   - instance: common_ground_filter
-    entity: ScanGroundFilter.module
+    entity: ScanGroundFilter.node
 
 external_interfaces:
   input:

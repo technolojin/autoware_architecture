@@ -5,7 +5,7 @@ title Architecture Diagram {{ name }}
 skinparam dpi 128
 
 {% macro build_logic_graph(instance) -%}
-    {% if instance.entity_type == "module" -%}
+    {% if instance.entity_type == "node" -%}
         {# EVENTS -#}
         {% for event in instance.events -%}
             {% if event.type == "periodic" -%}
@@ -38,7 +38,7 @@ skinparam dpi 128
 {% endmacro -%}
 
 {% macro build_connection_graph(instance) -%}
-    {% if instance.entity_type == "module" -%}
+    {% if instance.entity_type == "node" -%}
         {# EVENTS -#}
         {% for event in instance.events -%}
             {% if event.process_event == True -%}

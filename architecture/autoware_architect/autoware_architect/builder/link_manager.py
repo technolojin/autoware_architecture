@@ -276,9 +276,9 @@ class LinkManager:
             if link.to_port.namespace == self.instance.namespace:
                 self.set_out_port(link.to_port)
 
-    def initialize_module_ports(self):
-        """Initialize ports for module entity during module configuration."""
-        if self.instance.entity_type != "module":
+    def initialize_node_ports(self):
+        """Initialize ports for node entity during node configuration."""
+        if self.instance.entity_type != "node":
             return
             
         # set in_ports
@@ -317,8 +317,8 @@ class LinkManager:
 
     def check_ports(self):
         """Check and debug port configurations."""
-        # check ports only for module. in case of pipeline, the check is done
-        if self.instance.entity_type != "module":
+        # check ports only for node. in case of pipeline, the check is done
+        if self.instance.entity_type != "node":
             return
 
         # check ports

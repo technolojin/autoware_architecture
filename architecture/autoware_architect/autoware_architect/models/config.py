@@ -18,7 +18,7 @@ from pathlib import Path
 
 class ConfigType:
     """Constants for entity types."""
-    NODE = "module"
+    NODE = "node"
     PIPELINE = "pipeline"
     PARAMETER_SET = "parameter_set"
     ARCHITECTURE = "architecture"
@@ -44,7 +44,7 @@ class Config:
 
 @dataclass
 class NodeConfig(Config):
-    """Data structure for module entities."""
+    """Data structure for node entities."""
     launch: Dict[str, Any] = None
     inputs: List[Dict[str, Any]] = None
     outputs: List[Dict[str, Any]] = None

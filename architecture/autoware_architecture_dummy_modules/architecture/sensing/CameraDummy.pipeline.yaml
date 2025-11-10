@@ -2,21 +2,21 @@ name: CameraDummy.pipeline
 
 instances:
   - instance: camera_0
-    entity: CameraDummyDriver.module
+    entity: CameraDummyDriver.node
   - instance: camera_1
-    entity: CameraDummyDriver.module
+    entity: CameraDummyDriver.node
   - instance: camera_2
-    entity: CameraDummyDriver.module
+    entity: CameraDummyDriver.node
   - instance: camera_3
-    entity: CameraDummyDriver.module
+    entity: CameraDummyDriver.node
   - instance: camera_4
-    entity: CameraDummyDriver.module
+    entity: CameraDummyDriver.node
   - instance: camera_5
-    entity: CameraDummyDriver.module
+    entity: CameraDummyDriver.node
   - instance: camera_6
-    entity: CameraDummyDriver.module
+    entity: CameraDummyDriver.node
   - instance: camera_7
-    entity: CameraDummyDriver.module
+    entity: CameraDummyDriver.node
 
 external_interfaces:
   input: []

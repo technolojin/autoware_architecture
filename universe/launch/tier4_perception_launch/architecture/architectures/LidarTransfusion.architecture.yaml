@@ -12,11 +12,11 @@ components:
     namespace: sensing
     compute_unit: perception_ecu_1
   - component: map_loader
-    entity: MapDummy.module
+    entity: MapDummy.node
     namespace: map
     compute_unit: dummy_ecu
   - component: localizer
-    entity: LocalizationDummy.module
+    entity: LocalizationDummy.node
     namespace: localization
     compute_unit: dummy_ecu
 
@@ -43,7 +43,7 @@ components:
 
   # planner
   - component: planner
-    entity: PlanningDummy.module
+    entity: PlanningDummy.node
     namespace: planning
     compute_unit: dummy_ecu
 

@@ -1,0 +1,45 @@
+# node information
+name: VoxelBasedCompareMapFilter.node
+
+launch:
+  package: autoware_compare_map_segmentation
+  plugin: autoware::compare_map_segmentation::VoxelBasedCompareMapFilterComponent
+  executable: voxel_based_compare_map_filter_node
+  node_output: screen
+  use_container: false
+  container_name: pointcloud_container
+
+# interfaces
+inputs:
+  - name: ros_transform
+    message_type: tf2_msgs/msg/TFMessage
+    global: /tf
+  - name: input
+    message_type: sensor_msgs/msg/PointCloud2
+  - name: input_map
+    message_type: sensor_msgs/msg/PointCloud2
+
+outputs:
+  - name: output
+    message_type: sensor_msgs/msg/PointCloud2
+    qos:
+      reliability: reliable
+      durability: transient_local
+
+# configurations
+parameter_files:
+  - name: voxel_based_compare_map_filter_param_file
+    default: config/voxel_based_compare_map_filter.param.yaml
+    schema: schema/voxel_based_compare_map_filter.schema.json
+
+configurations: []
+
+# processes
+processes:
+  - name: filter
+    trigger_conditions:
+      - and:
+          - on_input: input
+          - once: input_map
+    outcomes:
+      - to_output: output

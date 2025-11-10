@@ -33,9 +33,9 @@ class EventManager:
         self.processes: List[Process] = []
         self.event_list: List[Event] = []
 
-    def initialize_module_processes(self):
-        """Initialize processes for module entity during module configuration."""
-        if self.instance.entity_type != "module":
+    def initialize_node_processes(self):
+        """Initialize processes for node entity during node configuration."""
+        if self.instance.entity_type != "node":
             return
             
         # connect port events and the process events
@@ -69,7 +69,7 @@ class EventManager:
         for event in self.event_list:
             event.set_frequency_tree()
         # recursive call for children
-        # in case of module, children is empty
+        # in case of node, children is empty
         for child in self.instance.children.values():
             child.event_manager.set_event_tree()
 

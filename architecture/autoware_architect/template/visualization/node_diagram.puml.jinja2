@@ -24,7 +24,7 @@ node {BackgroundColor #dddddd}
 </style>
 
 {% macro build_instance_graph(instance, depth=0) %}
-{% if instance.entity_type == "module" %}
+{% if instance.entity_type == "node" %}
 {% set dd = "    " * depth %}
 {{ dd }}node {{ instance.name }} as {{ instance.unique_id }} {
 {{ dd }}    ' ports

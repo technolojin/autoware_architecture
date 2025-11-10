@@ -1,10 +1,10 @@
 {% macro list_output_topics(instance) -%}
 {# Print template per topic -#}
-{% if instance.entity_type == "module" -%}
+{% if instance.entity_type == "node" -%}
 {% for out_port in instance.out_ports -%}
 {# check if out_port.topic strings array is empty -#}
 {% if out_port.topic -%}
-- module: {{ instance.namespace[0]}}
+- node: {{ instance.namespace[0]}}
   mode: [online, logging_simulation, planning_simulation]
   type: launch
   args:

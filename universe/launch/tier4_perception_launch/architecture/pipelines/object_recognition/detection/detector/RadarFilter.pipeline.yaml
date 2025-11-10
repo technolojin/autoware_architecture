@@ -3,9 +3,9 @@ name: RadarFilter.pipeline
 instances:
   # filter
   - instance: object_lanelet_filter
-    entity: ObjectLaneletFilter.module
+    entity: ObjectLaneletFilter.node
   - instance: radar_object_filter
-    entity: DetectedObjectSorter.module
+    entity: DetectedObjectSorter.node
 
 external_interfaces:
   input:

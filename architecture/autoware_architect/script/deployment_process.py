@@ -17,7 +17,7 @@ from autoware_architect.deployment import Deployment
 from autoware_architect.config import ArchitectureConfig
 
 # build the deployment
-# search and connect the connections between the modules
+# search and connect the connections between the nodes
 def build(deployment_file: str, architecture_manifest_dir: str, output_root_dir: str, domains: list[str]):
     # Inputs:
     #   deployment_file: YAML deployment configuration

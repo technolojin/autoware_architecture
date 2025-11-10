@@ -2,13 +2,13 @@ name: ObjectTrackingTrackerMergerRadarFusion.pipeline
 
 instances:
   - instance: multi_object_tracker
-    entity: MultiObjectTracker.module
+    entity: MultiObjectTracker.node
   - instance: radar_object_filter
-    entity: DetectedObjectSorter.module
+    entity: DetectedObjectSorter.node
   - instance: radar_object_tracker
-    entity: RadarObjectTracker.module
+    entity: RadarObjectTracker.node
   - instance: decorative_tracker_merger
-    entity: DecorativeTrackerMerger.module
+    entity: DecorativeTrackerMerger.node
 
 external_interfaces:
   input:

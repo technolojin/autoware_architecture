@@ -1,18 +1,18 @@
 name: {{ name }}
 parameters:
-{% for module in parameters %}
-  - node: {{ module.node }}
-{% if module.parameter_files %}
+{% for node in parameters %}
+  - node: {{ node.node }}
+{% if node.parameter_files %}
     parameter_files:
-{% for param_name, param_path in module.parameter_files.items() %}
+{% for param_name, param_path in node.parameter_files.items() %}
       - {{ param_name }}: {{ param_path }}
 {% endfor %}
 {% else %}
     parameter_files: []
 {% endif %}
-{% if module.configurations %}
+{% if node.configurations %}
     configurations:
-{% for config in module.configurations %}
+{% for config in node.configurations %}
       - name: {{ config.name }}
         type: {{ config.type }}
         value: {{ config.value }}
