@@ -1,0 +1,34 @@
+name: LidarClustering.module
+
+instances:
+  - instance: voxel_grid_based_euclidean_cluster
+    entity: VoxelGridBasedEuclideanCluster.node
+  - instance: shape_estimation
+    entity: ShapeEstimation.node
+  - instance: detected_object_feature_remover
+    entity: DetectedObjectFeatureRemover.node
+
+external_interfaces:
+  input:
+    - name: pointcloud
+    - name: pointcloud_map
+  output:
+    - name: detected_objects
+    - name: cluster_objects
+  parameter: []
+
+connections:
+  - from: input.pointcloud
+    to: voxel_grid_based_euclidean_cluster.input.input_pointcloud
+  - from: input.pointcloud_map
+    to: voxel_grid_based_euclidean_cluster.input.input_map
+
+  - from: voxel_grid_based_euclidean_cluster.output.output_clusters
+    to: shape_estimation.input.objects
+  - from: shape_estimation.output.objects
+    to: output.cluster_objects
+
+  - from: shape_estimation.output.objects
+    to: detected_object_feature_remover.input.input
+  - from: detected_object_feature_remover.output.output
+    to: output.detected_objects

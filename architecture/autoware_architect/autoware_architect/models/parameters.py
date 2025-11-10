@@ -16,17 +16,17 @@ from typing import List, Optional, Dict, Any
 from enum import Enum
 
 class ParameterType(Enum):
-    """Type of parameter - either a file path or a direct configuration value."""
-    PARAMETER_FILES = "parameter"  # Load from file
-    CONFIGURATION = "configuration"  # Direct overwrite of parameter
+    """Type of parameter - either a file path or a direct parameter value."""
+    PARAMETER_FILE = "parameter_file"  # Load from file
+    PARAMETER = "parameter"  # Direct overwrite of parameter
 
 class Parameter:
-    def __init__(self, name: str, value: str, param_type: ParameterType = ParameterType.CONFIGURATION, 
+    def __init__(self, name: str, value: str, param_type: ParameterType = ParameterType.PARAMETER, 
                  data_type: str = "string", schema_path: Optional[str] = None, 
                  allow_substs: bool = True, is_default: bool = False):
         self.name = name
         self.value = value
-        self.param_type = param_type  # PARAMETER_FILES or CONFIGURATION
+        self.param_type = param_type  # PARAMETER_FILE or PARAMETER
         self.data_type = data_type  # string, bool, int, float, etc.
         self.schema_path = schema_path  # path to the schema file if available
         self.allow_substs = allow_substs  # whether to allow substitutions in ROS launch
@@ -58,36 +58,36 @@ class ParameterList:
         # not found, return None
         return None
 
-    def set_parameter(self, parameter_name, parameter_value, param_type: ParameterType = ParameterType.CONFIGURATION,
+    def set_parameter(self, parameter_name, parameter_value, param_type: ParameterType = ParameterType.PARAMETER,
                      data_type: str = "string", schema_path: Optional[str] = None, 
                      allow_substs: bool = True, is_default: bool = False):
         """Set a parameter value.
         
-        For configurations: Later calls override earlier ones (update in place or append).
+        For parameters: Later calls override earlier ones (update in place or append).
         For parameter_files: Simply appends to maintain order. Defaults should be added first,
                            then overrides. ROS 2 will handle the actual overriding during loading.
         
         Args:
             parameter_name: Name of the parameter
             parameter_value: Value of the parameter
-            param_type: Type of parameter (PARAMETER_FILES or CONFIGURATION)
+            param_type: Type of parameter (PARAMETER_FILE or PARAMETER)
             data_type: Data type of the value
             schema_path: Optional schema path
             allow_substs: Whether to allow substitutions
             is_default: True if this is a default parameter, False if override
         """
-        if param_type == ParameterType.CONFIGURATION:
-            # For configurations: find and update existing, or append new
+        if param_type == ParameterType.PARAMETER:
+            # For parameters: find and update existing, or append new
             for parameter in self.list:
-                if parameter.name == parameter_name and parameter.param_type == ParameterType.CONFIGURATION:
-                    # Update existing configuration
+                if parameter.name == parameter_name and parameter.param_type == ParameterType.PARAMETER:
+                    # Update existing parameter
                     parameter.value = parameter_value
                     parameter.data_type = data_type
                     parameter.schema_path = schema_path
                     parameter.allow_substs = allow_substs
                     parameter.is_default = is_default
                     return
-            # Not found, add new configuration
+            # Not found, add new parameter
             self.list.append(Parameter(parameter_name, parameter_value, param_type, 
                                      data_type, schema_path, allow_substs, is_default))
         else:
@@ -108,12 +108,12 @@ class ParameterList:
         This ensures that even if parameters were added out of order,
         defaults are always loaded before overrides in the launcher.
         """
-        param_files = [param for param in self.list if param.param_type == ParameterType.PARAMETER_FILES]
+        param_files = [param for param in self.list if param.param_type == ParameterType.PARAMETER_FILE]
         # Sort: defaults (is_default=True) first, then overrides (is_default=False)
         # Stable sort preserves relative order within each group
         return sorted(param_files, key=lambda p: (not p.is_default))
     
-    def get_configurations(self) -> List[Parameter]:
-        """Get all configurations."""
-        return [param for param in self.list if param.param_type == ParameterType.CONFIGURATION]
+    def get_parameters(self) -> List[Parameter]:
+        """Get all parameters."""
+        return [param for param in self.list if param.param_type == ParameterType.PARAMETER]
 

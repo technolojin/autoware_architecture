@@ -1,0 +1,37 @@
+# node information
+name: LowIntensityClusterFilter.node
+
+launch:
+  package: autoware_raindrop_cluster_filter
+  plugin: autoware::raindrop_cluster_filter::LowIntensityClusterFilterNode
+  executable: low_intensity_cluster_filter_node
+  node_output: screen
+  use_container: false
+  container_name: pointcloud_container
+
+# interfaces
+inputs:
+  - name: objects
+    message_type: tier4_perception_msgs/msg/DetectedObjectsWithFeature
+outputs:
+  - name: objects
+    message_type: tier4_perception_msgs/msg/DetectedObjectsWithFeature
+    qos:
+      reliability: reliable
+      durability: transient_local
+
+# parameters
+
+parameter_files:
+  - name: low_intensity_cluster_filter_param_path
+    default: config/low_intensity_cluster_filter.param.yaml
+
+parameters: []
+
+# processes
+processes:
+  - name: filter
+    trigger_conditions:
+      - on_input: objects
+    outcomes:
+      - to_output: objects

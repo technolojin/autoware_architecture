@@ -19,39 +19,39 @@ from ..models.config import ConfigType
 from ..exceptions import ValidationError
 
 
-def element_name_decode(element_name: str) -> Tuple[str, str]:
-    """Decode element name into name and type components."""
-    # example: 'my_module.pipeline' -> ('my_module', 'pipeline')
+def entity_name_decode(entity_name: str) -> Tuple[str, str]:
+    """Decode entity name into name and type components."""
+    # example: 'my_node.module' -> ('my_node', 'module')
 
-    if not element_name or not isinstance(element_name, str):
-        raise ValidationError(f"Config name must be a non-empty string, got: {element_name}")
+    if not entity_name or not isinstance(entity_name, str):
+        raise ValidationError(f"Config name must be a non-empty string, got: {entity_name}")
     
-    if "." not in element_name:
-        raise ValidationError(f"Invalid element name format: '{element_name}'. Expected format: 'name.type'")
+    if "." not in entity_name:
+        raise ValidationError(f"Invalid entity name format: '{entity_name}'. Expected format: 'name.type'")
 
-    parts = element_name.split(".")
+    parts = entity_name.split(".")
     if len(parts) != 2:
-        raise ValidationError(f"Invalid element name format: '{element_name}'. Expected exactly one dot separator")
+        raise ValidationError(f"Invalid entity name format: '{entity_name}'. Expected exactly one dot separator")
 
-    name, element_type = parts
+    name, entity_type = parts
     
     if not name.strip():
-        raise ValidationError(f"Config name cannot be empty in: '{element_name}'")
+        raise ValidationError(f"Config name cannot be empty in: '{entity_name}'")
     
-    if not element_type.strip():
-        raise ValidationError(f"Config type cannot be empty in: '{element_name}'")
+    if not entity_type.strip():
+        raise ValidationError(f"Config type cannot be empty in: '{entity_name}'")
 
-    if element_type not in ConfigType.get_all_types():
-        raise ValidationError(f"Invalid element type: '{element_type}'. Valid types: {ConfigType.get_all_types()}")
+    if entity_type not in ConfigType.get_all_types():
+        raise ValidationError(f"Invalid entity type: '{entity_type}'. Valid types: {ConfigType.get_all_types()}")
 
-    return name.strip(), element_type.strip()
+    return name.strip(), entity_type.strip()
 
 class BaseValidator(ABC):
     """Abstract base validator."""
     
     @abstractmethod
     def get_required_fields(self) -> List[str]:
-        """Get required fields for this element type."""
+        """Get required fields for this entity type."""
         pass
     
     @abstractmethod
@@ -65,13 +65,13 @@ class BaseValidator(ABC):
             raise ValidationError(f"Empty configuration file: {file_path}")
         
         if "name" not in config:
-            raise ValidationError(f"Field 'name' is required in element configuration. File: {file_path}")
+            raise ValidationError(f"Field 'name' is required in entity configuration. File: {file_path}")
 
-    def validate_element_type(self, element_type: str, expected_type: str, file_path: str) -> None:
-        """Validate that the element type matches expected type."""
-        if element_type != expected_type:
+    def validate_entity_type(self, entity_type: str, expected_type: str, file_path: str) -> None:
+        """Validate that the entity type matches expected type."""
+        if entity_type != expected_type:
             raise ValidationError(
-                f"Invalid element type '{element_type}'. Expected '{expected_type}'. File: {file_path}"
+                f"Invalid entity type '{entity_type}'. Expected '{expected_type}'. File: {file_path}"
             )
 
     def validate_required_fields(self, config: Dict[str, Any], file_path: str) -> None:
@@ -118,19 +118,19 @@ class BaseValidator(ABC):
             return isinstance(value, expected_types if isinstance(expected_types, tuple) else (expected_types,))
         return True
 
-    def validate_all(self, config: Dict[str, Any], element_type: str, expected_type: str, file_path: str) -> None:
+    def validate_all(self, config: Dict[str, Any], entity_type: str, expected_type: str, file_path: str) -> None:
         """Perform complete validation."""
         self.validate_basic_structure(config, file_path)
-        self.validate_element_type(element_type, expected_type, file_path)
+        self.validate_entity_type(entity_type, expected_type, file_path)
         self.validate_required_fields(config, file_path)
       
         self.validate_schema(config, file_path)
 
-class ModuleValidator(BaseValidator):
-    """Validator for module elements."""
+class NodeValidator(BaseValidator):
+    """Validator for node entities."""
     
     def get_required_fields(self) -> List[str]:
-        return ["name", "launch", "inputs", "outputs", "parameter_files", "configurations", "processes"]
+        return ["name", "launch", "inputs", "outputs", "parameter_files", "parameters", "processes"]
     
     def get_schema_properties(self) -> Dict[str, Dict[str, str]]:
         return {
@@ -139,12 +139,12 @@ class ModuleValidator(BaseValidator):
             'inputs': {'type': 'array'},
             'outputs': {'type': 'array'},
             'parameter_files': {'type': 'object_or_array'},
-            'configurations': {'type': 'object_or_array'},
+            'parameters': {'type': 'object_or_array'},
             'processes': {'type': 'array'}
         }
 
-class PipelineValidator(BaseValidator):
-    """Validator for pipeline elements."""
+class ModuleValidator(BaseValidator):
+    """Validator for module entities."""
     
     def get_required_fields(self) -> List[str]:
         return ["name", "instances", "external_interfaces", "connections"]
@@ -158,7 +158,7 @@ class PipelineValidator(BaseValidator):
         }
 
 class ParameterSetValidator(BaseValidator):
-    """Validator for parameter set elements."""
+    """Validator for parameter set entities."""
     
     def get_required_fields(self) -> List[str]:
         return ["name", "parameters"]
@@ -169,8 +169,8 @@ class ParameterSetValidator(BaseValidator):
             'parameters': {'type': 'object_or_array'},
         }
 
-class ArchitectureValidator(BaseValidator):
-    """Validator for architecture elements."""
+class SystemValidator(BaseValidator):
+    """Validator for system entities."""
     
     def get_required_fields(self) -> List[str]:
         return ["name", "components", "connections"]
@@ -187,15 +187,15 @@ class ValidatorFactory:
     """Factory for creating validators."""
     
     _validators = {
+        ConfigType.NODE: NodeValidator,
         ConfigType.MODULE: ModuleValidator,
-        ConfigType.PIPELINE: PipelineValidator,
         ConfigType.PARAMETER_SET: ParameterSetValidator,
-        ConfigType.ARCHITECTURE: ArchitectureValidator,
+        ConfigType.SYSTEM: SystemValidator,
     }
     
     @classmethod
-    def get_validator(cls, element_type: str) -> BaseValidator:
-        """Get validator for element type."""
-        if element_type not in cls._validators:
-            raise ValidationError(f"Unknown element type: {element_type}")
-        return cls._validators[element_type]()
+    def get_validator(cls, entity_type: str) -> BaseValidator:
+        """Get validator for entity type."""
+        if entity_type not in cls._validators:
+            raise ValidationError(f"Unknown entity type: {entity_type}")
+        return cls._validators[entity_type]()

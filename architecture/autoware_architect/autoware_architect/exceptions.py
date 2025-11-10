@@ -20,13 +20,13 @@ class ArchitectureError(Exception):
     pass
 
 
-class ModuleConfigurationError(ArchitectureError):
-    """Exception raised for module configuration errors."""
+class NodeConfigurationError(ArchitectureError):
+    """Exception raised for node configuration errors."""
     pass
 
 
-class PipelineConfigurationError(ArchitectureError):
-    """Exception raised for pipeline configuration errors."""
+class ModuleConfigurationError(ArchitectureError):
+    """Exception raised for module configuration errors."""
     pass
 
 

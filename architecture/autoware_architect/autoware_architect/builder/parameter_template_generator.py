@@ -27,7 +27,7 @@ class ParameterTemplateGenerator:
     """Generates parameter set templates for deployment instances.
     
     This class handles:
-    1. Collecting module parameter data from deployment instance tree
+    1. Collecting node parameter data from deployment instance tree
     2. Creating namespace-based directory structures
     3. Copying and organizing parameter configuration files
     4. Generating parameter set template files from templates
@@ -59,138 +59,138 @@ class ParameterTemplateGenerator:
             whole deployment.
         """
 
-        # Collect all component module data first (no file creation yet)
-        component_modules: Dict[str, List[Dict[str, Any]]] = {}
+        # Collect all component node data first (no file creation yet)
+        component_nodes: Dict[str, List[Dict[str, Any]]] = {}
         for comp_name, comp_instance in self.root_instance.children.items():
-            modules: List[Dict[str, Any]] = []
-            self._collect_module_parameter_files_recursive(comp_instance, modules, "")
-            component_modules[comp_name] = modules
+            nodes: List[Dict[str, Any]] = []
+            self._collect_node_parameter_files_recursive(comp_instance, nodes, "")
+            component_nodes[comp_name] = nodes
 
-        # Single root directory for the whole architecture
-        architecture_root = os.path.join(output_dir, f"{deployment_name}.parameter_set")
-        os.makedirs(architecture_root, exist_ok=True)
+        # Single root directory for the whole system
+        system_root = os.path.join(output_dir, f"{deployment_name}.parameter_set")
+        os.makedirs(system_root, exist_ok=True)
 
-        # Create namespace structure and empty config files once (architecture-wide)
-        for modules in component_modules.values():
-            for module in modules:
-                self._create_namespace_structure_and_copy_configs(module, architecture_root)
+        # Create namespace structure and empty config files once (system-wide)
+        for nodes in component_nodes.values():
+            for node in nodes:
+                self._create_namespace_structure_and_copy_configs(node, system_root)
 
-        # Generate per-component templates referencing shared architecture_root paths
+        # Generate per-component templates referencing shared system_root paths
         generated: List[str] = []
-        for comp_name, modules in component_modules.items():
+        for comp_name, nodes in component_nodes.items():
             output_path = os.path.join(output_dir, f"{deployment_name}.{comp_name}.parameter_set.yaml")
             template_renderer.render_template_to_file(
                 "parameter_set.yaml.jinja2",
                 output_path,
                 name=f"{deployment_name}.{comp_name}.parameter_set",
-                parameters=modules,
+                parameters=nodes,
             )
-            logger.info(f"Generated component parameter set template: {output_path} (shared root: {architecture_root})")
+            logger.info(f"Generated component parameter set template: {output_path} (shared root: {system_root})")
             generated.append(output_path)
         return generated
     
-    def collect_module_parameter_files_for_template(self, base_namespace: str = "") -> List[Dict[str, Any]]:
-        """Collect parameter template data for all modules in the deployment instance.
+    def collect_node_parameter_files_for_template(self, base_namespace: str = "") -> List[Dict[str, Any]]:
+        """Collect parameter template data for all nodes in the deployment instance.
         
         Args:
-            base_namespace: Base namespace to prepend to module namespaces
+            base_namespace: Base namespace to prepend to node namespaces
             
         Returns:
-            List of dictionaries containing module parameter template data
+            List of dictionaries containing node parameter template data
         """
-        module_data = []
-        self._collect_module_parameter_files_recursive(self.root_instance, module_data, base_namespace)
-        return module_data
+        node_data = []
+        self._collect_node_parameter_files_recursive(self.root_instance, node_data, base_namespace)
+        return node_data
     
     # =========================================================================
     # Helper Methods for Template Generation
     # =========================================================================
     
-    def _collect_module_parameter_files_recursive(self, instance: 'Instance', 
-                                           module_data: List[Dict[str, Any]], 
+    def _collect_node_parameter_files_recursive(self, instance: 'Instance', 
+                                           node_data: List[Dict[str, Any]], 
                                            current_namespace: str = "") -> None:
-        """Recursively collect module parameter_files with their full namespaces.
+        """Recursively collect node parameter_files with their full namespaces.
         
         Args:
             instance: Current instance to process
-            module_data: List to append module parameter data to
+            node_data: List to append node parameter data to
             current_namespace: Current namespace path
         """
-        if instance.element_type == "module":
+        if instance.entity_type == "node":
             # Use the instance's namespace_str directly
             full_namespace = instance.namespace_str
             
             # Get parameter information from parameter_manager
-            parameter_files, configurations = self._extract_parameters_from_manager(instance)
+            parameter_files, parameters = self._extract_parameters_from_manager(instance)
             
-            if parameter_files or configurations:
-                module_info = {
+            if parameter_files or parameters:
+                node_info = {
                     "node": full_namespace,
                     "parameter_files": parameter_files,
-                    "configurations": configurations,
+                    "parameters": parameters,
                     "package": instance.configuration.launch.get("package", "unknown_package")
                 }
-                module_data.append(module_info)
+                node_data.append(node_info)
         
         # Recursively process children
         if hasattr(instance, 'children') and instance.children:
             for child in instance.children.values():
-                self._collect_module_parameter_files_recursive(child, module_data, current_namespace)
+                self._collect_node_parameter_files_recursive(child, node_data, current_namespace)
     
-    def _extract_parameters_from_manager(self, module_instance: 'Instance') -> tuple[Dict[str, str], List[Dict[str, Any]]]:
-        """Extract parameter files and configurations from parameter manager.
+    def _extract_parameters_from_manager(self, node_instance: 'Instance') -> tuple[Dict[str, str], List[Dict[str, Any]]]:
+        """Extract parameter files and parameters from parameter manager.
         
         Args:
-            module_instance: Module instance to extract parameters from
+            node_instance: Node instance to extract parameters from
             
         Returns:
-            Tuple of (parameter_files_dict, configurations_list)
+            Tuple of (parameter_files_dict, parameters_list)
         """
         parameter_files = {}
-        configurations = []
+        parameters = []
         
         # Get all parameters from the parameter manager
-        all_parameters = module_instance.parameter_manager.get_all_parameter_files()
+        all_parameters = node_instance.parameter_manager.get_all_parameter_files()
         
         # Use the instance's namespace_str directly for parameter file paths
-        base_path = module_instance.namespace_str
+        base_path = node_instance.namespace_str
         
         for param in all_parameters:
             param_name = param.name
             param_type = param.param_type
             
-            if param_type.value == "parameter":  # ParameterType.PARAMETER_FILES
+            if param_type.value == "parameter_file":  # ParameterType.PARAMETER_FILE
                 # Generate template path based on namespace and parameter name
                 template_path = f"{base_path}/{param_name}.param.yaml"
                 parameter_files[param_name] = template_path
             
-            elif param_type.value == "configuration":  # ParameterType.CONFIGURATION
+            elif param_type.value == "parameter":  # ParameterType.PARAMETER
                 configuration = {
                     "name": param_name,
                     "type": param.data_type,
                     "value": param.value
                 }
-                configurations.append(configuration)
+                parameters.append(configuration)
         
-        return parameter_files, configurations
+        return parameter_files, parameters
     
-    def _create_namespace_structure_and_copy_configs(self, module_data: Dict[str, Any], 
+    def _create_namespace_structure_and_copy_configs(self, node_data: Dict[str, Any], 
                                                    parameter_set_root: str) -> None:
         """Create namespace folder structure and copy config files.
         
         Args:
-            module_data: Module data containing node path and parameter_files
+            node_data: Node data containing node path and parameter_files
             parameter_set_root: Root directory for parameter set
         """
-        node_path = module_data["node"]
-        parameter_files = module_data["parameter_files"]
+        node_path = node_data["node"]
+        parameter_files = node_data["parameter_files"]
         
         # Create namespace directory structure
         # node_path is like "/perception/object_recognition/detection/centerpoint"
         namespace_dir = os.path.join(parameter_set_root, node_path.lstrip('/'))
         os.makedirs(namespace_dir, exist_ok=True)
         
-        # Copy parameter files and update paths in module_data
+        # Copy parameter files and update paths in node_data
         updated_parameter_files = {}
         for param_name, original_path in parameter_files.items():
             # Copy config file to namespace directory
@@ -205,8 +205,8 @@ class ParameterTemplateGenerator:
             variable_path = "$(var config_path)" + "/" + relative_path.replace("\\", "/")
             updated_parameter_files[param_name] = variable_path
         
-        # Update module data with new paths
-        module_data["parameter_files"] = updated_parameter_files
+        # Update node data with new paths
+        node_data["parameter_files"] = updated_parameter_files
     
     def _create_empty_config_file(self, dest_path: str, param_name: str) -> None:
         """Create an empty config file with basic ROS parameter structure.

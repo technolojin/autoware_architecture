@@ -30,8 +30,8 @@ class ParameterManager:
     
     This class handles:
     1. Applying parameters from parameter sets to target instances
-    2. Initializing module parameters from configuration
-    3. Managing parameter values and configurations
+    2. Initializing node parameters from configuration
+    3. Managing parameter values and parameters
     4. Resolving parameter file paths with package prefixes
     """
     
@@ -57,7 +57,7 @@ class ParameterManager:
         Returns list of dicts with 'path' key, in order (defaults first, then overrides).
         """
         package_name = None
-        if self.instance.element_type == "module" and self.instance.configuration:
+        if self.instance.entity_type == "node" and self.instance.configuration:
             launch_config = self.instance.configuration.launch
             package_name = launch_config.get("package")
         
@@ -68,13 +68,13 @@ class ParameterManager:
         
         return result
     
-    def get_configurations_for_launch(self) -> List[Dict[str, Any]]:
-        """Get configurations formatted for launcher generation.
+    def get_parameters_for_launch(self) -> List[Dict[str, Any]]:
+        """Get parameters formatted for launcher generation.
         
         Returns list of dicts with 'name' and 'value' keys, filtering out 'none' values.
         """
         result = []
-        for param in self.parameter_files.get_configurations():
+        for param in self.parameter_files.get_parameters():
             # Only include if value is not None and not "none"
             if param.value is not None and param.value != "none":
                 result.append({
@@ -100,6 +100,8 @@ class ParameterManager:
             Resolved path with package prefix if applicable
         """
         # If path already starts with $( or /, don't add prefix
+        print(path)
+
         if path.startswith('$(') or path.startswith('/'):
             return path
         
@@ -114,18 +116,18 @@ class ParameterManager:
     # Parameter Application (from parameter sets)
     # =========================================================================
     
-    def apply_node_parameters(self, node_namespace: str, parameter_files: list, configurations: list):
+    def apply_node_parameters(self, node_namespace: str, parameter_files: list, parameters: list):
         """Apply parameters directly to a target node using new parameter set format.
         
         This method finds a node by its absolute namespace and applies both parameter_files 
-        and configurations directly to it. Configurations will override parameter_files.
+        and parameters directly to it. Parameters will override parameter_files.
         
         Args:
             node_namespace: Absolute namespace path to the target node 
                            (e.g., "/perception/object_recognition/node_tracker")
             parameter_files: List of parameter file mappings 
                             (e.g., [{"model_param_path": "path/to/file.yaml"}])
-            configurations: List of direct parameter configurations 
+            parameters: List of direct parameters
                            (e.g., [{"name": "build_only", "type": "bool", "value": false}])
         """
         target_instance = self._find_node_by_namespace(node_namespace)
@@ -133,8 +135,8 @@ class ParameterManager:
             logger.warning(f"Target node not found: {node_namespace}")
             return
             
-        if target_instance.element_type != "module":
-            logger.warning(f"Target node is not a module: {node_namespace} (type: {target_instance.element_type})")
+        if target_instance.entity_type != "node":
+            logger.warning(f"Target node is not a node: {node_namespace} (type: {target_instance.entity_type})")
             return
         
         logger.info(f"Applying parameters to node: {node_namespace}")
@@ -146,26 +148,26 @@ class ParameterManager:
                     target_instance.parameter_manager.parameter_files.set_parameter(
                         param_name,
                         param_path,
-                        param_type=ParameterType.PARAMETER_FILES,
+                        param_type=ParameterType.PARAMETER_FILE,
                         data_type="path",
                         allow_substs=True,
                         is_default=False  # Parameter set overrides are not defaults
                     )
         
-        # Apply configurations (these override parameter files)
-        if configurations:
-            for config in configurations:
-                config_name = config.get("name")
-                config_type = config.get("type", "string")
-                config_value = config.get("value")
-                
+        # Apply parameters (these override parameter files)
+        if parameters:
+            for param in parameters:
+                param_name = param.get("name")
+                param_type = param.get("type", "string")
+                param_value = param.get("value")
+
                 target_instance.parameter_manager.parameter_files.set_parameter(
-                    config_name,
-                    config_value,
-                    param_type=ParameterType.CONFIGURATION,
-                    data_type=config_type,
+                    param_name,
+                    param_value,
+                    param_type=ParameterType.PARAMETER,
+                    data_type=param_type,
                     allow_substs=True,
-                    is_default=False  # Parameter set configurations are not defaults
+                    is_default=False  # Parameter set are not defaults
                 )
 
     # =========================================================================
@@ -188,9 +190,9 @@ class ParameterManager:
         while current_instance.parent is not None:
             current_instance = current_instance.parent
             
-        # If we're at the deployment root (element_type == "architecture"),
+        # If we're at the deployment root (entity_type == "system"),
         # search in its children directly since parameter_set paths don't include the deployment name
-        if current_instance.element_type == "architecture":
+        if current_instance.entity_type == "system":
             for child in current_instance.children.values():
                 result = self._traverse_to_namespace(child, target_namespace)
                 if result is not None:
@@ -226,19 +228,18 @@ class ParameterManager:
         return None
 
     # =========================================================================
-    # Module Parameter Initialization
+    # Node Parameter Initialization
     # =========================================================================
     
-    def initialize_module_parameters(self):
-        """Initialize parameters for module element during module configuration.
-        
-        This method initializes both default parameter_files and default configurations
-        from the module's configuration file.
+    def initialize_node_parameters(self):
+        """Initialize parameters for node entity during node configuration.
+        This method initializes both default parameter_files and default parameters
+        from the node's configuration file.
         """
-        if self.instance.element_type != "module":
+        if self.instance.entity_type != "node":
             return
         
-        # 1. Set default parameter_files from module configuration
+        # 1. Set default parameter_files from node configuration
         if hasattr(self.instance.configuration, 'parameter_files') and self.instance.configuration.parameter_files:
             for cfg_param in self.instance.configuration.parameter_files:
                 param_name = cfg_param.get("name")
@@ -247,27 +248,27 @@ class ParameterManager:
                 self.parameter_files.set_parameter(
                     param_name, 
                     param_value,
-                    param_type=ParameterType.PARAMETER_FILES,
+                    param_type=ParameterType.PARAMETER_FILE,
                     data_type="string",
                     schema_path=param_schema,
                     allow_substs=cfg_param.get("allow_substs", True),
                     is_default=True  # These are default parameter files
                 )
         
-        # 2. Set default configurations from module configuration
-        if hasattr(self.instance.configuration, 'configurations') and self.instance.configuration.configurations:
-            for cfg_config in self.instance.configuration.configurations:
-                config_name = cfg_config.get("name")
-                config_value = cfg_config.get("value", cfg_config.get("default"))
-                config_type = cfg_config.get("type", "string")
-                
+        # 2. Set default parameters from node parameters
+        if hasattr(self.instance.configuration, 'parameters') and self.instance.configuration.parameters:
+            for cfg_param in self.instance.configuration.parameters:
+                param_name = cfg_param.get("name")
+                param_value = cfg_param.get("value", cfg_param.get("default"))
+                param_type = cfg_param.get("type", "string")
+
                 # Only set if a default value is provided
-                if config_value is not None:
+                if param_value is not None:
                     self.parameter_files.set_parameter(
-                        config_name,
-                        config_value,
-                        param_type=ParameterType.CONFIGURATION,
-                        data_type=config_type,
+                        param_name,
+                        param_value,
+                        param_type=ParameterType.PARAMETER,
+                        data_type=param_type,
                         allow_substs=True,
-                        is_default=True  # These are default configurations
+                        is_default=True  # These are default parameters
                     )
