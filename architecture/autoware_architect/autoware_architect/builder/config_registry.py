@@ -92,11 +92,11 @@ class ConfigRegistry:
         return entity
     
     def get_architecture(self, name: str) -> SystemConfig:
-        """Get an architecture entity by name."""
+        """Get an system entity by name."""
         entity = self._type_map[ConfigType.SYSTEM].get(name)
         if entity is None:
             available = list(self._type_map[ConfigType.SYSTEM].keys())
-            raise ValidationError(f"Architecture '{name}' not found. Available architectures: {available}")
+            raise ValidationError(f"System '{name}' not found. Available systems: {available}")
         return entity
     
     def get_entity_by_type(self, name: str, entity_type: str) -> Config:

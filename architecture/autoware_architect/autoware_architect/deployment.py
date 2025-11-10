@@ -33,7 +33,7 @@ debug_mode = True
 class Deployment:
     def __init__(self, system_config: SystemConfig ):
         # entity collection
-        architecture_yaml_list = self._get_architecture_list(system_config)
+        architecture_yaml_list = self._get_system_list(system_config)
         self.config_registry = ConfigRegistry(architecture_yaml_list)
 
         # detect mode of input file (deployment vs architecture only)
@@ -80,7 +80,7 @@ class Deployment:
         #   sensor calibration, vehicle parameters, map, etc.
 
 
-    def _get_architecture_list(self, system_config: SystemConfig) -> list[str]:
+    def _get_system_list(self, system_config: SystemConfig) -> list[str]:
         architecture_list: list[str] = []
         manifest_dir = system_config.manifest_dir
         if not os.path.isdir(manifest_dir):
@@ -127,7 +127,7 @@ class Deployment:
 
         Two supported input forms:
         1. Deployment YAML (fields: name, architecture, vehicle_parameters, environment_parameters)
-        2. Raw Architecture YAML (only 'name' ending with '.architecture'). We synthesize a minimal
+        2. Raw System YAML (only 'name' ending with '.architecture'). We synthesize a minimal
            deployment in-memory (no vehicles / environment parameters) so downstream logic works.
         """
         # Validate required fields now present
@@ -151,7 +151,7 @@ class Deployment:
         architecture = self.config_registry.get_architecture(architecture_name)
 
         if not architecture:
-            raise ValidationError(f"Architecture not found: {architecture_name}")
+            raise ValidationError(f"System not found: {architecture_name}")
 
         # 2. Determine modes to build
         modes_config = architecture.modes or []

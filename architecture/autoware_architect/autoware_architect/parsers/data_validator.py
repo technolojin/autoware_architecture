@@ -169,7 +169,7 @@ class ParameterSetValidator(BaseValidator):
             'parameters': {'type': 'object_or_array'},
         }
 
-class ArchitectureValidator(BaseValidator):
+class SystemValidator(BaseValidator):
     """Validator for architecture entities."""
     
     def get_required_fields(self) -> List[str]:
@@ -190,7 +190,7 @@ class ValidatorFactory:
         ConfigType.NODE: NodeValidator,
         ConfigType.MODULE: ModuleValidator,
         ConfigType.PARAMETER_SET: ParameterSetValidator,
-        ConfigType.SYSTEM: ArchitectureValidator,
+        ConfigType.SYSTEM: SystemValidator,
     }
     
     @classmethod

@@ -165,7 +165,7 @@ class Instance:
                 self.mode, 
                 available_modes
             )
-            logger.info(f"Architecture instance '{self.namespace_str}' mode '{self.mode}': "
+            logger.info(f"System instance '{self.namespace_str}' mode '{self.mode}': "
                        f"{len(components_to_instantiate)}/{len(self.configuration.components)} components enabled")
         
         # First pass: create all component instances
@@ -191,7 +191,7 @@ class Instance:
                 raise ValidationError(f"Error in setting component instance '{instance_name}', at {self.configuration.file_path}")
 
             self.children[instance_name] = instance
-            logger.debug(f"Architecture instance '{self.namespace_str}' added component '{instance_name}' (uid={instance.unique_id})")
+            logger.debug(f"System instance '{self.namespace_str}' added component '{instance_name}' (uid={instance.unique_id})")
         
         # Second pass: apply parameter sets after all instances are created
         # This ensures that parameter_sets can target nodes across different components
@@ -409,7 +409,7 @@ class DeploymentInstance(Instance):
         """Set architecture for this deployment instance.
         
         Args:
-            architecture: Architecture configuration
+            architecture: System configuration
             config_registry: Registry of all configurations
             mode: Optional mode name to filter components (None means no filtering)
         """
