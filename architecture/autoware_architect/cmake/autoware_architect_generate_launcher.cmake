@@ -27,18 +27,18 @@ macro(autoware_architect_generate_launcher)
     set(LOG_FILE "${LOG_DIR}/launcher_generation.log")
     
     # Find all module YAML files recursively
-    file(GLOB_RECURSE MODULE_YAML_FILES "${ARCHITECTURE_DIR}/*.module.yaml")
+    file(GLOB_RECURSE NODE_YAML_FILES "${ARCHITECTURE_DIR}/*.module.yaml")
     
-    if(MODULE_YAML_FILES)
-      message(STATUS "Found module YAML files in ${PROJECT_NAME}: ${MODULE_YAML_FILES}")
+    if(NODE_YAML_FILES)
+      message(STATUS "Found module YAML files in ${PROJECT_NAME}: ${NODE_YAML_FILES}")
       
       # Create output files list for dependencies and individual commands
       set(LAUNCHER_FILES "")
       set(LAUNCHER_COMMANDS "")
       
-      foreach(MODULE_YAML_FILE ${MODULE_YAML_FILES})
-        get_filename_component(MODULE_NAME ${MODULE_YAML_FILE} NAME_WE)
-        set(LAUNCHER_FILE "${LAUNCHER_FILE_DIR}/${MODULE_NAME}.launch.xml")
+      foreach(NODE_YAML_FILE ${NODE_YAML_FILES})
+        get_filename_component(NODE_NAME ${NODE_YAML_FILE} NAME_WE)
+        set(LAUNCHER_FILE "${LAUNCHER_FILE_DIR}/${NODE_NAME}.launch.xml")
         list(APPEND LAUNCHER_FILES ${LAUNCHER_FILE})
         
         # Create individual custom command for each module
@@ -46,9 +46,9 @@ macro(autoware_architect_generate_launcher)
           OUTPUT ${LAUNCHER_FILE}
           COMMAND ${CMAKE_COMMAND} -E make_directory ${LAUNCHER_FILE_DIR}
           COMMAND ${CMAKE_COMMAND} -E make_directory ${LOG_DIR}
-          COMMAND python3 ${GENERATE_LAUNCHER_PY_SCRIPT} ${MODULE_YAML_FILE} ${LAUNCHER_FILE_DIR} >> ${LOG_FILE} 2>&1
-          DEPENDS ${MODULE_YAML_FILE} ${GENERATE_LAUNCHER_PY_SCRIPT}
-          COMMENT "Generating launcher file ${MODULE_NAME}.launch.xml. Check log: ${LOG_FILE}"
+          COMMAND python3 ${GENERATE_LAUNCHER_PY_SCRIPT} ${NODE_YAML_FILE} ${LAUNCHER_FILE_DIR} >> ${LOG_FILE} 2>&1
+          DEPENDS ${NODE_YAML_FILE} ${GENERATE_LAUNCHER_PY_SCRIPT}
+          COMMENT "Generating launcher file ${NODE_NAME}.launch.xml. Check log: ${LOG_FILE}"
           VERBATIM
         )
       endforeach()

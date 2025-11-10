@@ -20,7 +20,7 @@ class ArchitectureError(Exception):
     pass
 
 
-class ModuleConfigurationError(ArchitectureError):
+class NodeConfigurationError(ArchitectureError):
     """Exception raised for module configuration errors."""
     pass
 

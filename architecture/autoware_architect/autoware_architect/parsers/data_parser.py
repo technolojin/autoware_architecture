@@ -18,7 +18,7 @@ import logging
 
 from ..parsers.yaml_parser import yaml_parser
 from .data_validator import ValidatorFactory, entity_name_decode
-from ..models.config import Config, ModuleConfig, PipelineConfig, ParameterSetConfig, ArchitectureConfig, ConfigType
+from ..models.config import Config, NodeConfig, PipelineConfig, ParameterSetConfig, ArchitectureConfig, ConfigType
 from ..exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
@@ -74,7 +74,7 @@ class ConfigParser:
             'file_path': file_path
         }
         
-        if entity_type == ConfigType.MODULE:
+        if entity_type == ConfigType.NODE:
             # Initialize configuration values from defaults
             configurations = config.get('configurations', [])
             if configurations:
@@ -82,7 +82,7 @@ class ConfigParser:
                     if 'default' in cfg and 'value' not in cfg:
                         cfg['value'] = cfg['default']
             
-            return ModuleConfig(
+            return NodeConfig(
                 **base_data,
                 launch=config.get('launch'),
                 inputs=config.get('inputs'),

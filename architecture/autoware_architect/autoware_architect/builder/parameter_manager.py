@@ -226,7 +226,7 @@ class ParameterManager:
         return None
 
     # =========================================================================
-    # Module Parameter Initialization
+    # Node Parameter Initialization
     # =========================================================================
     
     def initialize_module_parameters(self):

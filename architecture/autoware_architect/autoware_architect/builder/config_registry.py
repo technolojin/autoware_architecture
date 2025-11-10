@@ -16,7 +16,7 @@ from typing import List, Dict, Optional
 import logging
 
 from ..parsers.data_parser import ConfigParser
-from ..models.config import Config, ConfigType, ModuleConfig, PipelineConfig, ParameterSetConfig, ArchitectureConfig
+from ..models.config import Config, ConfigType, NodeConfig, PipelineConfig, ParameterSetConfig, ArchitectureConfig
 from ..exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ class ConfigRegistry:
         # Replace list with dict as primary storage
         self.entities: Dict[str, Config] = {}  # full_name → Config
         self._type_map: Dict[str, Dict[str, Config]] = {
-            ConfigType.MODULE: {},
+            ConfigType.NODE: {},
             ConfigType.PIPELINE: {},
             ConfigType.PARAMETER_SET: {},
             ConfigType.ARCHITECTURE: {}
@@ -67,12 +67,12 @@ class ConfigRegistry:
         return self.entities.get(name, default)
     
     # Enhanced methods for type-safe entity access
-    def get_module(self, name: str) -> ModuleConfig:
+    def get_module(self, name: str) -> NodeConfig:
         """Get a module entity by name."""
-        entity = self._type_map[ConfigType.MODULE].get(name)
+        entity = self._type_map[ConfigType.NODE].get(name)
         if entity is None:
-            available = list(self._type_map[ConfigType.MODULE].keys())
-            raise ValidationError(f"Module '{name}' not found. Available modules: {available}")
+            available = list(self._type_map[ConfigType.NODE].keys())
+            raise ValidationError(f"Node '{name}' not found. Available modules: {available}")
         return entity
     
     def get_pipeline(self, name: str) -> PipelineConfig:
@@ -101,7 +101,7 @@ class ConfigRegistry:
     
     def get_entity_by_type(self, name: str, entity_type: str) -> Config:
         """Get an entity by name and type."""
-        if entity_type == ConfigType.MODULE:
+        if entity_type == ConfigType.NODE:
             return self.get_module(name)
         elif entity_type == ConfigType.PIPELINE:
             return self.get_pipeline(name)

@@ -141,7 +141,7 @@ class ParameterTemplateGenerator:
         """Extract parameter files and configurations from parameter manager.
         
         Args:
-            module_instance: Module instance to extract parameters from
+            module_instance: Node instance to extract parameters from
             
         Returns:
             Tuple of (parameter_files_dict, configurations_list)
@@ -179,7 +179,7 @@ class ParameterTemplateGenerator:
         """Create namespace folder structure and copy config files.
         
         Args:
-            module_data: Module data containing node path and parameter_files
+            module_data: Node data containing node path and parameter_files
             parameter_set_root: Root directory for parameter set
         """
         node_path = module_data["node"]

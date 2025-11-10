@@ -9,9 +9,9 @@
 {% macro render_namespace_tree(tree, current_path=[]) %}
 {% for ns_name, ns_data in tree.items() %}
 {% if ns_name == '__root__' %}
-{# Modules at root level (no namespace grouping) #}
+{# Nodes at root level (no namespace grouping) #}
 {% for module in ns_data.modules %}
-  <!-- Module: /{{ module.name }} -->
+  <!-- Node: /{{ module.name }} -->
 {% if module.use_container %}
   <load_composable_node target="{{ module.container }}">
     <composable_node pkg="{{ module.package }}" plugin="{{ module.plugin }}" name="{{ module.name }}">
@@ -60,7 +60,7 @@
     <push-ros-namespace namespace="{{ ns_name }}"/>
 {# Render modules at this namespace level #}
 {% for module in ns_data.modules %}
-    <!-- Module: {{ (current_path + [ns_name]) | join('/') }}/{{ module.name }} -->
+    <!-- Node: {{ (current_path + [ns_name]) | join('/') }}/{{ module.name }} -->
 {% if module.use_container %}
     <load_composable_node target="{{ module.container }}">
       <composable_node pkg="{{ module.package }}" plugin="{{ module.plugin }}" name="{{ module.name }}">

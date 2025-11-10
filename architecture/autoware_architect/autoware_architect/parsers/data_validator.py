@@ -126,7 +126,7 @@ class BaseValidator(ABC):
       
         self.validate_schema(config, file_path)
 
-class ModuleValidator(BaseValidator):
+class NodeValidator(BaseValidator):
     """Validator for module entities."""
     
     def get_required_fields(self) -> List[str]:
@@ -187,7 +187,7 @@ class ValidatorFactory:
     """Factory for creating validators."""
     
     _validators = {
-        ConfigType.MODULE: ModuleValidator,
+        ConfigType.NODE: NodeValidator,
         ConfigType.PIPELINE: PipelineValidator,
         ConfigType.PARAMETER_SET: ParameterSetValidator,
         ConfigType.ARCHITECTURE: ArchitectureValidator,
