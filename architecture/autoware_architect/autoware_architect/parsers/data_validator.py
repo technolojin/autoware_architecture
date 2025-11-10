@@ -130,7 +130,7 @@ class NodeValidator(BaseValidator):
     """Validator for node entities."""
     
     def get_required_fields(self) -> List[str]:
-        return ["name", "launch", "inputs", "outputs", "parameter_files", "configurations", "processes"]
+        return ["name", "launch", "inputs", "outputs", "parameter_files", "parameters", "processes"]
     
     def get_schema_properties(self) -> Dict[str, Dict[str, str]]:
         return {
@@ -139,7 +139,7 @@ class NodeValidator(BaseValidator):
             'inputs': {'type': 'array'},
             'outputs': {'type': 'array'},
             'parameter_files': {'type': 'object_or_array'},
-            'configurations': {'type': 'object_or_array'},
+            'parameters': {'type': 'object_or_array'},
             'processes': {'type': 'array'}
         }
 

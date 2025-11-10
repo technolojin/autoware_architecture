@@ -24,12 +24,12 @@ outputs:
       reliability: reliable
       durability: transient_local
 
-# configurations
+# parameters
 parameter_files:
   - name: param_path
     default: config/cluster_merger.param.yaml
 
-configurations: []
+parameters: []
 
 # processes
 processes:

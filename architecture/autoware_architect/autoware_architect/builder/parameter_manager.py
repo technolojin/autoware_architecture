@@ -69,7 +69,7 @@ class ParameterManager:
         return result
     
     def get_parameters_for_launch(self) -> List[Dict[str, Any]]:
-        """Get configurations formatted for launcher generation.
+        """Get parameters formatted for launcher generation.
         
         Returns list of dicts with 'name' and 'value' keys, filtering out 'none' values.
         """
@@ -100,6 +100,8 @@ class ParameterManager:
             Resolved path with package prefix if applicable
         """
         # If path already starts with $( or /, don't add prefix
+        print(path)
+
         if path.startswith('$(') or path.startswith('/'):
             return path
         
@@ -231,8 +233,7 @@ class ParameterManager:
     
     def initialize_node_parameters(self):
         """Initialize parameters for node entity during node configuration.
-        
-        This method initializes both default parameter_files and default configurations
+        This method initializes both default parameter_files and default parameters
         from the node's configuration file.
         """
         if self.instance.entity_type != "node":

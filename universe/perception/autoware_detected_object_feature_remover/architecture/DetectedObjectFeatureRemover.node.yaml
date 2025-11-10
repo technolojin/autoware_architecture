@@ -19,12 +19,12 @@ outputs:
       reliability: reliable
       durability: transient_local
 
-# configurations
+# parameters
 parameter_files:
   - name: parameters
     default: config/detected_object_feature_remover.param.yaml
 
-configurations: []
+parameters: []
 
 # processes
 processes:

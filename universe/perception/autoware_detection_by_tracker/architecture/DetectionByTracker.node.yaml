@@ -24,13 +24,13 @@ outputs:
       reliability: reliable
       durability: transient_local
 
-# configurations
+# parameters
 parameter_files:
   - name: detection_by_tracker_param_path
     default: config/detection_by_tracker.param.yaml
     schema: config/detection_by_tracker.param.schema.yaml
 
-configurations: []
+parameters: []
 
 # processes
 processes:

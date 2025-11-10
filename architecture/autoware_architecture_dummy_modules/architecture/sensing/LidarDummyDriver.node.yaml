@@ -15,10 +15,10 @@ outputs:
       reliability: best_effort
       durability: volatile
 
-# configurations
+# parameters
 parameter_files: []
 
-configurations:
+parameters:
   - name: composable_node
     type: bool
     default: false

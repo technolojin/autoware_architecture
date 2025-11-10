@@ -23,7 +23,7 @@ outputs:
       reliability: reliable
       durability: transient_local
 
-# configurations
+# parameters
 parameter_files:
   - name: tracker_setting_path
     default: path/to/tracker_setting_path.yaml
@@ -32,7 +32,7 @@ parameter_files:
   - name: input_channels_path
     default: path/to/input_channels_path.yaml
 
-configurations: []
+parameters: []
 
 # processes
 processes:

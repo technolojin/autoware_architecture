@@ -22,7 +22,7 @@ outputs:
       reliability: reliable
       durability: transient_local
 
-# configurations
+# parameters
 parameter_files:
   - name: model_param_path
     default: path/to/model_param.yaml
@@ -35,7 +35,7 @@ parameter_files:
   - name: class_remapper_param_path
     default: path/to/class_remapper_param.yaml
 
-configurations:
+parameters:
   - name: build_only
     type: bool
     default: false

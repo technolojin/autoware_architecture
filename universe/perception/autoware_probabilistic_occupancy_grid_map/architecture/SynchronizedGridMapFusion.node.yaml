@@ -33,7 +33,7 @@ outputs:
       reliability: reliable
       durability: transient_local
 
-# configurations
+# parameters
 parameter_files:
   - name: multi_lidar_fusion_config_file
     default: config/multi_lidar_pointcloud_based_occupancy_grid_map.param.yaml
@@ -42,7 +42,7 @@ parameter_files:
     default: config/binary_bayes_filter_updater.param.yaml
     schema: schema/binary_bayes_filter_updater.schema.json
 
-configurations: []
+parameters: []
 
 # processes
 processes:

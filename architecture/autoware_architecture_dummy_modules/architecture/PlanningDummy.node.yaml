@@ -16,10 +16,10 @@ inputs:
 
 outputs: []
 
-# configurations
+# parameters
 parameter_files: []
 
-configurations: []
+parameters: []
 
 # processes
 processes:

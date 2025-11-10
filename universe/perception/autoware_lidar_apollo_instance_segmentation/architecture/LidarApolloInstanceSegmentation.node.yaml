@@ -24,12 +24,12 @@ outputs:
       reliability: reliable
       durability: transient_local
 
-# configurations
+# parameters
 parameter_files:
   - name: param_file
     default: config/vls-128.param.yaml
 
-configurations: []
+parameters: []
 
 # processes
 processes:

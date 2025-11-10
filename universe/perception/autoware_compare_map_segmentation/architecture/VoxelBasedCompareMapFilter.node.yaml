@@ -26,13 +26,13 @@ outputs:
       reliability: reliable
       durability: transient_local
 
-# configurations
+# parameters
 parameter_files:
   - name: voxel_based_compare_map_filter_param_file
     default: config/voxel_based_compare_map_filter.param.yaml
     schema: schema/voxel_based_compare_map_filter.schema.json
 
-configurations: []
+parameters: []
 
 # processes
 processes:

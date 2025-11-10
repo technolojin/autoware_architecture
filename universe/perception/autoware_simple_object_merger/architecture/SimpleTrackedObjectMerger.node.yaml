@@ -34,12 +34,12 @@ outputs:
       reliability: reliable
       durability: transient_local
 
-# configurations
+# parameters
 parameter_files:
   - name: parameters
     default: config/autoware_simple_object_merger.param.yaml
 
-configurations: []
+parameters: []
 
 # processes
 processes:

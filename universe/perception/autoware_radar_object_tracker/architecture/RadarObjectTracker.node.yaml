@@ -26,7 +26,7 @@ outputs:
       reliability: reliable
       durability: transient_local
 
-# configurations
+# parameters
 parameter_files:
   - name: tracker_setting_path
     default: config/default_tracker.param.yaml
@@ -36,7 +36,7 @@ parameter_files:
     default: config/radar_object_tracker.param.yaml
     allow_substs: true
 
-configurations: []
+parameters: []
 
 # processes
 processes:

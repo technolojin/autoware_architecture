@@ -17,10 +17,11 @@ outputs:
     message_type: sensor_msgs/msg/CompressedImage
   - name: camera_info
     message_type: sensor_msgs/msg/CameraInfo
+
+# parameters
 parameter_files: []
 
-# configurations
-configurations:
+parameters:
   - name: composable_node
     type: bool
     default: false

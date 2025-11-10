@@ -24,7 +24,7 @@ outputs:
       reliability: reliable
       durability: transient_local
 
-# configurations
+# parameters
 parameter_files:
   - name: data_association_matrix_path
     default: config/data_association_matrix.param.yaml
@@ -33,7 +33,7 @@ parameter_files:
   - name: node_param_file_path
     default: config/decorative_tracker_merger.param.yaml
 
-configurations: []
+parameters: []
 
 # processes
 processes:

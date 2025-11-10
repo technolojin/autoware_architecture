@@ -17,7 +17,7 @@ from enum import Enum
 
 class ParameterType(Enum):
     """Type of parameter - either a file path or a direct parameter value."""
-    PARAMETER_FILE = "parameter"  # Load from file
+    PARAMETER_FILE = "parameter_file"  # Load from file
     PARAMETER = "parameter"  # Direct overwrite of parameter
 
 class Parameter:

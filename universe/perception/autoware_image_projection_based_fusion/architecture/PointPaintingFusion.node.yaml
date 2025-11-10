@@ -56,7 +56,7 @@ outputs:
       reliability: reliable
       durability: transient_local
 
-# configurations
+# parameters
 parameter_files:
   - name: sync_param_path
     default: config/fusion_common.param.yaml
@@ -72,7 +72,7 @@ parameter_files:
   - name: class_remapper_param_path
     default: $(find-pkg-share autoware_lidar_centerpoint)/config/detection_class_remapper.param.yaml
 
-configurations:
+parameters:
   - name: build_only
     type: bool
     default: false

@@ -21,10 +21,10 @@ outputs:
       reliability: reliable
       durability: transient_local
 
-# configurations
+# parameters
 parameter_files: []
 
-configurations: []
+parameters: []
 
 # processes
 processes:

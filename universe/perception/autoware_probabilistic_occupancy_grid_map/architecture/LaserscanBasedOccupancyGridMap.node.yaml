@@ -26,7 +26,7 @@ outputs:
       reliability: reliable
       durability: transient_local
 
-# configurations
+# parameters
 parameter_files:
   - name: param_file
     default: config/laserscan_based_occupancy_grid_map.param.yaml
@@ -35,7 +35,7 @@ parameter_files:
     default: config/binary_bayes_filter_updater.param.yaml
     schema: schema/binary_bayes_filter_updater.schema.json
 
-configurations: []
+parameters: []
 
 # processes
 processes:

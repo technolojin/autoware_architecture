@@ -56,7 +56,7 @@ outputs:
       reliability: reliable
       durability: transient_local
 
-# configurations
+# parameters
 parameter_files:
   - name: sync_param_path
     default: config/fusion_common.param.yaml
@@ -65,7 +65,7 @@ parameter_files:
     default: config/roi_cluster_fusion.param.yaml
     schema: schema/roi_cluster_fusion.schema.json
 
-configurations: []
+parameters: []
 
 # processes
 processes:

@@ -20,13 +20,13 @@ outputs:
       reliability: reliable
       durability: transient_local
 
-# configurations
+# parameters
 
 parameter_files:
   - name: low_intensity_cluster_filter_param_path
     default: config/low_intensity_cluster_filter.param.yaml
 
-configurations: []
+parameters: []
 
 # processes
 processes:

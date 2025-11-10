@@ -21,13 +21,13 @@ outputs:
       reliability: reliable
       durability: transient_local
 
-# configurations
+# parameters
 parameter_files:
   - name: param_path
     schema: schema/object_sorter.schema.json
     default: config/object_sorter.param.yaml
 
-configurations: []
+parameters: []
 
 # processes
 processes:

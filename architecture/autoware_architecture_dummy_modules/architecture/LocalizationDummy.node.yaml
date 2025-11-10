@@ -19,10 +19,10 @@ outputs:
   - name: pose_with_covariance
     message_type: geometry_msgs/msg/PoseWithCovarianceStamped
 
-# configurations
+# parameters
 parameter_files: []
 
-configurations: []
+parameters: []
 
 # processes
 processes:

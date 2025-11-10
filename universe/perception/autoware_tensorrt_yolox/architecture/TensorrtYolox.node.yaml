@@ -18,12 +18,12 @@ outputs:
   - name: mask
     message_type: sensor_msgs/msg/Image
 
-# configurations
+# parameters
 parameter_files:
   - name: yolox_param_path
     default: config/yolox_s_plus_opt.param.yaml
 
-configurations:
+parameters:
   - name: model_path
     type: directory
     value: $(var data_path)/tensorrt_yolox/yolox-sPlus-opt-pseudoV2-T4-960x960-T4-seg16cls.onnx
