@@ -219,7 +219,7 @@ class LinkManager:
 
 
     def set_links(self):
-        """Set up links based on element connections."""
+        """Set up links based on entity connections."""
         connection_list: List[Connection] = [Connection(cfg) for cfg in self.instance.configuration.connections]
 
         # dictionary of ports, having field of instance, port-name, port-type
@@ -277,8 +277,8 @@ class LinkManager:
                 self.set_out_port(link.to_port)
 
     def initialize_module_ports(self):
-        """Initialize ports for module element during module configuration."""
-        if self.instance.element_type != "module":
+        """Initialize ports for module entity during module configuration."""
+        if self.instance.entity_type != "module":
             return
             
         # set in_ports
@@ -318,7 +318,7 @@ class LinkManager:
     def check_ports(self):
         """Check and debug port configurations."""
         # check ports only for module. in case of pipeline, the check is done
-        if self.instance.element_type != "module":
+        if self.instance.entity_type != "module":
             return
 
         # check ports

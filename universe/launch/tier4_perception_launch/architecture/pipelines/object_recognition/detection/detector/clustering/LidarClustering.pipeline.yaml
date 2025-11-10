@@ -2,11 +2,11 @@ name: LidarClustering.pipeline
 
 instances:
   - instance: voxel_grid_based_euclidean_cluster
-    element: VoxelGridBasedEuclideanCluster.module
+    entity: VoxelGridBasedEuclideanCluster.module
   - instance: shape_estimation
-    element: ShapeEstimation.module
+    entity: ShapeEstimation.module
   - instance: detected_object_feature_remover
-    element: DetectedObjectFeatureRemover.module
+    entity: DetectedObjectFeatureRemover.module
 
 external_interfaces:
   input:

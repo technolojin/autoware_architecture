@@ -2,9 +2,9 @@ name: LidarCenterpoint.pipeline
 
 instances:
   - instance: lidar_centerpoint
-    element: LidarCenterpoint.module
+    entity: LidarCenterpoint.module
   - instance: validation
-    element: ObstaclePointCloudBasedValidator.module
+    entity: ObstaclePointCloudBasedValidator.module
 
 external_interfaces:
   input:

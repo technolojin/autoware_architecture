@@ -17,43 +17,43 @@ from pathlib import Path
 import logging
 
 from ..parsers.yaml_parser import yaml_parser
-from .data_validator import ValidatorFactory, element_name_decode
+from .data_validator import ValidatorFactory, entity_name_decode
 from ..models.config import Config, ModuleConfig, PipelineConfig, ParameterSetConfig, ArchitectureConfig, ConfigType
 from ..exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
 
 class ConfigParser:
-    """Parser for element configuration files."""
+    """Parser for entity configuration files."""
     
     def __init__(self):
         self.validator_factory = ValidatorFactory()
     
-    def parse_element_file(self, config_yaml_path: str) -> Config:
-        """Parse an element configuration file."""
+    def parse_entity_file(self, config_yaml_path: str) -> Config:
+        """Parse an entity configuration file."""
         file_path = Path(config_yaml_path)
-        # get element type from file name 
-        # file/path/to/<element_name>.<element_type>.yaml
-        file_element_name, file_element_type = element_name_decode(file_path.stem)
+        # get entity type from file name 
+        # file/path/to/<entity_name>.<entity_type>.yaml
+        file_entity_name, file_entity_type = entity_name_decode(file_path.stem)
 
         # Load configuration
         config = self._load_config(file_path)
         
-        # Parse element name and type
+        # Parse entity name and type
         full_name = config.get("name")
-        element_name, element_type = element_name_decode(full_name)
+        entity_name, entity_type = entity_name_decode(full_name)
 
-        if element_name != file_element_name:
+        if entity_name != file_entity_name:
             raise ValidationError(
-                f"Config name '{element_name}' does not match file name '{file_element_name}'. File: {file_path}"
+                f"Config name '{entity_name}' does not match file name '{file_entity_name}'. File: {file_path}"
             )
         
         # Validate configuration
-        validator = self.validator_factory.get_validator(element_type)
-        validator.validate_all(config, element_type, file_element_type, str(file_path))
+        validator = self.validator_factory.get_validator(entity_type)
+        validator.validate_all(config, entity_type, file_entity_type, str(file_path))
         
         # Create appropriate data structure
-        return self._create_element_data(element_name, full_name, element_type, config, file_path)
+        return self._create_entity_data(entity_name, full_name, entity_type, config, file_path)
     
     def _load_config(self, file_path: Path) -> Dict[str, Any]:
         """Load YAML configuration file."""
@@ -63,18 +63,18 @@ class ConfigParser:
             logger.error(f"Failed to load config from {file_path}: {e}")
             raise ValidationError(f"Error parsing YAML file {file_path}: {e}")
 
-    def _create_element_data(self, element_name: str, full_name: str, element_type: str, 
+    def _create_entity_data(self, entity_name: str, full_name: str, entity_type: str, 
                            config: Dict[str, Any], file_path: Path) -> Config:
-        """Create appropriate data structure based on element type."""
+        """Create appropriate data structure based on entity type."""
         base_data = {
-            'name': element_name,
+            'name': entity_name,
             'full_name': full_name,
-            'element_type': element_type,
+            'entity_type': entity_type,
             'config': config,
             'file_path': file_path
         }
         
-        if element_type == ConfigType.MODULE:
+        if entity_type == ConfigType.MODULE:
             # Initialize configuration values from defaults
             configurations = config.get('configurations', [])
             if configurations:
@@ -91,19 +91,19 @@ class ConfigParser:
                 configurations=configurations,
                 processes=config.get('processes')
             )
-        elif element_type == ConfigType.PIPELINE:
+        elif entity_type == ConfigType.PIPELINE:
             return PipelineConfig(
                 **base_data,
                 instances=config.get('instances'),
                 external_interfaces=config.get('external_interfaces'),
                 connections=config.get('connections')
             )
-        elif element_type == ConfigType.PARAMETER_SET:
+        elif entity_type == ConfigType.PARAMETER_SET:
             return ParameterSetConfig(
                 **base_data,
                 parameters=config.get('parameters')
             )
-        elif element_type == ConfigType.ARCHITECTURE:
+        elif entity_type == ConfigType.ARCHITECTURE:
             return ArchitectureConfig(
                 **base_data,
                 modes=config.get('modes'),
@@ -111,4 +111,4 @@ class ConfigParser:
                 connections=config.get('connections')
             )
         else:
-            raise ValidationError(f"Unknown element type: {element_type}")
+            raise ValidationError(f"Unknown entity type: {entity_type}")

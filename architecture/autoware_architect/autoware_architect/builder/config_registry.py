@@ -22,11 +22,11 @@ from ..exceptions import ValidationError
 logger = logging.getLogger(__name__)
 
 class ConfigRegistry:
-    """Collection for managing multiple element data structures with efficient lookup methods."""
+    """Collection for managing multiple entity data structures with efficient lookup methods."""
     
     def __init__(self, config_yaml_file_paths: List[str]):
         # Replace list with dict as primary storage
-        self.elements: Dict[str, Config] = {}  # full_name → Config
+        self.entities: Dict[str, Config] = {}  # full_name → Config
         self._type_map: Dict[str, Dict[str, Config]] = {
             ConfigType.MODULE: {},
             ConfigType.PIPELINE: {},
@@ -35,80 +35,80 @@ class ConfigRegistry:
         }
         
         self.parser = ConfigParser()
-        self._load_elements(config_yaml_file_paths)
+        self._load_entities(config_yaml_file_paths)
     
-    def _load_elements(self, config_yaml_file_paths: List[str]) -> None:
-        """Load elements from configuration files."""
+    def _load_entities(self, config_yaml_file_paths: List[str]) -> None:
+        """Load entities from configuration files."""
         for file_path in config_yaml_file_paths:
-            logger.debug(f"Loading element from: {file_path}")
+            logger.debug(f"Loading entity from: {file_path}")
             
             try:
-                element_data = self.parser.parse_element_file(file_path)
+                entity_data = self.parser.parse_entity_file(file_path)
                 
                 # Check for duplicates
-                if element_data.full_name in self.elements:
-                    existing = self.elements[element_data.name]
+                if entity_data.full_name in self.entities:
+                    existing = self.entities[entity_data.name]
                     raise ValidationError(
-                        f"Duplicate element '{element_data.full_name}' found:\n"
-                        f"  New: {element_data.file_path}\n"
+                        f"Duplicate entity '{entity_data.full_name}' found:\n"
+                        f"  New: {entity_data.file_path}\n"
                         f"  Existing: {existing.file_path}"
                     )
                 
                 # Add to collections
-                self.elements[element_data.full_name] = element_data
-                self._type_map[element_data.element_type][element_data.name] = element_data
+                self.entities[entity_data.full_name] = entity_data
+                self._type_map[entity_data.entity_type][entity_data.name] = entity_data
                 
             except Exception as e:
-                logger.error(f"Failed to load element from {file_path}: {e}")
+                logger.error(f"Failed to load entity from {file_path}: {e}")
                 raise
     
     def get(self, name: str, default=None) -> Optional[Config]:
-        """Get element by name with default value."""
-        return self.elements.get(name, default)
+        """Get entity by name with default value."""
+        return self.entities.get(name, default)
     
-    # Enhanced methods for type-safe element access
+    # Enhanced methods for type-safe entity access
     def get_module(self, name: str) -> ModuleConfig:
-        """Get a module element by name."""
-        element = self._type_map[ConfigType.MODULE].get(name)
-        if element is None:
+        """Get a module entity by name."""
+        entity = self._type_map[ConfigType.MODULE].get(name)
+        if entity is None:
             available = list(self._type_map[ConfigType.MODULE].keys())
             raise ValidationError(f"Module '{name}' not found. Available modules: {available}")
-        return element
+        return entity
     
     def get_pipeline(self, name: str) -> PipelineConfig:
-        """Get a pipeline element by name."""
-        element = self._type_map[ConfigType.PIPELINE].get(name)
-        if element is None:
+        """Get a pipeline entity by name."""
+        entity = self._type_map[ConfigType.PIPELINE].get(name)
+        if entity is None:
             available = list(self._type_map[ConfigType.PIPELINE].keys())
             raise ValidationError(f"Pipeline '{name}' not found. Available pipelines: {available}")
-        return element
+        return entity
     
     def get_parameter_set(self, name: str) -> ParameterSetConfig:
-        """Get a parameter set element by name."""
-        element = self._type_map[ConfigType.PARAMETER_SET].get(name)
-        if element is None:
+        """Get a parameter set entity by name."""
+        entity = self._type_map[ConfigType.PARAMETER_SET].get(name)
+        if entity is None:
             available = list(self._type_map[ConfigType.PARAMETER_SET].keys())
             raise ValidationError(f"Parameter set '{name}' not found. Available parameter sets: {available}")
-        return element
+        return entity
     
     def get_architecture(self, name: str) -> ArchitectureConfig:
-        """Get an architecture element by name."""
-        element = self._type_map[ConfigType.ARCHITECTURE].get(name)
-        if element is None:
+        """Get an architecture entity by name."""
+        entity = self._type_map[ConfigType.ARCHITECTURE].get(name)
+        if entity is None:
             available = list(self._type_map[ConfigType.ARCHITECTURE].keys())
             raise ValidationError(f"Architecture '{name}' not found. Available architectures: {available}")
-        return element
+        return entity
     
-    def get_element_by_type(self, name: str, element_type: str) -> Config:
-        """Get an element by name and type."""
-        if element_type == ConfigType.MODULE:
+    def get_entity_by_type(self, name: str, entity_type: str) -> Config:
+        """Get an entity by name and type."""
+        if entity_type == ConfigType.MODULE:
             return self.get_module(name)
-        elif element_type == ConfigType.PIPELINE:
+        elif entity_type == ConfigType.PIPELINE:
             return self.get_pipeline(name)
-        elif element_type == ConfigType.PARAMETER_SET:
+        elif entity_type == ConfigType.PARAMETER_SET:
             return self.get_parameter_set(name)
-        elif element_type == ConfigType.ARCHITECTURE:
+        elif entity_type == ConfigType.ARCHITECTURE:
             return self.get_architecture(name)
         else:
-            raise ValidationError(f"Unknown element type: {element_type}")
+            raise ValidationError(f"Unknown entity type: {entity_type}")
 

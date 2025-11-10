@@ -8,55 +8,55 @@ modes:
 
 components:
   - component: lidar
-    element: LidarDummy.pipeline
+    entity: LidarDummy.pipeline
     namespace: sensing
     compute_unit: perception_ecu_1
   - component: camera
-    element: CameraDummy.pipeline
+    entity: CameraDummy.pipeline
     namespace: sensing
     compute_unit: perception_ecu_1
   - component: radar
-    element: RadarDummy.pipeline
+    entity: RadarDummy.pipeline
     namespace: sensing
     compute_unit: perception_ecu_1
   - component: map_loader
-    element: MapDummy.module
+    entity: MapDummy.module
     namespace: map
     compute_unit: dummy_ecu
   - component: localizer
-    element: LocalizationDummy.module
+    entity: LocalizationDummy.module
     namespace: localization
     compute_unit: dummy_ecu
 
   # perception
   - component: camera_2d_detection
-    element: Camera2dDetection.pipeline
+    entity: Camera2dDetection.pipeline
     namespace: perception/object_recognition/detection
     compute_unit: perception_ecu_1
     parameter_set: TypeBeta2PerceptionCamera2dDetection.parameter_set
   - component: pointpainting
-    element: PointpaintingFusion.pipeline
+    entity: PointpaintingFusion.pipeline
     namespace: perception/object_recognition/detection
     compute_unit: main_ecu
   - component: object_segmentation
-    element: ObjectSegmentation.pipeline
+    entity: ObjectSegmentation.pipeline
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionPipeline.parameter_set
   - component: object_recognition
-    element: ObjectRecognitionCLRMerged.pipeline
+    entity: ObjectRecognitionCLRMerged.pipeline
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionPipeline.parameter_set
   - component: occupancy_grid_map
-    element: OccupancyGridMapPointcloudBased.pipeline
+    entity: OccupancyGridMapPointcloudBased.pipeline
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionPipeline.parameter_set
 
   # planner
   - component: planner
-    element: PlanningDummy.module
+    entity: PlanningDummy.module
     namespace: planning
     compute_unit: dummy_ecu
 

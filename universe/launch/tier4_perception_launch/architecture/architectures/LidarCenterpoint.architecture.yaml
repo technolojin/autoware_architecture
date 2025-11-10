@@ -8,42 +8,42 @@ modes:
 
 components:
   - component: lidar
-    element: LidarDummy.pipeline
+    entity: LidarDummy.pipeline
     namespace: sensing
     compute_unit: perception_ecu_1
   - component: map_loader
-    element: MapDummy.module
+    entity: MapDummy.module
     namespace: map
     compute_unit: dummy_ecu
   - component: localizer
-    element: LocalizationDummy.module
+    entity: LocalizationDummy.module
     namespace: localization
     compute_unit: dummy_ecu
 
   # perception
   - component: object_segmentation
-    element: ObjectSegmentation.pipeline
+    entity: ObjectSegmentation.pipeline
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionPipeline.parameter_set
   - component: centerpoint
-    element: LidarCenterpoint.pipeline
+    entity: LidarCenterpoint.pipeline
     namespace: perception/object_recognition/detection
     compute_unit: main_ecu
   - component: object_recognition
-    element: ObjectRecognitionLidar.pipeline
+    entity: ObjectRecognitionLidar.pipeline
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionPipeline.parameter_set
   - component: occupancy_grid_map
-    element: OccupancyGridMapPointcloudBased.pipeline
+    entity: OccupancyGridMapPointcloudBased.pipeline
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionPipeline.parameter_set
 
   # planner
   - component: planner
-    element: PlanningDummy.module
+    entity: PlanningDummy.module
     namespace: planning
     compute_unit: dummy_ecu
 

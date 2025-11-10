@@ -2,22 +2,22 @@ name: RadarDummy.pipeline
 
 instances:
   - instance: radar_front_center
-    element: RadarDummyDriver.module
+    entity: RadarDummyDriver.module
   - instance: radar_front_left
-    element: RadarDummyDriver.module
+    entity: RadarDummyDriver.module
   - instance: radar_front_right
-    element: RadarDummyDriver.module
+    entity: RadarDummyDriver.module
   - instance: radar_rear_center
-    element: RadarDummyDriver.module
+    entity: RadarDummyDriver.module
   - instance: radar_rear_left
-    element: RadarDummyDriver.module
+    entity: RadarDummyDriver.module
   - instance: radar_rear_right
-    element: RadarDummyDriver.module
+    entity: RadarDummyDriver.module
 
   - instance: simple_object_merger
-    element: SimpleObjectMerger.module
+    entity: SimpleObjectMerger.module
   - instance: simple_tracked_object_merger
-    element: SimpleTrackedObjectMerger.module
+    entity: SimpleTrackedObjectMerger.module
 
 external_interfaces:
   input: []

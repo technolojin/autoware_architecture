@@ -116,7 +116,7 @@ class ParameterTemplateGenerator:
             module_data: List to append module parameter data to
             current_namespace: Current namespace path
         """
-        if instance.element_type == "module":
+        if instance.entity_type == "module":
             # Use the instance's namespace_str directly
             full_namespace = instance.namespace_str
             

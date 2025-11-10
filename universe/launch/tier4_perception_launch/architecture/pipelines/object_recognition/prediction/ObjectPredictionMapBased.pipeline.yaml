@@ -2,7 +2,7 @@ name: ObjectPredictionMapBased.pipeline
 
 instances:
   - instance: map_based_prediction
-    element: MapBasedPrediction.module
+    entity: MapBasedPrediction.module
 
 external_interfaces:
   input:

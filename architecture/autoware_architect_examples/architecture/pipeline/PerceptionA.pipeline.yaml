@@ -2,13 +2,13 @@ name: PerceptionA.pipeline
 
 instances:
   - instance: detector_a1
-    element: DetectorA.pipeline
+    entity: DetectorA.pipeline
   - instance: detector_a2
-    element: DetectorA.pipeline
+    entity: DetectorA.pipeline
   - instance: node_tracker
-    element: Tracker.module
+    entity: Tracker.module
   - instance: node_predictor
-    element: Predictor.module
+    entity: Predictor.module
 
 external_interfaces:
   input:

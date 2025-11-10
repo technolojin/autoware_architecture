@@ -28,7 +28,7 @@ if readme_path.exists():
 setup(
     name="autoware_architect",
     version="1.0.0",
-    description="Autoware Architecture Package for building and deploying perception pipelines",
+    description="Autoware Architecture Package for building and deploying Autoware systems.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     author="Taekjin Lee",

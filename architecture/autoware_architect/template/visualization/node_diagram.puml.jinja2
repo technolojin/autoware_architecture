@@ -24,7 +24,7 @@ node {BackgroundColor #dddddd}
 </style>
 
 {% macro build_instance_graph(instance, depth=0) %}
-{% if instance.element_type == "module" %}
+{% if instance.entity_type == "module" %}
 {% set dd = "    " * depth %}
 {{ dd }}node {{ instance.name }} as {{ instance.unique_id }} {
 {{ dd }}    ' ports
@@ -58,7 +58,7 @@ node {BackgroundColor #dddddd}
 {{ dd }}{{ in_port.unique_id }}_cloud -d-> {{ in_port.unique_id }}
 {{ dd }}{% endif %}
 {{ dd }}{% endfor %}
-{{ dd }}{% elif instance.element_type == "pipeline" %}
+{{ dd }}{% elif instance.entity_type == "pipeline" %}
 {{ dd }}frame {{ instance.name }} as {{ instance.unique_id }} {
 {{ dd }}    ' port connections
 {{ dd }}{% for in_port in instance.in_ports %}

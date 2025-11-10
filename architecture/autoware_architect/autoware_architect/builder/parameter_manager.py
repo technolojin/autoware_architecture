@@ -57,7 +57,7 @@ class ParameterManager:
         Returns list of dicts with 'path' key, in order (defaults first, then overrides).
         """
         package_name = None
-        if self.instance.element_type == "module" and self.instance.configuration:
+        if self.instance.entity_type == "module" and self.instance.configuration:
             launch_config = self.instance.configuration.launch
             package_name = launch_config.get("package")
         
@@ -133,8 +133,8 @@ class ParameterManager:
             logger.warning(f"Target node not found: {node_namespace}")
             return
             
-        if target_instance.element_type != "module":
-            logger.warning(f"Target node is not a module: {node_namespace} (type: {target_instance.element_type})")
+        if target_instance.entity_type != "module":
+            logger.warning(f"Target node is not a module: {node_namespace} (type: {target_instance.entity_type})")
             return
         
         logger.info(f"Applying parameters to node: {node_namespace}")
@@ -188,9 +188,9 @@ class ParameterManager:
         while current_instance.parent is not None:
             current_instance = current_instance.parent
             
-        # If we're at the deployment root (element_type == "architecture"),
+        # If we're at the deployment root (entity_type == "architecture"),
         # search in its children directly since parameter_set paths don't include the deployment name
-        if current_instance.element_type == "architecture":
+        if current_instance.entity_type == "architecture":
             for child in current_instance.children.values():
                 result = self._traverse_to_namespace(child, target_namespace)
                 if result is not None:
@@ -230,12 +230,12 @@ class ParameterManager:
     # =========================================================================
     
     def initialize_module_parameters(self):
-        """Initialize parameters for module element during module configuration.
+        """Initialize parameters for module entity during module configuration.
         
         This method initializes both default parameter_files and default configurations
         from the module's configuration file.
         """
-        if self.instance.element_type != "module":
+        if self.instance.entity_type != "module":
             return
         
         # 1. Set default parameter_files from module configuration

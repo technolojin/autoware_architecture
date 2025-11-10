@@ -2,11 +2,11 @@ name: ObjectRecognitionCLMerged.pipeline
 
 instances:
   - instance: detection
-    element: ObjectDetectionCLMerged.pipeline
+    entity: ObjectDetectionCLMerged.pipeline
   - instance: tracking
-    element: ObjectTrackingSingleChannel.pipeline
+    entity: ObjectTrackingSingleChannel.pipeline
   - instance: prediction
-    element: ObjectPredictionMapBased.pipeline
+    entity: ObjectPredictionMapBased.pipeline
 
 external_interfaces:
   input:

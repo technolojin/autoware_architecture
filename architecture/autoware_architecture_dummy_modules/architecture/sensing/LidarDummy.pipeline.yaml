@@ -2,15 +2,15 @@ name: LidarDummy.pipeline
 
 instances:
   - instance: lidar_top
-    element: LidarDummyDriver.module
+    entity: LidarDummyDriver.module
   - instance: lidar_left
-    element: LidarDummyDriver.module
+    entity: LidarDummyDriver.module
   - instance: lidar_right
-    element: LidarDummyDriver.module
+    entity: LidarDummyDriver.module
   - instance: lidar_rear
-    element: LidarDummyDriver.module
+    entity: LidarDummyDriver.module
   - instance: lidar_concatenate
-    element: ConcatenatePointcloud.module
+    entity: ConcatenatePointcloud.module
 
 external_interfaces:
   input: []

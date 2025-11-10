@@ -16,7 +16,7 @@ import logging
 from typing import List, Dict
 
 from ..models.config import Config, ModuleConfig, PipelineConfig, ParameterSetConfig, ArchitectureConfig
-from ..parsers.data_parser import element_name_decode
+from ..parsers.data_parser import entity_name_decode
 from ..config import config
 from ..exceptions import ValidationError
 from ..utils.naming import generate_unique_id
@@ -114,7 +114,7 @@ class Instance:
         self.configuration: ModuleConfig | PipelineConfig | ParameterSetConfig | ArchitectureConfig | None = None
 
         # instance topology
-        self.element_type: str = None
+        self.entity_type: str = None
         self.parent: Instance = None
         self.children: Dict[str, Instance] = {}
         self.parent_pipeline_list: List[str] = []
@@ -135,21 +135,21 @@ class Instance:
     def unique_id(self):
         return generate_unique_id(self.namespace, self.name)
 
-    def set_instances(self, element_id: str, config_registry: ConfigRegistry):
+    def set_instances(self, entity_id: str, config_registry: ConfigRegistry):
 
         try:
-            element_name, element_type = element_name_decode(element_id)
-            if element_type == "architecture":
+            entity_name, entity_type = entity_name_decode(entity_id)
+            if entity_type == "architecture":
                 self._set_architecture_instances(config_registry)
-            elif element_type == "pipeline":
-                self._set_pipeline_instances(element_id, element_name, config_registry)
-            elif element_type == "module":
-                self._set_module_instances(element_id, element_name, config_registry)
+            elif entity_type == "pipeline":
+                self._set_pipeline_instances(entity_id, entity_name, config_registry)
+            elif entity_type == "module":
+                self._set_module_instances(entity_id, entity_name, config_registry)
         except Exception as e:
-            raise ValidationError(f"Error setting instances for {element_id}, at {self.configuration.file_path}")
+            raise ValidationError(f"Error setting instances for {entity_id}, at {self.configuration.file_path}")
 
     def _set_architecture_instances(self, config_registry: ConfigRegistry):
-        """Set instances for architecture element type."""
+        """Set instances for architecture entity type."""
         # Determine which components to instantiate based on mode
         components_to_instantiate = self.configuration.components
         
@@ -172,7 +172,7 @@ class Instance:
         for cfg_component in components_to_instantiate:
             compute_unit_name = cfg_component.get("compute_unit")
             instance_name = cfg_component.get("component")
-            element_id = cfg_component.get("element")
+            entity_id = cfg_component.get("entity")
             namespace = cfg_component.get("namespace")
             if namespace:
                 if isinstance(namespace, str):
@@ -184,7 +184,7 @@ class Instance:
             instance = Instance(instance_name, compute_unit_name, namespace)
             instance.parent = self
             try:
-                instance.set_instances(element_id, config_registry)
+                instance.set_instances(entity_id, config_registry)
             except Exception as e:
                 # add the instance to the children dict for debugging
                 self.children[instance_name] = instance
@@ -203,16 +203,16 @@ class Instance:
         # all children are initialized
         self.is_initialized = True
 
-    def _set_pipeline_instances(self, element_id: str, element_name: str, config_registry: ConfigRegistry):
-        """Set instances for pipeline element type."""
-        logger.info(f"Setting pipeline element {element_id} for instance {self.namespace_str}")
-        self.configuration = config_registry.get_pipeline(element_name)
-        self.element_type = "pipeline"
+    def _set_pipeline_instances(self, entity_id: str, entity_name: str, config_registry: ConfigRegistry):
+        """Set instances for pipeline entity type."""
+        logger.info(f"Setting pipeline entity {entity_id} for instance {self.namespace_str}")
+        self.configuration = config_registry.get_pipeline(entity_name)
+        self.entity_type = "pipeline"
 
         # check if the pipeline is already set
-        if element_id in self.parent_pipeline_list:
-            raise ValidationError(f"Config is already set: {element_id}, avoid circular reference")
-        self.parent_pipeline_list.append(element_id)
+        if entity_id in self.parent_pipeline_list:
+            raise ValidationError(f"Config is already set: {entity_id}, avoid circular reference")
+        self.parent_pipeline_list.append(entity_id)
 
         # set children
         self._create_pipeline_children(config_registry)
@@ -223,11 +223,11 @@ class Instance:
         # recursive call is finished
         self.is_initialized = True
 
-    def _set_module_instances(self, element_id: str, element_name: str, config_registry: ConfigRegistry):
-        """Set instances for module element type."""
-        logger.info(f"Setting module element {element_id} for instance {self.namespace_str}")
-        self.configuration = config_registry.get_module(element_name)
-        self.element_type = "module"
+    def _set_module_instances(self, entity_id: str, entity_name: str, config_registry: ConfigRegistry):
+        """Set instances for module entity type."""
+        logger.info(f"Setting module entity {entity_id} for instance {self.namespace_str}")
+        self.configuration = config_registry.get_module(entity_name)
+        self.entity_type = "module"
 
         # run the module configuration
         self._run_module_configuration()
@@ -254,9 +254,9 @@ class Instance:
         # Apply each parameter set sequentially
         for param_set_id in parameter_set_list:
             try:
-                param_set_name, element_type = element_name_decode(param_set_id)
-                if element_type != "parameter_set":
-                    raise ValidationError(f"Invalid parameter set type: {element_type}, at {self.configuration.file_path}")
+                param_set_name, entity_type = entity_name_decode(param_set_id)
+                if entity_type != "parameter_set":
+                    raise ValidationError(f"Invalid parameter set type: {entity_type}, at {self.configuration.file_path}")
                 
                 cfg_param_set = config_registry.get_parameter_set(param_set_name)
                 node_params = cfg_param_set.parameters
@@ -294,12 +294,12 @@ class Instance:
                 raise ValidationError(f"Error in applying parameter set '{param_set_name}' to instance '{instance.name}': {e}")
 
     def _create_pipeline_children(self, config_registry: ConfigRegistry):
-        """Create child instances for pipeline elements."""
+        """Create child instances for pipeline entities."""
         cfg_node_list = self.configuration.instances
         for cfg_node in cfg_node_list:
-            # check if cfg_node has 'node' and 'element'
-            if "instance" not in cfg_node or "element" not in cfg_node:
-                raise ValidationError(f"Pipeline instance configuration must have 'node' and 'element' fields, at {self.configuration.file_path}")
+            # check if cfg_node has 'node' and 'entity'
+            if "instance" not in cfg_node or "entity" not in cfg_node:
+                raise ValidationError(f"Pipeline instance configuration must have 'node' and 'entity' fields, at {self.configuration.file_path}")
 
             instance = Instance(
                 cfg_node.get("instance"), self.compute_unit, self.namespace, self.layer + 1
@@ -308,7 +308,7 @@ class Instance:
             instance.parent_pipeline_list = self.parent_pipeline_list.copy()
             # recursive call of set_instances
             try:
-                instance.set_instances(cfg_node.get("element"), config_registry)
+                instance.set_instances(cfg_node.get("entity"), config_registry)
             except Exception as e:
                 # add the instance to the children dict for debugging
                 self.children[instance.name] = instance
@@ -316,7 +316,7 @@ class Instance:
             self.children[instance.name] = instance
         
     def _run_pipeline_configuration(self):
-        if self.element_type != "pipeline":
+        if self.entity_type != "pipeline":
             raise ValidationError(f"run_pipeline_configuration is only supported for pipeline, at {self.configuration.file_path}")
 
         # set connections
@@ -330,7 +330,7 @@ class Instance:
         self.link_manager.log_pipeline_configuration()
 
     def _run_module_configuration(self):
-        if self.element_type != "module":
+        if self.entity_type != "module":
             raise ValidationError(f"run_module_configuration is only supported for module, at {self.configuration.file_path}")
 
         # set ports
@@ -363,7 +363,7 @@ class Instance:
         data = {
             "name": self.name,
             "unique_id": self.unique_id,
-            "element_type": self.element_type,
+            "entity_type": self.entity_type,
             "namespace": self.namespace,
             "compute_unit": self.compute_unit,
             "in_ports": self.link_manager.get_all_in_ports(),
@@ -417,7 +417,7 @@ class DeploymentInstance(Instance):
         logger.info(f"Setting architecture {architecture.full_name} for instance {self.name}" + 
                    (f" (mode: {mode})" if mode else ""))
         self.configuration = architecture
-        self.element_type = "architecture"
+        self.entity_type = "architecture"
 
         # 1. set component instances
         logger.info(f"Instance '{self.name}': setting component instances")

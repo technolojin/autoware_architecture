@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 class ConfigType:
-    """Constants for element types."""
+    """Constants for entity types."""
     MODULE = "module"
     PIPELINE = "pipeline"
     PARAMETER_SET = "parameter_set"
@@ -25,15 +25,15 @@ class ConfigType:
 
     @classmethod
     def get_all_types(cls) -> List[str]:
-        """Get all valid element types."""
+        """Get all valid entity types."""
         return [cls.MODULE, cls.PIPELINE, cls.PARAMETER_SET, cls.ARCHITECTURE]
 
 @dataclass
 class Config:
-    """Pure data structure for element configuration."""
+    """Pure data structure for entity configuration."""
     name: str
     full_name: str
-    element_type: str
+    entity_type: str
     config: Dict[str, Any]
     file_path: Path
     
@@ -44,7 +44,7 @@ class Config:
 
 @dataclass
 class ModuleConfig(Config):
-    """Data structure for module elements."""
+    """Data structure for module entities."""
     launch: Dict[str, Any] = None
     inputs: List[Dict[str, Any]] = None
     outputs: List[Dict[str, Any]] = None
@@ -54,19 +54,19 @@ class ModuleConfig(Config):
 
 @dataclass
 class PipelineConfig(Config):
-    """Data structure for pipeline elements."""
+    """Data structure for pipeline entities."""
     instances: List[Dict[str, Any]] = None
     external_interfaces: Any = None  # Can be dict or list
     connections: List[Dict[str, Any]] = None
 
 @dataclass
 class ParameterSetConfig(Config):
-    """Data structure for parameter set elements."""
+    """Data structure for parameter set entities."""
     parameters: Any = None  # Can be dict or list
 
 @dataclass
 class ArchitectureConfig(Config):
-    """Data structure for architecture elements."""
+    """Data structure for architecture entities."""
     modes: List[Dict[str, Any]] = None
     components: List[Dict[str, Any]] = None
     connections: List[Dict[str, Any]] = None

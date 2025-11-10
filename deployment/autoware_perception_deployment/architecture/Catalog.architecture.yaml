@@ -2,32 +2,32 @@ name: Catalog.architecture
 
 components:
   - component: camera
-    element: CameraDummy.pipeline
+    entity: CameraDummy.pipeline
     namespace: sensing
     compute_unit: perception_ecu_2
 
   - component: camera_2d_detection
-    element: Camera2dDetection.pipeline
+    entity: Camera2dDetection.pipeline
     namespace: perception
     compute_unit: perception_ecu_2
 
   - component: scan_ground_filter
-    element: ScanGroundFilter.module
+    entity: ScanGroundFilter.module
     namespace: perception
     compute_unit: main_ecu
 
   - component: pointpainting_fusion
-    element: PointPaintingFusion.module
+    entity: PointPaintingFusion.module
     namespace: perception
     compute_unit: main_ecu
 
   - component: roi_pointcloud_fusion
-    element: RoiPointCloudFusion.module
+    entity: RoiPointCloudFusion.module
     namespace: perception
     compute_unit: main_ecu
 
   - component: occupancy_grid_map
-    element: OccupancyGridMapMultiLidar.pipeline
+    entity: OccupancyGridMapMultiLidar.pipeline
     namespace: perception
     compute_unit: main_ecu
 

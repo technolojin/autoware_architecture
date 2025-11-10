@@ -2,13 +2,13 @@ name: LidarApollo.pipeline
 
 instances:
   - instance: lidar_apollo_instance_segmentation
-    element: LidarApolloInstanceSegmentation.module
+    entity: LidarApolloInstanceSegmentation.module
   - instance: shape_estimation
-    element: ShapeEstimation.module
+    entity: ShapeEstimation.module
   - instance: detected_object_feature_remover
-    element: DetectedObjectFeatureRemover.module
+    entity: DetectedObjectFeatureRemover.module
   - instance: validation
-    element: ObstaclePointCloudBasedValidator.module
+    entity: ObstaclePointCloudBasedValidator.module
 
 external_interfaces:
   input:

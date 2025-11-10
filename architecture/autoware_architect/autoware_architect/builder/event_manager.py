@@ -34,8 +34,8 @@ class EventManager:
         self.event_list: List[Event] = []
 
     def initialize_module_processes(self):
-        """Initialize processes for module element during module configuration."""
-        if self.instance.element_type != "module":
+        """Initialize processes for module entity during module configuration."""
+        if self.instance.entity_type != "module":
             return
             
         # connect port events and the process events

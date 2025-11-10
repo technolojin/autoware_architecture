@@ -2,7 +2,7 @@ name: ObjectTrackingMultiChannel.pipeline
 
 instances:
   - instance: multi_object_tracker
-    element: MultiObjectTracker.module
+    entity: MultiObjectTracker.module
 
 external_interfaces:
   input:

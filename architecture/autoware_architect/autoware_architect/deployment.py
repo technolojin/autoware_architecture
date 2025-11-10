@@ -22,7 +22,7 @@ from .builder.config_registry import ConfigRegistry
 from .builder.instances import DeploymentInstance
 from .builder.launcher_generator import generate_pipeline_launch_file
 from .builder.parameter_template_generator import ParameterTemplateGenerator
-from .parsers.data_validator import element_name_decode
+from .parsers.data_validator import entity_name_decode
 from .parsers.yaml_parser import yaml_parser
 from .exceptions import ValidationError
 from .template_utils import TemplateRenderer
@@ -32,7 +32,7 @@ debug_mode = True
 
 class Deployment:
     def __init__(self, architecture_config: ArchitectureConfig ):
-        # element collection
+        # entity collection
         architecture_yaml_list = self._get_architecture_list(architecture_config)
         self.config_registry = ConfigRegistry(architecture_yaml_list)
 
@@ -147,7 +147,7 @@ class Deployment:
 
     def build(self):
         # 1. Get architecture configuration
-        architecture_name, _ = element_name_decode(self.config_yaml.get("architecture"))
+        architecture_name, _ = entity_name_decode(self.config_yaml.get("architecture"))
         architecture = self.config_registry.get_architecture(architecture_name)
 
         if not architecture:

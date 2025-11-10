@@ -5,7 +5,7 @@ title Architecture Diagram {{ name }}
 skinparam dpi 128
 
 {% macro build_logic_graph(instance) -%}
-    {% if instance.element_type == "module" -%}
+    {% if instance.entity_type == "module" -%}
         {# EVENTS -#}
         {% for event in instance.events -%}
             {% if event.type == "periodic" -%}
@@ -14,7 +14,7 @@ skinparam dpi 128
                 participant "{{'\\n/'.join(instance.namespace)}}\n\n<<{{event.name}}>>" as {{ event.unique_id }}
             {% endif -%}
         {% endfor -%}
-    {% elif instance.element_type == "pipeline" -%}
+    {% elif instance.entity_type == "pipeline" -%}
         {% for child in instance.children -%}
             {{ build_logic_graph(child) -}}
         {% endfor -%}
@@ -38,7 +38,7 @@ skinparam dpi 128
 {% endmacro -%}
 
 {% macro build_connection_graph(instance) -%}
-    {% if instance.element_type == "module" -%}
+    {% if instance.entity_type == "module" -%}
         {# EVENTS -#}
         {% for event in instance.events -%}
             {% if event.process_event == True -%}
@@ -47,7 +47,7 @@ skinparam dpi 128
                 {% endfor -%}
             {% endif -%}
         {% endfor -%}
-    {% elif instance.element_type == "pipeline" -%}
+    {% elif instance.entity_type == "pipeline" -%}
         {% for child in instance.children -%}
             {{ build_connection_graph(child) -}}
         {% endfor -%}

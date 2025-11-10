@@ -69,19 +69,22 @@ java -Xmx16384m -DPLANTUML_LIMIT_SIZE=65536 -jar /usr/share/plantuml/plantuml.ja
 
 # words
 
-* element
-  * architecture
-  * pipeline
-  * module
+* abstract model (blueprint, entity)
+  * architecture -> system
+  * pipeline -> module
+  * module -> node
   * parameter set
-
-* instance
-  * deployment instance
-  * component instance
-  * node instance
-
-* 
   * port
-  * link, connection
-  * event, process
+  * connection -> channel
+  * process
+  * entity -> entity
+
+* instance 
+  * deployment -> launch
+  * component
+  * instance -> unit
+  * link -> route
+  * event
+
+
 

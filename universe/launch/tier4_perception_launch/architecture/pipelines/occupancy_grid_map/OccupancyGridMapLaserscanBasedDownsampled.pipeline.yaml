@@ -2,11 +2,11 @@ name: OccupancyGridMapLaserscanBasedDownsampled.pipeline
 
 instances:
   - instance: raw_pc_downsample_filter
-    element: PickupBasedVoxelGridDownsampleFilter.module
+    entity: PickupBasedVoxelGridDownsampleFilter.module
   - instance: obstacle_pc_downsample_filter
-    element: PickupBasedVoxelGridDownsampleFilter.module
+    entity: PickupBasedVoxelGridDownsampleFilter.module
   - instance: occupancy_grid_map_node
-    element: LaserscanBasedOccupancyGridMap.module
+    entity: LaserscanBasedOccupancyGridMap.module
 
 external_interfaces:
   input:
