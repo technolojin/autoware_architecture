@@ -219,7 +219,7 @@ class LinkManager:
 
 
     def set_links(self):
-        """Set up links based on element connections."""
+        """Set up links based on entity connections."""
         connection_list: List[Connection] = [Connection(cfg) for cfg in self.instance.configuration.connections]
 
         # dictionary of ports, having field of instance, port-name, port-type
@@ -276,9 +276,9 @@ class LinkManager:
             if link.to_port.namespace == self.instance.namespace:
                 self.set_out_port(link.to_port)
 
-    def initialize_module_ports(self):
-        """Initialize ports for module element during module configuration."""
-        if self.instance.element_type != "module":
+    def initialize_node_ports(self):
+        """Initialize ports for node entity during node configuration."""
+        if self.instance.entity_type != "node":
             return
             
         # set in_ports
@@ -317,8 +317,8 @@ class LinkManager:
 
     def check_ports(self):
         """Check and debug port configurations."""
-        # check ports only for module. in case of pipeline, the check is done
-        if self.instance.element_type != "module":
+        # check ports only for node. in case of module, the check is done
+        if self.instance.entity_type != "node":
             return
 
         # check ports
@@ -341,10 +341,10 @@ class LinkManager:
             for user_port in user_port_list:
                 logger.debug(f"    user: {user_port.port_path}")
 
-    def log_pipeline_configuration(self):
-        """Log pipeline configuration details."""
+    def log_module_configuration(self):
+        """Log module configuration details."""
         logger.debug(
-            f"Instance '{self.instance.name}' pipeline configuration: {len(self.links)} links established"
+            f"Instance '{self.instance.name}' module configuration: {len(self.links)} links established"
         )
         for link in self.links:
             logger.debug(f"  Link: {link.from_port.port_path} -> {link.to_port.port_path}")

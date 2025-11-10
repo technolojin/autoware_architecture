@@ -1,6 +1,6 @@
 @startuml
 
-title Architecture Diagram {{ name }}
+title System Diagram {{ name }}
 
 ' topic part
 skinparam NoteFontSize 6
@@ -24,7 +24,7 @@ node {BackgroundColor #dddddd}
 </style>
 
 {% macro build_instance_graph(instance) %}
-{% if instance.element_type == "module" %}
+{% if instance.entity_type == "node" %}
 node {{ instance.name }} as {{ instance.unique_id }} {
 {# PORTS -#}
 {% for in_port in instance.in_ports %}
@@ -42,7 +42,7 @@ cloud "{{ "/" + "/".join(in_port.topic) }}" as {{ in_port.unique_id }}_cloud
 {{ in_port.unique_id }}_cloud -d-> {{ in_port.unique_id }}
 {% endif %}
 {% endfor %}
-{% elif instance.element_type == "pipeline" %}
+{% elif instance.entity_type == "module" %}
 {% for child in instance.children %}
 {{ build_instance_graph(child) }}
 {% endfor %}
@@ -50,7 +50,7 @@ cloud "{{ "/" + "/".join(in_port.topic) }}" as {{ in_port.unique_id }}_cloud
 {% endmacro %}
 
 {% macro build_logic_graph(instance) %}
-{% if instance.element_type == "module" %}
+{% if instance.entity_type == "node" %}
 node {{ instance.name }} as {{ instance.unique_id }} {
 {% for event in instance.events %}
 {% if event.type == "periodic" %}
@@ -73,7 +73,7 @@ node {{ instance.name }} as {{ instance.unique_id }} {
 {% endfor %}
 {% endfor %}
 }
-{% elif instance.element_type == "pipeline" %}
+{% elif instance.entity_type == "module" %}
 {% for child in instance.children %}
 {{ build_logic_graph(child) }}
 {% endfor %}

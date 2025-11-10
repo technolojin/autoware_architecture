@@ -60,7 +60,7 @@ def generate_unique_id(namespace: list[str], *components: str) -> str:
         *components: Optional additional name parts to append for specificity.
 
     Returns:
-        A sanitized unique identifier string stable across modules.
+        A sanitized unique identifier string stable across nodes.
     """
     parts: list[str] = []
     if namespace:

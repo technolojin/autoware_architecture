@@ -1,0 +1,79 @@
+name: LidarCenterpoint.system
+
+modes:
+  - name: Runtime
+    description: on-vehicle runtime mode
+  - name: LoggingSimulation
+    description: Logged data replay simulation mode
+
+components:
+  - component: lidar
+    entity: LidarDummy.module
+    namespace: sensing
+    compute_unit: perception_ecu_1
+  - component: map_loader
+    entity: MapDummy.node
+    namespace: map
+    compute_unit: dummy_ecu
+  - component: localizer
+    entity: LocalizationDummy.node
+    namespace: localization
+    compute_unit: dummy_ecu
+
+  # perception
+  - component: object_segmentation
+    entity: ObjectSegmentation.module
+    namespace: perception
+    compute_unit: main_ecu
+    parameter_set: TypeBeta2PerceptionModule.parameter_set
+  - component: centerpoint
+    entity: LidarCenterpoint.module
+    namespace: perception/object_recognition/detection
+    compute_unit: main_ecu
+  - component: object_recognition
+    entity: ObjectRecognitionLidar.module
+    namespace: perception
+    compute_unit: main_ecu
+    parameter_set: TypeBeta2PerceptionModule.parameter_set
+  - component: occupancy_grid_map
+    entity: OccupancyGridMapPointcloudBased.module
+    namespace: perception
+    compute_unit: main_ecu
+    parameter_set: TypeBeta2PerceptionModule.parameter_set
+
+  # planner
+  - component: planner
+    entity: PlanningDummy.node
+    namespace: planning
+    compute_unit: dummy_ecu
+
+connections:
+  - from: lidar.output.concatenated/pointcloud
+    to: object_segmentation.input.concatenated_pointcloud
+  - from: object_segmentation.output.pointcloud
+    to: object_recognition.input.obstacle_pointcloud
+
+  - from: lidar.output.concatenated/pointcloud
+    to: centerpoint.input.pointcloud
+  - from: object_recognition.output.map_filtered_obstacle_pointcloud
+    to: centerpoint.input.obstacle_pointcloud
+  - from: centerpoint.output.detected_objects
+    to: object_recognition.input.lidar_ml_objects
+
+  - from: lidar.output.concatenated/pointcloud
+    to: occupancy_grid_map.input.concatenated_pointcloud
+  - from: object_segmentation.output.pointcloud
+    to: occupancy_grid_map.input.obstacle_pointcloud
+  - from: occupancy_grid_map.output.map
+    to: planner.input.occupancy_grid_map
+
+  - from: map_loader.output.vector_map
+    to: localizer.input.lanelet_map
+  - from: map_loader.output.vector_map
+    to: object_recognition.input.vector_map
+  - from: map_loader.output.vector_map
+    to: planner.input.lanelet_map
+  - from: map_loader.output.pointcloud_map
+    to: object_recognition.input.pointcloud_map
+  - from: object_recognition.output.objects
+    to: planner.input.predicted_objects

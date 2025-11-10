@@ -81,13 +81,13 @@ autoware_architect_generate_launcher()
 '''
 
 
-def create_module_yaml(class_name: str, package_name: str) -> str:
-    """Create module.yaml content."""
+def create_node_yaml(class_name: str, package_name: str) -> str:
+    """Create node.yaml content."""
     # Convert package name to node name (e.g., autoware_object_merger -> object_merger)
     node_name = package_name.replace("autoware_", "")
     
-    return f'''# module information
-name: {class_name}.module
+    return f'''# node information
+name: {class_name}.node
 
 launch:
   package: {package_name}
@@ -109,12 +109,12 @@ outputs:
       reliability: reliable
       durability: transient_local
 
-# configurations
+# parameters
 parameter_files:
   - name: parameters
     default: config/{node_name}.param.yaml
 
-configurations: []
+parameter: []
 
 # processes
 processes:
@@ -261,10 +261,10 @@ def create_package_template(target_dir: str, package_name: str,
     node_cpp_path.write_text(create_node_cpp(class_name, node_name))
     print(f"  ✅ Created {node_cpp_path.relative_to(Path(target_dir).parent)}")
     
-    # Create module.yaml
-    module_yaml_path = package_dir / "architecture" / f"{class_name}.module.yaml"
-    module_yaml_path.write_text(create_module_yaml(class_name, full_package_name))
-    print(f"  ✅ Created {module_yaml_path.relative_to(Path(target_dir).parent)}")
+    # Create node.yaml
+    node_yaml_path = package_dir / "architecture" / f"{class_name}.node.yaml"
+    node_yaml_path.write_text(create_node_yaml(class_name, full_package_name))
+    print(f"  ✅ Created {node_yaml_path.relative_to(Path(target_dir).parent)}")
     
     # Create schema.json
     schema_json_path = package_dir / "schema" / f"{node_name}.schema.json"

@@ -17,23 +17,23 @@ from dataclasses import dataclass
 from pathlib import Path
 
 class ConfigType:
-    """Constants for element types."""
+    """Constants for entity types."""
+    NODE = "node"
     MODULE = "module"
-    PIPELINE = "pipeline"
     PARAMETER_SET = "parameter_set"
-    ARCHITECTURE = "architecture"
+    SYSTEM = "system"
 
     @classmethod
     def get_all_types(cls) -> List[str]:
-        """Get all valid element types."""
-        return [cls.MODULE, cls.PIPELINE, cls.PARAMETER_SET, cls.ARCHITECTURE]
+        """Get all valid entity types."""
+        return [cls.NODE, cls.MODULE, cls.PARAMETER_SET, cls.SYSTEM]
 
 @dataclass
 class Config:
-    """Pure data structure for element configuration."""
+    """Pure data structure for entity configuration."""
     name: str
     full_name: str
-    element_type: str
+    entity_type: str
     config: Dict[str, Any]
     file_path: Path
     
@@ -43,31 +43,30 @@ class Config:
             self.file_path = Path(self.file_path)
 
 @dataclass
-class ModuleConfig(Config):
-    """Data structure for module elements."""
+class NodeConfig(Config):
+    """Data structure for node entities."""
     launch: Dict[str, Any] = None
     inputs: List[Dict[str, Any]] = None
     outputs: List[Dict[str, Any]] = None
     parameter_files: Any = None  # Can be dict or list
-    configurations: Any = None  # Can be dict or list
+    parameters: Any = None  # Can be dict or list
     processes: List[Dict[str, Any]] = None
 
 @dataclass
-class PipelineConfig(Config):
-    """Data structure for pipeline elements."""
-    depends: List[str] = None
-    nodes: List[Dict[str, Any]] = None
+class ModuleConfig(Config):
+    """Data structure for module entities."""
+    instances: List[Dict[str, Any]] = None
     external_interfaces: Any = None  # Can be dict or list
     connections: List[Dict[str, Any]] = None
 
 @dataclass
 class ParameterSetConfig(Config):
-    """Data structure for parameter set elements."""
+    """Data structure for parameter set entities."""
     parameters: Any = None  # Can be dict or list
 
 @dataclass
-class ArchitectureConfig(Config):
-    """Data structure for architecture elements."""
+class SystemConfig(Config):
+    """Data structure for system entities."""
     modes: List[Dict[str, Any]] = None
     components: List[Dict[str, Any]] = None
     connections: List[Dict[str, Any]] = None

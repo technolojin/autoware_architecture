@@ -36,7 +36,7 @@ macro(autoware_architect_build_deploy project_name)
   get_filename_component(WORKSPACE_ROOT "${CMAKE_BINARY_DIR}/../.." ABSOLUTE)
   set(LOG_FILE "${WORKSPACE_ROOT}/log/latest_build/${CMAKE_PROJECT_NAME}/build_${_INPUT_NAME}.log")
 
-  if(_INPUT_NAME MATCHES ".*\\.architecture$")
+  if(_INPUT_NAME MATCHES ".*\\.system$")
     # If the input is an architecture file, use it directly.
     set(_DEPLOYMENT_FILE "${_INPUT_NAME}")
     set(_LOG_DESC "(architecture=${_INPUT_NAME})")

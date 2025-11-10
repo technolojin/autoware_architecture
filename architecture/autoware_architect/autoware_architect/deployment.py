@@ -16,13 +16,13 @@
 import os
 import logging
 from typing import Dict
-from .config import ArchitectureConfig
+from .config import SystemConfig
 from .models.config import Config
 from .builder.config_registry import ConfigRegistry
 from .builder.instances import DeploymentInstance
-from .builder.launcher_generator import generate_pipeline_launch_file
+from .builder.launcher_generator import generate_module_launch_file
 from .builder.parameter_template_generator import ParameterTemplateGenerator
-from .parsers.data_validator import element_name_decode
+from .parsers.data_validator import entity_name_decode
 from .parsers.yaml_parser import yaml_parser
 from .exceptions import ValidationError
 from .template_utils import TemplateRenderer
@@ -31,29 +31,29 @@ logger = logging.getLogger(__name__)
 debug_mode = True
 
 class Deployment:
-    def __init__(self, architecture_config: ArchitectureConfig ):
-        # element collection
-        architecture_yaml_list = self._get_architecture_list(architecture_config)
-        self.config_registry = ConfigRegistry(architecture_yaml_list)
+    def __init__(self, system_config: SystemConfig ):
+        # entity collection
+        system_yaml_list = self._get_system_list(system_config)
+        self.config_registry = ConfigRegistry(system_yaml_list)
 
-        # detect mode of input file (deployment vs architecture only)
-        # if deployment_file ends with .architecture, it's an architecture-only file
-        logger.info("deployment init Deployment file: %s", architecture_config.deployment_file)
-        if architecture_config.deployment_file.endswith(".architecture"):
-            logger.info("Detected architecture-only deployment file.")
+        # detect mode of input file (deployment vs system only)
+        # if deployment_file ends with .system, it's a system-only file
+        logger.info("deployment init Deployment file: %s", system_config.deployment_file)
+        if system_config.deployment_file.endswith(".system"):
+            logger.info("Detected system-only deployment file.")
             # need to parse the absolute path of the file from the config_registry
             # generate deployment config in-memory
-            self.config_yaml_dir = architecture_config.deployment_file
+            self.config_yaml_dir = system_config.deployment_file
             self.config_yaml = {}
-            self.config_yaml['architecture'] = architecture_config.deployment_file
-            self.config_yaml['name'] = architecture_config.deployment_file
+            self.config_yaml['system'] = system_config.deployment_file
+            self.config_yaml['name'] = system_config.deployment_file
             self.config_yaml.setdefault('vehicle_parameters', [])
             self.config_yaml.setdefault('environment_parameters', [])
             self.name = self.config_yaml.get("name")
 
         else:
             # input is a deployment file
-            self.config_yaml_dir = architecture_config.deployment_file
+            self.config_yaml_dir = system_config.deployment_file
             self.config_yaml = yaml_parser.load_config(self.config_yaml_dir)
             self.name = self.config_yaml.get("name")
 
@@ -67,7 +67,7 @@ class Deployment:
         self.map_yaml = None
 
         # output paths
-        self.output_root_dir = architecture_config.output_root_dir
+        self.output_root_dir = system_config.output_root_dir
         self.launcher_dir = os.path.join(self.output_root_dir, "exports", self.name, "launcher/")
         self.system_monitor_dir = os.path.join(self.output_root_dir, "exports", self.name, "system_monitor/")
         self.visualization_dir = os.path.join(self.output_root_dir, "exports", self.name,"visualization/")
@@ -80,14 +80,14 @@ class Deployment:
         #   sensor calibration, vehicle parameters, map, etc.
 
 
-    def _get_architecture_list(self, architecture_config: ArchitectureConfig) -> list[str]:
-        architecture_list: list[str] = []
-        manifest_dir = architecture_config.architecture_manifest_dir
+    def _get_system_list(self, system_config: SystemConfig) -> list[str]:
+        system_list: list[str] = []
+        manifest_dir = system_config.manifest_dir
         if not os.path.isdir(manifest_dir):
             raise ValidationError(f"Architecture manifest directory not found or not a directory: {manifest_dir}")
 
         # domains to include (always includes 'shared')
-        domains_filter = set(architecture_config.effective_domains())
+        domains_filter = set(system_config.effective_domains())
         logger.info(f"Domain filter active: {sorted(domains_filter)}")
 
         for entry in sorted(os.listdir(manifest_dir)):
@@ -100,38 +100,38 @@ class Deployment:
                 if manifest_domain not in domains_filter:
                     logger.debug(f"Skipping manifest '{entry}' (domain='{manifest_domain}' not in filter)")
                     continue
-                files = manifest_yaml.get('architecture_config_files')
+                files = manifest_yaml.get('system_config_files')
                 # Allow the field to be empty or null without raising an error
                 if files in (None, []):
                     logger.debug(
-                        f"Manifest '{entry}' has empty architecture_config_files; skipping."
+                        f"Manifest '{entry}' has empty system_config_files; skipping."
                     )
                     continue
                 if not isinstance(files, list):
                     logger.warning(
-                        f"Manifest '{entry}' has unexpected type for architecture_config_files: {type(files)}; skipping."
+                        f"Manifest '{entry}' has unexpected type for system_config_files: {type(files)}; skipping."
                     )
                     continue
                 for f in files:
                     file_path = f.get('path') if isinstance(f, dict) else None
-                    if file_path and file_path not in architecture_list:
-                        architecture_list.append(file_path)
+                    if file_path and file_path not in system_list:
+                        system_list.append(file_path)
             except Exception as e:
                 logger.warning(f"Failed to load manifest {manifest_file}: {e}")
-        if not architecture_list:
+        if not system_list:
             raise ValidationError(f"No architecture configuration files collected (domains={sorted(domains_filter)}).")
-        return architecture_list
+        return system_list
 
     def _check_config(self) -> bool:
         """Validate & normalize deployment configuration.
 
         Two supported input forms:
-        1. Deployment YAML (fields: name, architecture, vehicle_parameters, environment_parameters)
-        2. Raw Architecture YAML (only 'name' ending with '.architecture'). We synthesize a minimal
+        1. Deployment YAML (fields: name, system, vehicle_parameters, environment_parameters)
+        2. Raw System YAML (only 'name' ending with '.system'). We synthesize a minimal
            deployment in-memory (no vehicles / environment parameters) so downstream logic works.
         """
         # Validate required fields now present
-        for field in ['name', 'architecture']:
+        for field in ['name', 'system']:
             if field not in self.config_yaml:
                 raise ValidationError(
                     f"Field '{field}' is required in deployment configuration file {self.config_yaml_dir}"
@@ -146,15 +146,15 @@ class Deployment:
         return True
 
     def build(self):
-        # 1. Get architecture configuration
-        architecture_name, _ = element_name_decode(self.config_yaml.get("architecture"))
-        architecture = self.config_registry.get_architecture(architecture_name)
+        # 1. Get system configuration
+        system_name, _ = entity_name_decode(self.config_yaml.get("system"))
+        system = self.config_registry.get_system(system_name)
 
-        if not architecture:
-            raise ValidationError(f"Architecture not found: {architecture_name}")
+        if not system:
+            raise ValidationError(f"System not found: {system_name}")
 
         # 2. Determine modes to build
-        modes_config = architecture.modes or []
+        modes_config = system.modes or []
         if modes_config:
             # Build one instance per mode
             mode_names = [m.get('name') for m in modes_config]
@@ -171,9 +171,9 @@ class Deployment:
                 instance_name = f"{self.name}{mode_suffix}"
                 deploy_instance = DeploymentInstance(instance_name, mode=mode_name)
                 
-                # Set architecture with mode filtering
-                deploy_instance.set_architecture(
-                    architecture, self.config_registry, mode=mode_name
+                # Set system with mode filtering
+                deploy_instance.set_system(
+                    system, self.config_registry, mode=mode_name
                 )
                 
                 # Store instance
@@ -182,7 +182,7 @@ class Deployment:
                 logger.info(f"Successfully built deployment instance for mode: {mode_key}")
                 
             except Exception as e:
-                # try to visualize the architecture to show error status
+                # try to visualize the system to show error status
                 self.visualize()
                 raise ValidationError(f"Error in setting deploy for mode '{mode_name}': {e}")
 
@@ -208,7 +208,7 @@ class Deployment:
 
         # Generate visualization for each mode
         for mode_key, deploy_instance in self.deploy_instances.items():
-            # Collect data from the architecture instance
+            # Collect data from the system instance
             data = deploy_instance.collect_instance_data()
             
             # Create mode-specific output directory
@@ -229,7 +229,7 @@ class Deployment:
 
         # Generate system monitor for each mode
         for mode_key, deploy_instance in self.deploy_instances.items():
-            # Collect data from the architecture instance
+            # Collect data from the system instance
             data = deploy_instance.collect_instance_data()
             
             # Create mode-specific output directory
@@ -245,8 +245,8 @@ class Deployment:
             # Create mode-specific launcher directory
             mode_launcher_dir = os.path.join(self.launcher_dir, mode_key)
             
-            # Generate pipeline launch files
-            generate_pipeline_launch_file(deploy_instance, mode_launcher_dir)
+            # Generate module launch files
+            generate_module_launch_file(deploy_instance, mode_launcher_dir)
             
             logger.info(f"Generated launcher for mode: {mode_key}")
 

@@ -14,31 +14,31 @@
 
 import sys
 from autoware_architect.deployment import Deployment
-from autoware_architect.config import ArchitectureConfig
+from autoware_architect.config import SystemConfig
 
 # build the deployment
-# search and connect the connections between the modules
-def build(deployment_file: str, architecture_manifest_dir: str, output_root_dir: str, domains: list[str]):
+# search and connect the connections between the nodes
+def build(deployment_file: str, manifest_dir: str, output_root_dir: str, domains: list[str]):
     # Inputs:
     #   deployment_file: YAML deployment configuration
-    #   architecture_manifest_dir: directory containing per-package manifest YAML files (each lists architecture_config_files)
+    #   manifest_dir: directory containing per-package manifest YAML files (each lists system_config_files)
     #   output_root_dir: root directory for generated exports
 
     # configure the architecture
-    architecture_config = ArchitectureConfig()
-    architecture_config.debug_mode = True
-    architecture_config.log_level = "INFO"
+    system_config = SystemConfig()
+    system_config.debug_mode = True
+    system_config.log_level = "INFO"
 
-    architecture_config.deployment_file = deployment_file
-    architecture_config.architecture_manifest_dir = architecture_manifest_dir
-    architecture_config.output_root_dir = output_root_dir
-    architecture_config.domains = domains
+    system_config.deployment_file = deployment_file
+    system_config.manifest_dir = manifest_dir
+    system_config.output_root_dir = output_root_dir
+    system_config.domains = domains
 
-    logger = architecture_config.set_logging()
+    logger = system_config.set_logging()
 
     # load and build the deployment
     logger.info("autoware architect: Building deployment...")
-    deployment = Deployment(architecture_config)
+    deployment = Deployment(system_config)
 
     # parameter set template export
     logger.info("autoware architect: Exporting parameter set template...")
