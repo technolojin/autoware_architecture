@@ -1,0 +1,30 @@
+name: OccupancyGridMapLaserscanBasedDownsampled.module
+
+instances:
+  - instance: raw_pc_downsample_filter
+    entity: PickupBasedVoxelGridDownsampleFilter.node
+  - instance: obstacle_pc_downsample_filter
+    entity: PickupBasedVoxelGridDownsampleFilter.node
+  - instance: occupancy_grid_map_node
+    entity: LaserscanBasedOccupancyGridMap.node
+
+external_interfaces:
+  input:
+    # lidar
+    - name: concatenated_pointcloud
+    - name: obstacle_pointcloud
+  output:
+    - name: map
+  parameter: []
+
+connections:
+  - from: input.concatenated_pointcloud
+    to: raw_pc_downsample_filter.input.input
+  - from: input.obstacle_pointcloud
+    to: obstacle_pc_downsample_filter.input.input
+  - from: raw_pc_downsample_filter.output.output
+    to: occupancy_grid_map_node.input.raw_pointcloud
+  - from: obstacle_pc_downsample_filter.output.output
+    to: occupancy_grid_map_node.input.obstacle_pointcloud
+  - from: occupancy_grid_map_node.output.occupancy_grid_map
+    to: output.map

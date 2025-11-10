@@ -26,7 +26,7 @@ class NodeConfigurationError(ArchitectureError):
 
 
 class ModuleConfigurationError(ArchitectureError):
-    """Exception raised for pipeline configuration errors."""
+    """Exception raised for module configuration errors."""
     pass
 
 

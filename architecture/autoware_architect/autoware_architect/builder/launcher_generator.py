@@ -46,20 +46,20 @@ def _collect_all_nodes_recursively(instance: Instance) -> List[Dict[str, Any]]:
     """Recursively collect all nodes within a component, tracking their namespace paths."""
     nodes = []
     
-    def traverse(current_instance: Instance, pipeline_path: List[str]):
+    def traverse(current_instance: Instance, module_path: List[str]):
         """Recursively traverse instance tree to find all nodes."""
         for child_name, child_instance in current_instance.children.items():
             if child_instance.entity_type == "node":
                 # Extract node information
-                node_data = _extract_node_data(child_instance, pipeline_path)
+                node_data = _extract_node_data(child_instance, module_path)
                 nodes.append(node_data)
-            elif child_instance.entity_type == "pipeline":
-                # For pipelines, add to the namespace path and continue traversing
-                new_pipeline_path = pipeline_path + [child_name]
-                traverse(child_instance, new_pipeline_path)
+            elif child_instance.entity_type == "module":
+                # For modules, add to the namespace path and continue traversing
+                new_module_path = module_path + [child_name]
+                traverse(child_instance, new_module_path)
     
-    # Start traversal from the root component (which could be a pipeline or node)
-    if instance.entity_type == "pipeline":
+    # Start traversal from the root component (which could be a module or node)
+    if instance.entity_type == "module":
         traverse(instance, [])
     elif instance.entity_type == "node":
         # If it's already a node at the top level, just extract it
@@ -69,7 +69,7 @@ def _collect_all_nodes_recursively(instance: Instance) -> List[Dict[str, Any]]:
     return nodes
 
 
-def _extract_node_data(node_instance: Instance, pipeline_path: List[str]) -> Dict[str, Any]:
+def _extract_node_data(node_instance: Instance, module_path: List[str]) -> Dict[str, Any]:
     """Extract all necessary data from a node instance for launcher generation.
     
     This function uses the already-parsed parameters from parameter_manager instead of
@@ -86,11 +86,11 @@ def _extract_node_data(node_instance: Instance, pipeline_path: List[str]) -> Dic
     node_output = launch_config.get("node_output", "screen")
     
     # Calculate namespace groups for nested push-ros-namespace
-    # pipeline_path contains the intermediate pipeline names
-    namespace_groups = pipeline_path.copy()
+    # module_path contains the intermediate module names
+    namespace_groups = module_path.copy()
     
     # Calculate full namespace path for documentation
-    full_namespace_path = "/".join(pipeline_path) if pipeline_path else ""
+    full_namespace_path = "/".join(module_path) if module_path else ""
     
     # Collect ports with resolved topics
     ports = []
@@ -245,7 +245,7 @@ def _generate_component_launcher(compute_unit: str, namespace: str, components: 
     _render_template_to_file('component_launcher.xml.jinja2', launcher_file, template_data)
 
 
-def generate_pipeline_launch_file(instance: Instance, output_dir: str):
+def generate_module_launch_file(instance: Instance, output_dir: str):
     """Main entry point for launcher generation."""
     logger.debug(f"Generating launcher for {instance.name} (type: {instance.entity_type}) in {output_dir}")
     
@@ -269,13 +269,13 @@ def generate_pipeline_launch_file(instance: Instance, output_dir: str):
         for compute_unit, components in compute_unit_map.items():
             _generate_compute_unit_launcher(compute_unit, components, output_dir)
 
-        # Generate component launchers (flattened, no pipeline launchers)
+        # Generate component launchers (flattened, no module launchers)
         for (compute_unit, namespace), components in namespace_map.items():
             _generate_component_launcher(compute_unit, namespace, components, output_dir)
     
-    elif instance.entity_type == "pipeline":
+    elif instance.entity_type == "module":
         # Modules are now handled within component launchers, no separate files needed
-        logger.debug(f"Skipping separate pipeline launcher for {instance.name} - handled in component launcher")
+        logger.debug(f"Skipping separate module launcher for {instance.name} - handled in component launcher")
         return
     
     elif instance.entity_type == "node":

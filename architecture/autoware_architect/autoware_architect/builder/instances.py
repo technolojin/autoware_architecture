@@ -117,7 +117,7 @@ class Instance:
         self.entity_type: str = None
         self.parent: Instance = None
         self.children: Dict[str, Instance] = {}
-        self.parent_pipeline_list: List[str] = []
+        self.parent_module_list: List[str] = []
 
         # interface
         self.link_manager: LinkManager = LinkManager(self)
@@ -141,8 +141,8 @@ class Instance:
             entity_name, entity_type = entity_name_decode(entity_id)
             if entity_type == "architecture":
                 self._set_architecture_instances(config_registry)
-            elif entity_type == "pipeline":
-                self._set_pipeline_instances(entity_id, entity_name, config_registry)
+            elif entity_type == "module":
+                self._set_module_instances(entity_id, entity_name, config_registry)
             elif entity_type == "node":
                 self._set_node_instances(entity_id, entity_name, config_registry)
         except Exception as e:
@@ -203,22 +203,22 @@ class Instance:
         # all children are initialized
         self.is_initialized = True
 
-    def _set_pipeline_instances(self, entity_id: str, entity_name: str, config_registry: ConfigRegistry):
-        """Set instances for pipeline entity type."""
-        logger.info(f"Setting pipeline entity {entity_id} for instance {self.namespace_str}")
-        self.configuration = config_registry.get_pipeline(entity_name)
-        self.entity_type = "pipeline"
+    def _set_module_instances(self, entity_id: str, entity_name: str, config_registry: ConfigRegistry):
+        """Set instances for module entity type."""
+        logger.info(f"Setting module entity {entity_id} for instance {self.namespace_str}")
+        self.configuration = config_registry.get_module(entity_name)
+        self.entity_type = "module"
 
-        # check if the pipeline is already set
-        if entity_id in self.parent_pipeline_list:
+        # check if the module is already set
+        if entity_id in self.parent_module_list:
             raise ValidationError(f"Config is already set: {entity_id}, avoid circular reference")
-        self.parent_pipeline_list.append(entity_id)
+        self.parent_module_list.append(entity_id)
 
         # set children
-        self._create_pipeline_children(config_registry)
+        self._create_module_children(config_registry)
 
-        # run the pipeline configuration
-        self._run_pipeline_configuration()
+        # run the module configuration
+        self._run_module_configuration()
 
         # recursive call is finished
         self.is_initialized = True
@@ -293,8 +293,8 @@ class Instance:
             except Exception as e:
                 raise ValidationError(f"Error in applying parameter set '{param_set_name}' to instance '{instance.name}': {e}")
 
-    def _create_pipeline_children(self, config_registry: ConfigRegistry):
-        """Create child instances for pipeline entities."""
+    def _create_module_children(self, config_registry: ConfigRegistry):
+        """Create child instances for module entities."""
         cfg_node_list = self.configuration.instances
         for cfg_node in cfg_node_list:
             # check if cfg_node has 'node' and 'entity'
@@ -305,7 +305,7 @@ class Instance:
                 cfg_node.get("instance"), self.compute_unit, self.namespace, self.layer + 1
             )
             instance.parent = self
-            instance.parent_pipeline_list = self.parent_pipeline_list.copy()
+            instance.parent_module_list = self.parent_module_list.copy()
             # recursive call of set_instances
             try:
                 instance.set_instances(cfg_node.get("entity"), config_registry)
@@ -315,19 +315,19 @@ class Instance:
                 raise ValidationError(f"Error in setting child instance {instance.name} : {e}, at {self.configuration.file_path}")
             self.children[instance.name] = instance
         
-    def _run_pipeline_configuration(self):
-        if self.entity_type != "pipeline":
-            raise ValidationError(f"run_pipeline_configuration is only supported for pipeline, at {self.configuration.file_path}")
+    def _run_module_configuration(self):
+        if self.entity_type != "module":
+            raise ValidationError(f"run_module_configuration is only supported for module, at {self.configuration.file_path}")
 
         # set connections
         if len(self.configuration.connections) == 0:
-            raise ValidationError(f"No connections found in the pipeline configuration, at {self.configuration.file_path}")
+            raise ValidationError(f"No connections found in the module configuration, at {self.configuration.file_path}")
 
         # set links first to know topic type for external ports
         self.link_manager.set_links()
 
-        # log pipeline configuration
-        self.link_manager.log_pipeline_configuration()
+        # log module configuration
+        self.link_manager.log_module_configuration()
 
     def _run_node_configuration(self):
         if self.entity_type != "node":

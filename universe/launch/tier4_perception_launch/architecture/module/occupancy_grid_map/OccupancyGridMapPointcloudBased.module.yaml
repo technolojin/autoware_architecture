@@ -1,0 +1,22 @@
+name: OccupancyGridMapPointcloudBased.module
+
+instances:
+  - instance: occupancy_grid_map_node
+    entity: PointcloudBasedOccupancyGridMap.node
+
+external_interfaces:
+  input:
+    # lidar
+    - name: concatenated_pointcloud
+    - name: obstacle_pointcloud
+  output:
+    - name: map
+  parameter: []
+
+connections:
+  - from: input.concatenated_pointcloud
+    to: occupancy_grid_map_node.input.raw_pointcloud
+  - from: input.obstacle_pointcloud
+    to: occupancy_grid_map_node.input.obstacle_pointcloud
+  - from: occupancy_grid_map_node.output.occupancy_grid_map
+    to: output.map

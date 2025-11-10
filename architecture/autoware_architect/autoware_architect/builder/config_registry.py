@@ -75,12 +75,12 @@ class ConfigRegistry:
             raise ValidationError(f"Node '{name}' not found. Available nodes: {available}")
         return entity
     
-    def get_pipeline(self, name: str) -> ModuleConfig:
-        """Get a pipeline entity by name."""
+    def get_module(self, name: str) -> ModuleConfig:
+        """Get a module entity by name."""
         entity = self._type_map[ConfigType.MODULE].get(name)
         if entity is None:
             available = list(self._type_map[ConfigType.MODULE].keys())
-            raise ValidationError(f"Module '{name}' not found. Available pipelines: {available}")
+            raise ValidationError(f"Module '{name}' not found. Available modules: {available}")
         return entity
     
     def get_parameter_set(self, name: str) -> ParameterSetConfig:
@@ -104,7 +104,7 @@ class ConfigRegistry:
         if entity_type == ConfigType.NODE:
             return self.get_node(name)
         elif entity_type == ConfigType.MODULE:
-            return self.get_pipeline(name)
+            return self.get_module(name)
         elif entity_type == ConfigType.PARAMETER_SET:
             return self.get_parameter_set(name)
         elif entity_type == ConfigType.ARCHITECTURE:

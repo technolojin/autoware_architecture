@@ -58,7 +58,7 @@ node {BackgroundColor #dddddd}
 {{ dd }}{{ in_port.unique_id }}_cloud -d-> {{ in_port.unique_id }}
 {{ dd }}{% endif %}
 {{ dd }}{% endfor %}
-{{ dd }}{% elif instance.entity_type == "pipeline" %}
+{{ dd }}{% elif instance.entity_type == "module" %}
 {{ dd }}frame {{ instance.name }} as {{ instance.unique_id }} {
 {{ dd }}    ' port connections
 {{ dd }}{% for in_port in instance.in_ports %}

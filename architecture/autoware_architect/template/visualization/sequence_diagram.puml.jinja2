@@ -14,7 +14,7 @@ skinparam dpi 128
                 participant "{{'\\n/'.join(instance.namespace)}}\n\n<<{{event.name}}>>" as {{ event.unique_id }}
             {% endif -%}
         {% endfor -%}
-    {% elif instance.entity_type == "pipeline" -%}
+    {% elif instance.entity_type == "module" -%}
         {% for child in instance.children -%}
             {{ build_logic_graph(child) -}}
         {% endfor -%}
@@ -47,7 +47,7 @@ skinparam dpi 128
                 {% endfor -%}
             {% endif -%}
         {% endfor -%}
-    {% elif instance.entity_type == "pipeline" -%}
+    {% elif instance.entity_type == "module" -%}
         {% for child in instance.children -%}
             {{ build_connection_graph(child) -}}
         {% endfor -%}

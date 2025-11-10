@@ -20,7 +20,7 @@
 {% endif -%}
 {% endfor -%}
 {# Recursive call of the macro -#}
-{% elif instance.entity_type == "pipeline" -%}
+{% elif instance.entity_type == "module" -%}
 {% for child in instance.children -%}
 {{ list_output_topics(child) -}}
 {% endfor -%}

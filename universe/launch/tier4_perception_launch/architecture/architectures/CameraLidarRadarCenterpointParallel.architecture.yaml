@@ -8,15 +8,15 @@ modes:
 
 components:
   - component: lidar
-    entity: LidarDummy.pipeline
+    entity: LidarDummy.module
     namespace: sensing
     compute_unit: perception_ecu_1
   - component: camera
-    entity: CameraDummy.pipeline
+    entity: CameraDummy.module
     namespace: sensing
     compute_unit: perception_ecu_1
   - component: radar
-    entity: RadarDummy.pipeline
+    entity: RadarDummy.module
     namespace: sensing
     compute_unit: perception_ecu_1
   - component: map_loader
@@ -30,26 +30,26 @@ components:
 
   # perception
   - component: camera_2d_detection
-    entity: Camera2dDetection.pipeline
+    entity: Camera2dDetection.module
     namespace: perception/object_recognition/detection
     compute_unit: perception_ecu_1
     parameter_set: TypeBeta2PerceptionCamera2dDetection.parameter_set
   - component: centerpoint
-    entity: LidarCenterpoint.pipeline
+    entity: LidarCenterpoint.module
     namespace: perception/object_recognition/detection
     compute_unit: main_ecu
   - component: object_segmentation
-    entity: ObjectSegmentation.pipeline
+    entity: ObjectSegmentation.module
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionModule.parameter_set
   - component: object_recognition
-    entity: ObjectRecognitionCLRParallel.pipeline
+    entity: ObjectRecognitionCLRParallel.module
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionModule.parameter_set
   - component: occupancy_grid_map
-    entity: OccupancyGridMapPointcloudBased.pipeline
+    entity: OccupancyGridMapPointcloudBased.module
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionModule.parameter_set

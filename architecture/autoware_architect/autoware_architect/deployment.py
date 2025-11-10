@@ -20,7 +20,7 @@ from .config import ArchitectureConfig
 from .models.config import Config
 from .builder.config_registry import ConfigRegistry
 from .builder.instances import DeploymentInstance
-from .builder.launcher_generator import generate_pipeline_launch_file
+from .builder.launcher_generator import generate_module_launch_file
 from .builder.parameter_template_generator import ParameterTemplateGenerator
 from .parsers.data_validator import entity_name_decode
 from .parsers.yaml_parser import yaml_parser
@@ -245,8 +245,8 @@ class Deployment:
             # Create mode-specific launcher directory
             mode_launcher_dir = os.path.join(self.launcher_dir, mode_key)
             
-            # Generate pipeline launch files
-            generate_pipeline_launch_file(deploy_instance, mode_launcher_dir)
+            # Generate module launch files
+            generate_module_launch_file(deploy_instance, mode_launcher_dir)
             
             logger.info(f"Generated launcher for mode: {mode_key}")
 

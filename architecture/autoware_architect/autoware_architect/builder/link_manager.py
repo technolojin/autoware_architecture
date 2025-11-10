@@ -317,7 +317,7 @@ class LinkManager:
 
     def check_ports(self):
         """Check and debug port configurations."""
-        # check ports only for node. in case of pipeline, the check is done
+        # check ports only for node. in case of module, the check is done
         if self.instance.entity_type != "node":
             return
 
@@ -341,10 +341,10 @@ class LinkManager:
             for user_port in user_port_list:
                 logger.debug(f"    user: {user_port.port_path}")
 
-    def log_pipeline_configuration(self):
-        """Log pipeline configuration details."""
+    def log_module_configuration(self):
+        """Log module configuration details."""
         logger.debug(
-            f"Instance '{self.instance.name}' pipeline configuration: {len(self.links)} links established"
+            f"Instance '{self.instance.name}' module configuration: {len(self.links)} links established"
         )
         for link in self.links:
             logger.debug(f"  Link: {link.from_port.port_path} -> {link.to_port.port_path}")

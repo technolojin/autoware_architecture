@@ -65,7 +65,7 @@ class EventManager:
     def set_event_tree(self):
         """Set up the event tree for the current instance."""
         # trigger the event tree from the current instance
-        # in case of pipeline, event_list is empty
+        # in case of module, event_list is empty
         for event in self.event_list:
             event.set_frequency_tree()
         # recursive call for children

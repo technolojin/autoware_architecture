@@ -7,8 +7,8 @@ modes:
     description: Simulation mode
 
 components:
-  - component: sensor_pipeline_a
-    entity: LidarDummy.pipeline
+  - component: sensor_module_a
+    entity: LidarDummy.module
     namespace: sensing
     compute_unit: perception_ecu_1
   - component: map_loader
@@ -20,7 +20,7 @@ components:
     namespace: localization
     compute_unit: dummy_ecu_1
   - component: object_recognition
-    entity: PerceptionA.pipeline
+    entity: PerceptionA.module
     namespace: perception
     compute_unit: main_ecu
     parameter_set: [
@@ -28,7 +28,7 @@ components:
     ]
     mode: [default]
   - component: object_recognition
-    entity: PerceptionB.pipeline
+    entity: PerceptionB.module
     namespace: perception
     compute_unit: main_ecu
     parameter_set: [
@@ -42,9 +42,9 @@ components:
     compute_unit: dummy_ecu_2
 
 connections:
-  - from: sensor_pipeline_a.output.concatenated/pointcloud
+  - from: sensor_module_a.output.concatenated/pointcloud
     to: object_recognition.input.pointcloud
-  - from: sensor_pipeline_a.output.concatenated/pointcloud
+  - from: sensor_module_a.output.concatenated/pointcloud
     to: localizer.input.pointcloud
   - from: map_loader.output.vector_map
     to: localizer.input.lanelet_map

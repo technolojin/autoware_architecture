@@ -21,7 +21,7 @@ from ..exceptions import ValidationError
 
 def entity_name_decode(entity_name: str) -> Tuple[str, str]:
     """Decode entity name into name and type components."""
-    # example: 'my_node.pipeline' -> ('my_node', 'pipeline')
+    # example: 'my_node.module' -> ('my_node', 'module')
 
     if not entity_name or not isinstance(entity_name, str):
         raise ValidationError(f"Config name must be a non-empty string, got: {entity_name}")
@@ -144,7 +144,7 @@ class NodeValidator(BaseValidator):
         }
 
 class ModuleValidator(BaseValidator):
-    """Validator for pipeline entities."""
+    """Validator for module entities."""
     
     def get_required_fields(self) -> List[str]:
         return ["name", "instances", "external_interfaces", "connections"]

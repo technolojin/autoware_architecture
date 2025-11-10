@@ -2,12 +2,12 @@ name: Catalog.architecture
 
 components:
   - component: camera
-    entity: CameraDummy.pipeline
+    entity: CameraDummy.module
     namespace: sensing
     compute_unit: perception_ecu_2
 
   - component: camera_2d_detection
-    entity: Camera2dDetection.pipeline
+    entity: Camera2dDetection.module
     namespace: perception
     compute_unit: perception_ecu_2
 
@@ -27,7 +27,7 @@ components:
     compute_unit: main_ecu
 
   - component: occupancy_grid_map
-    entity: OccupancyGridMapMultiLidar.pipeline
+    entity: OccupancyGridMapMultiLidar.module
     namespace: perception
     compute_unit: main_ecu
 
