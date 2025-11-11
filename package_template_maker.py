@@ -281,9 +281,10 @@ def main():
     target_dir = "./universe/perception"
     package_names = [
         "autoware_traffic_light_arbiter",
+        "autoware_traffic_light_category_merger",
         "autoware_traffic_light_classifier",
         "autoware_traffic_light_fine_detector",
-        "autoware_traffic_light_category_merger",
+        "autoware_traffic_light_map_based_detector",
     ]
     
     # Optional: Override from command line arguments

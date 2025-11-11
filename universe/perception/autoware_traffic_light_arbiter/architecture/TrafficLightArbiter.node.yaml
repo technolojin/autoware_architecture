@@ -26,7 +26,7 @@ outputs:
 
 # parameters
 parameter_files:
-  - name: parameters
+  - name: param_path
     default: config/traffic_light_arbiter.param.yaml
 
 parameters: []
