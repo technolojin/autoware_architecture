@@ -30,7 +30,6 @@ external_interfaces:
     - name: pointcloud_3
   output:
     - name: map
-  parameter: []
 
 connections:
   - from: input.obstacle_pointcloud

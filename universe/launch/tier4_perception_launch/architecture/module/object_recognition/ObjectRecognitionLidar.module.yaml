@@ -20,7 +20,6 @@ external_interfaces:
   output:
     - name: objects
     - name: map_filtered_obstacle_pointcloud
-  parameter: []
 
 connections:
   # detection

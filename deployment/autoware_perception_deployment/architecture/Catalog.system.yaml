@@ -31,6 +31,21 @@ components:
     namespace: perception
     compute_unit: main_ecu
 
+  - component: traffic_light_recognition
+    entity: TrafficLightRecognitionRefine2.module
+    namespace: perception
+    compute_unit: main_ecu
+
+  - component: traffic_light_recognition2
+    entity: TrafficLightRecognitionMerge4.module
+    namespace: perception
+    compute_unit: main_ecu
+
+  # - component: traffic_light_recognition3
+  #   entity: TrafficLightRecognitionWholeImage2.module
+  #   namespace: perception
+  #   compute_unit: main_ecu
+
 connections:
   - from: camera.output.camera0/image
     to: camera_2d_detection.input.image_raw0

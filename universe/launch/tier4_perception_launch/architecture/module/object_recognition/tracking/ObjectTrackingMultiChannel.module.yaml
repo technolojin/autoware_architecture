@@ -12,10 +12,8 @@ external_interfaces:
     - name: camera_lidar_irregular_objects
     - name: tracker_based_detector_objects
     - name: radar_objects
-
   output:
     - name: objects
-  parameter: []
 
 connections:
   - from: input.lidar_ml_objects

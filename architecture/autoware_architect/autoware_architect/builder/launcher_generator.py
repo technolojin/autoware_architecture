@@ -146,20 +146,14 @@ def _generate_compute_unit_launcher(compute_unit: str, components: list, output_
     
     logger.debug(f"Creating compute unit launcher: {launcher_file}")
     
-    # Group components by namespace to determine which namespace launchers to include
-    namespace_groups = {}
-    for component in components:
-        namespace = component.namespace[0]
-        if namespace not in namespace_groups:
-            namespace_groups[namespace] = []
-        namespace_groups[namespace].append(component)
-    
-    # Prepare template data
+    # Previously components were grouped by the first namespace segment (component.namespace[0]).
+    # Requirement change: treat each direct child instance (component) independently so that
+    # compute unit launchers reference each component launcher one-to-one.
     namespaces_data = []
-    for namespace, comps in sorted(namespace_groups.items()):
+    for component in sorted(components, key=lambda c: c.name):
         namespace_info = {
-            "namespace": namespace,
-            "component_count": len(comps),
+            "namespace": component.name,  # use component (instance) name directly
+            "component_count": 1,
             "args": []
         }
         namespaces_data.append(namespace_info)
@@ -257,19 +251,17 @@ def generate_module_launch_file(instance: Instance, output_dir: str):
                 compute_unit_map[child.compute_unit] = []
             compute_unit_map[child.compute_unit].append(child)
         
-        # Group components by compute unit and namespace
+        # Group components by compute unit and child instance (no longer by first namespace element)
         namespace_map = {}
         for child in instance.children.values():
-            key = (child.compute_unit, child.namespace[0])
-            if key not in namespace_map:
-                namespace_map[key] = []
-            namespace_map[key].append(child)
+            key = (child.compute_unit, child.name)
+            namespace_map[key] = [child]
 
         # Generate compute unit launchers
         for compute_unit, components in compute_unit_map.items():
             _generate_compute_unit_launcher(compute_unit, components, output_dir)
 
-        # Generate component launchers (flattened, no module launchers)
+        # Generate component launchers (one per direct child instance)
         for (compute_unit, namespace), components in namespace_map.items():
             _generate_component_launcher(compute_unit, namespace, components, output_dir)
     

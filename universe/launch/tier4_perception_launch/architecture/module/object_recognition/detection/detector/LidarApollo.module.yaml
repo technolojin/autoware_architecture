@@ -16,7 +16,6 @@ external_interfaces:
     - name: obstacle_pointcloud
   output:
     - name: detected_objects
-  parameter: []
 
 connections:
   - from: input.pointcloud

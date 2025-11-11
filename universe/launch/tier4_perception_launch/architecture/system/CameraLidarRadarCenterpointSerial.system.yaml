@@ -53,6 +53,10 @@ components:
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionModule.parameter_set
+  - component: traffic_light_recognition
+    entity: TrafficLightRecognitionRefine2.module
+    namespace: perception
+    compute_unit: main_ecu
 
   # planner
   - component: planner
@@ -88,6 +92,23 @@ connections:
     to: occupancy_grid_map.input.obstacle_pointcloud
   - from: occupancy_grid_map.output.map
     to: planner.input.occupancy_grid_map
+
+  - from: map_loader.output.vector_map
+    to: traffic_light_recognition.input.vector_map
+  - from: planner.output.mission_planning/route
+    to: traffic_light_recognition.input.route
+  - from: camera.output.camera6/image
+    to: traffic_light_recognition.input.camera1/image
+  - from: camera.output.camera6/camera_info
+    to: traffic_light_recognition.input.camera1/camera_info
+  - from: camera.output.camera7/image
+    to: traffic_light_recognition.input.camera2/image
+  - from: camera.output.camera7/camera_info
+    to: traffic_light_recognition.input.camera2/camera_info
+  - from: lidar.output.concatenated/pointcloud
+    to: traffic_light_recognition.input.pointcloud
+  - from: traffic_light_recognition.output.traffic_signals
+    to: planner.input.traffic_signals
 
   - from: map_loader.output.vector_map
     to: localizer.input.lanelet_map

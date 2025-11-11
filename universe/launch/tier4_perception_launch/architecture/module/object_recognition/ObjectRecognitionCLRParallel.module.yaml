@@ -55,10 +55,8 @@ external_interfaces:
   output:
     - name: map_filtered_obstacle_pointcloud
     - name: objects
-  parameter: []
 
 connections:
-
   # detection/compare map filter
   - from: input.obstacle_pointcloud
     to: detection/compare_map_filter.input.input

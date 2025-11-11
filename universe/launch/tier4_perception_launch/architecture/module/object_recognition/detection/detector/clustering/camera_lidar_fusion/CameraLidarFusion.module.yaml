@@ -31,7 +31,6 @@ external_interfaces:
     - name: euclidean_clusters
   output:
     - name: objects
-  parameter: []
 
 connections:
   - from: input.rois*

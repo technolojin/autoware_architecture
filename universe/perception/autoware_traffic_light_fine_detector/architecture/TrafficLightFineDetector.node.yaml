@@ -1,0 +1,49 @@
+# node information
+name: TrafficLightFineDetector.node
+
+launch:
+  package: autoware_traffic_light_fine_detector
+  plugin: autoware::traffic_light::TrafficLightFineDetectorNode
+  executable: traffic_light_fine_detector_node
+  node_output: screen
+  use_container: false
+  container_name: pointcloud_container
+
+# interfaces
+inputs:
+  - name: image
+    message_type: sensor_msgs/msg/Image
+  - name: rough_rois
+    message_type: tier4_perception_msgs/msg/TrafficLightRoiArray
+  - name: expect_rois
+    message_type: tier4_perception_msgs/msg/TrafficLightRoiArray
+
+outputs:
+  - name: rois
+    message_type: tier4_perception_msgs/msg/TrafficLightRoiArray
+
+# parameters
+parameter_files:
+  - name: param_path
+    default: config/traffic_light_fine_detector.param.yaml
+  - name: model_path
+    default: $(var data_path)/traffic_light_fine_detector/tlr_car_ped_yolox_s_batch_6.onnx
+  - name: label_path
+    default: $(var data_path)/traffic_light_fine_detector/tlr_labels.txt
+
+parameters:
+  - name: build_only
+    type: bool
+    default: false
+    description: If true, the node will only build the model and exit.
+
+# processes
+processes:
+  - name: detection
+    trigger_conditions:
+      - and:
+        - on_input: image
+        - on_input: rough_rois
+        - on_input: expect_rois
+    outcomes:
+      - to_output: rois

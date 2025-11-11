@@ -37,7 +37,6 @@ external_interfaces:
     - name: rois5
     - name: rois6
     - name: rois7
-  parameter: []
 
 connections:
   - from: input.image_raw0

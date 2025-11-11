@@ -36,10 +36,20 @@ class Link:
         self.namespace: List[str] = namespace
         # connection type
         self.connection_type: ConnectionType = connection_type
+        # early validation to avoid AttributeError later and provide clearer configuration error
+        if self.from_port is None or self.to_port is None:
+            # build contextual details safely
+            from_name = getattr(self.from_port, "name", "<none>")
+            to_name = getattr(self.to_port, "name", "<none>")
+            raise ValidationError(
+                "Invalid link configuration: one or more ports are None. "
+                f"msg_type={self.msg_type}, from_port={from_name}, to_port={to_name}, connection_type={self.connection_type.name}. "
+                "This usually indicates a typo or undefined port name in a connection definition."
+            )
 
-        self.check_connection()
+        self._check_connection()
 
-    def check_connection(self):
+    def _check_connection(self):
         # if the from port is OutPort, it is internal port
         is_from_port_internal = isinstance(self.from_port, OutPort)
         # if the to port is InPort, it is internal port
@@ -54,11 +64,25 @@ class Link:
             # check the message type is the same
             for from_port in from_port_list:
                 if from_port.msg_type != self.msg_type:
-                    raise ValidationError(f"Invalid connection: {from_port.name} -> {self.to_port.name}")
+                    raise ValidationError(
+                        (
+                            "Message type mismatch on source port:\n"
+                            f"  Link expects : {self.msg_type}\n"
+                            f"  Port provides: {from_port.msg_type}\n"
+                            f"  Connection  : {from_port.name} -> {self.to_port.name}\n"
+                            "Action        : Check the 'message_type' of the output port definition."
+                        )
+                    )
             for to_port in to_port_list:
                 if to_port.msg_type != self.msg_type:
                     raise ValidationError(
-                        f"Type mismatch: {self.msg_type}({self.from_port.name}) -> {to_port.msg_type}({to_port.name})"
+                        (
+                            "Message type mismatch on target port:\n"
+                            f"  Source expects: {self.msg_type}\n"
+                            f"  Target provides: {to_port.msg_type}\n"
+                            f"  Connection     : {self.from_port.name} -> {to_port.name}\n"
+                            "Action          : Align the 'message_type' of the input port with the source output."
+                        )
                     )
 
             # link the ports
@@ -82,6 +106,12 @@ class Link:
         elif is_from_port_internal and not is_to_port_internal:
             # bring the from-port reference to the to-port reference
             reference_port_list = self.from_port.get_reference_list()
+            if self.to_port is None:
+                from_name = getattr(self.from_port, "name", "<unknown>")
+                raise ValidationError(
+                    "Invalid external output connection: target (to_port) is None. "
+                    f"from_port={from_name}, msg_type={self.msg_type}. Check connection definition for spelling or existence."
+                )
             self.to_port.set_references(reference_port_list)
             # set the topic name to the external output, whether it is connected or not
             for reference_port in reference_port_list:
@@ -96,7 +126,11 @@ class Link:
         # case 4: from-port is InPort and to-port is OutPort
         #   bypass connection, which is invalid
         else:
-            raise ValidationError(f"Invalid connection: {self.from_port.name} -> {self.to_port.name}")
+            raise ValidationError(
+                "Invalid connection direction: InPort cannot be a source for OutPort. "
+                f"Connection attempted: {getattr(self.from_port, 'name', '<unknown>')} -> {getattr(self.to_port, 'name', '<unknown>')}. "
+                "Ensure 'from' refers to an output and 'to' refers to an input in the configuration YAML."
+            )
 
 
 class Connection:
