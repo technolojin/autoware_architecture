@@ -32,7 +32,7 @@ components:
     compute_unit: main_ecu
 
   - component: traffic_light_recognition
-    entity: TrafficLightRecognitionRefine.module
+    entity: TrafficLightRecognitionRefine2.module
     namespace: perception
     compute_unit: main_ecu
 

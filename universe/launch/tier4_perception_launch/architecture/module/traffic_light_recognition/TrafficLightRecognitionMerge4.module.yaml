@@ -1,0 +1,78 @@
+name: TrafficLightRecognitionMerge4.module
+
+instances:
+  - instance: multi_camera_fusion
+    entity: TrafficLightMultiCameraFusion4.node
+  - instance: traffic_light_arbiter
+    entity: TrafficLightArbiter.node
+  - instance: traffic_light_crosswalk_estimator
+    entity: CrosswalkTrafficLightEstimator.node
+
+external_interfaces:
+  input:
+    - name: vector_map
+    - name: route
+    - name: camera1/camera_info
+    - name: camera1_traffic_signals
+    - name: camera1_rois
+    - name: camera2/camera_info
+    - name: camera2_traffic_signals
+    - name: camera2_rois
+    - name: camera3/camera_info
+    - name: camera3_traffic_signals
+    - name: camera3_rois
+    - name: camera4/camera_info
+    - name: camera4_traffic_signals
+    - name: camera4_rois
+    - name: pointcloud
+    - name: external_traffic_signals
+  output:
+    - name: traffic_signals
+
+connections:
+  - from: input.vector_map
+    to: multi_camera_fusion.input.vector_map
+
+  - from: input.camera1/camera_info
+    to: multi_camera_fusion.input.camera1/camera_info
+  - from: input.camera1_traffic_signals
+    to: multi_camera_fusion.input.camera1/classification/traffic_signals
+  - from: input.camera1_rois
+    to: multi_camera_fusion.input.camera1/detection/rois
+
+  - from: input.camera2/camera_info
+    to: multi_camera_fusion.input.camera2/camera_info
+  - from: input.camera2_traffic_signals
+    to: multi_camera_fusion.input.camera2/classification/traffic_signals
+  - from: input.camera2_rois
+    to: multi_camera_fusion.input.camera2/detection/rois
+
+  - from: input.camera3/camera_info
+    to: multi_camera_fusion.input.camera3/camera_info
+  - from: input.camera3_traffic_signals
+    to: multi_camera_fusion.input.camera3/classification/traffic_signals
+  - from: input.camera3_rois
+    to: multi_camera_fusion.input.camera3/detection/rois
+
+  - from: input.camera4/camera_info
+    to: multi_camera_fusion.input.camera4/camera_info
+  - from: input.camera4_traffic_signals
+    to: multi_camera_fusion.input.camera4/classification/traffic_signals
+  - from: input.camera4_rois
+    to: multi_camera_fusion.input.camera4/detection/rois
+
+  - from: input.vector_map
+    to: traffic_light_arbiter.input.vector_map
+  - from: multi_camera_fusion.output.traffic_signals
+    to: traffic_light_arbiter.input.perception_traffic_signals
+  - from: input.external_traffic_signals
+    to: traffic_light_arbiter.input.external_traffic_signals
+
+  - from: input.vector_map
+    to: traffic_light_crosswalk_estimator.input.vector_map
+  - from: input.route
+    to: traffic_light_crosswalk_estimator.input.route
+  - from: traffic_light_arbiter.output.traffic_signals
+    to: traffic_light_crosswalk_estimator.input.traffic_signals
+  - from: traffic_light_crosswalk_estimator.output.traffic_signals
+    to: output.traffic_signals
