@@ -51,35 +51,64 @@ digraph "{{ name }}" {
 	{%- endmacro %}
 
 	{% macro build_instance_graph(instance) %}
+		// Introduce a core node to anchor left (inputs) -> core -> right (outputs)
+		{% set core_id = instance.unique_id ~ '_core' %}
 		{% if instance.entity_type == 'module' %}
 			subgraph cluster_{{ instance.unique_id }} {
 				label="MODULE: {{ instance.name }}";
 				style=rounded; color="#8888aa"; penwidth=1.2; fontsize=10;
-				// module ports
+				// invisible core anchor node (still used for ordering)
+				{{ core_id }} [label="", shape=point, width=0.01, height=0.01, style=invis];
+				// left rank (inputs)
+				subgraph cluster_{{ instance.unique_id }}_in { label=""; color=none; rank=same;
+					{% for p in instance.in_ports %}
+						{{ p.unique_id }} [label="{{ port_label(p, 'in') }}", shape=ellipse, style=filled, fillcolor="#e0f7ff"];
+					{% endfor %}
+				}
+				// right rank (outputs)
+				subgraph cluster_{{ instance.unique_id }}_out { label=""; color=none; rank=same;
+					{% for p in instance.out_ports %}
+						{{ p.unique_id }} [label="{{ port_label(p, 'out') }}", shape=ellipse, style=filled, fillcolor="#fff4e0"];
+					{% endfor %}
+				}
+				// connect in -> core -> out for ordering
 				{% for p in instance.in_ports %}
-					{{ p.unique_id }} [label="{{ port_label(p, 'input') }}", shape=ellipse, style=filled, fillcolor="#e0f7ff"];
+					{{ p.unique_id }} -> {{ core_id }} [arrowhead=none, style=invis, weight=2];
 				{% endfor %}
 				{% for p in instance.out_ports %}
-					{{ p.unique_id }} [label="{{ port_label(p, 'output') }}", shape=ellipse, style=filled, fillcolor="#fff4e0"];
+					{{ core_id }} -> {{ p.unique_id }} [arrowhead=none, style=invis, weight=2];
 				{% endfor %}
-				// children
+				// children (nested instances)
 				{% for child in instance.children %}
 					{{ build_instance_graph(child) }}
 				{% endfor %}
-				// internal links
+				// internal links (true data edges between ports override ordering helpers)
 				{% for link in instance.links %}
-					{{ link.from_port.unique_id }} -> {{ link.to_port.unique_id }} [color="#555577"];
+					{{ link.from_port.unique_id }} -> {{ link.to_port.unique_id }} [color="#555577", arrowhead=normal];
 				{% endfor %}
 			}
 		{% elif instance.entity_type == 'node' %}
 			subgraph cluster_{{ instance.unique_id }} {
 				label="NODE: {{ instance.name }}";
 				style=rounded; color="#6699aa"; penwidth=1.0; fontsize=9; fillcolor="#f8f8f8"; bgcolor="#f8f8f8";
+				// invisible core anchor node
+				{{ core_id }} [label="", shape=point, width=0.01, height=0.01, style=invis];
+				subgraph cluster_{{ instance.unique_id }}_in { label=""; color=none; rank=same;
+					{% for p in instance.in_ports %}
+						{{ p.unique_id }} [label="{{ port_label(p, 'in') }}", shape=ellipse, style=filled, fillcolor="#e0f7ff"];
+					{% endfor %}
+				}
+				subgraph cluster_{{ instance.unique_id }}_out { label=""; color=none; rank=same;
+					{% for p in instance.out_ports %}
+						{{ p.unique_id }} [label="{{ port_label(p, 'out') }}", shape=ellipse, style=filled, fillcolor="#fff4e0"];
+					{% endfor %}
+				}
+				// ordering edges
 				{% for p in instance.in_ports %}
-					{{ p.unique_id }} [label="{{ port_label(p, 'input') }}", shape=ellipse, style=filled, fillcolor="#e0f7ff"];
+					{{ p.unique_id }} -> {{ core_id }} [arrowhead=none, style=invis, weight=2];
 				{% endfor %}
 				{% for p in instance.out_ports %}
-					{{ p.unique_id }} [label="{{ port_label(p, 'output') }}", shape=ellipse, style=filled, fillcolor="#fff4e0"];
+					{{ core_id }} -> {{ p.unique_id }} [arrowhead=none, style=invis, weight=2];
 				{% endfor %}
 				// local (non-global) output topic notes
 				{% for p in instance.out_ports %}
@@ -89,14 +118,13 @@ digraph "{{ name }}" {
 					{% endif %}
 				{% endfor %}
 			}
-			// global output topics outside node cluster
+			// global topics (outside cluster)
 			{% for p in instance.out_ports %}
 				{% if p.is_global %}
 					{{ p.unique_id }}_topic [label="/{{ p.topic | join('/') }}\n@{{ p.event.frequency }}Hz", shape=oval, style=filled, fillcolor="#dddddd", fontsize=8];
 					{{ p.unique_id }} -> {{ p.unique_id }}_topic [penwidth=1.2];
 				{% endif %}
 			{% endfor %}
-			// global input topics feeding into ports
 			{% for p in instance.in_ports %}
 				{% if p.is_global %}
 					{{ p.unique_id }}_topic [label="/{{ p.topic | join('/') }}", shape=oval, style=filled, fillcolor="#dddddd", fontsize=8];
@@ -116,10 +144,12 @@ digraph "{{ name }}" {
 		{{ link.from_port.unique_id }} -> {{ link.to_port.unique_id }};
 	{% endfor %}
 
-	// Hidden edges to stabilize layout horizontally
+	// Hidden edges to stabilize layout horizontally (use invisible core nodes for alignment)
 	{% for i in range(children|length) %}
+		{% set ci = children[i].unique_id + '_core' %}
 		{% for j in range(i + 1, children|length) %}
-			{{ children[i].unique_id }} -> {{ children[j].unique_id }} [style=invis, weight=0];
+			{% set cj = children[j].unique_id + '_core' %}
+			{{ ci }} -> {{ cj }} [style=invis, weight=0];
 		{% endfor %}
 	{% endfor %}
 }
