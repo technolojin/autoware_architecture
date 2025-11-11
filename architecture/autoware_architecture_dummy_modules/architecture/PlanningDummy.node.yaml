@@ -14,11 +14,12 @@ inputs:
   - name: occupancy_grid_map
     message_type: nav_msgs/msg/OccupancyGrid
 
-outputs: []
+outputs:
+  - name: mission_planning/route
+    message_type: autoware_planning_msgs/msg/LaneletRoute
 
 # parameters
 parameter_files: []
-
 parameters: []
 
 # processes
@@ -28,4 +29,5 @@ processes:
       - and:
           - once: lanelet_map
           - on_input: predicted_objects
-    outcomes: []
+    outcomes: 
+      - to_output: mission_planning/route
