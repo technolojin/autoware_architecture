@@ -3,7 +3,7 @@ name: TrafficLightRecognitionDetectorFine.module
 instances:
   - instance: map_based_detector
     entity: TrafficLightMapBasedDetector.node
-  - instance: fine_detector
+  - instance: detection
     entity: TrafficLightFineDetector.node
   - instance: classifier_car
     entity: TrafficLightClassifierCar.node
@@ -34,22 +34,22 @@ connections:
     to: map_based_detector.input.route
   
   - from: input.image
-    to: fine_detector.input.image
+    to: detection.input.image
   - from: map_based_detector.output.rois
-    to: fine_detector.input.rois
+    to: detection.input.rois
   - from: map_based_detector.output.expected_rois
-    to: fine_detector.input.expect_rois
-  - from: fine_detector.output.rois
+    to: detection.input.expect_rois
+  - from: detection.output.rois
     to: output.rois
 
   - from: input.image
     to: classifier_car.input.image
-  - from: fine_detector.output.rois
+  - from: detection.output.rois
     to: classifier_car.input.rois
 
   - from: input.image
     to: classifier_pedestrian.input.image
-  - from: fine_detector.output.rois
+  - from: detection.output.rois
     to: classifier_pedestrian.input.rois
 
   - from: input.pointcloud
@@ -58,7 +58,7 @@ connections:
     to: occlusion_predictor.input.vector_map
   - from: input.camera_info
     to: occlusion_predictor.input.camera_info
-  - from: fine_detector.output.rois
+  - from: detection.output.rois
     to: occlusion_predictor.input.rois
   - from: classifier_car.output.traffic_signals
     to: occlusion_predictor.input.car/traffic_signals

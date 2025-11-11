@@ -1,16 +1,16 @@
 name: TrafficLightRecognitionRefine.module
 
 instances:
-  - instance: classification_camera0
+  - instance: camera0
     entity: TrafficLightRecognitionDetectorFine.module
-  - instance: classification_camera1
+  - instance: camera1
     entity: TrafficLightRecognitionDetectorFine.module
 
   - instance: multi_camera_fusion
     entity: TrafficLightMultiCameraFusion.node
-  - instance: arbiter
+  - instance: traffic_light_arbiter
     entity: TrafficLightArbiter.node
-  - instance: crosswalk_estimator
+  - instance: traffic_light_crosswalk_estimator
     entity: CrosswalkTrafficLightEstimator.node
 
 external_interfaces:
@@ -28,52 +28,52 @@ external_interfaces:
 
 connections:
   - from: input.route
-    to: classification_camera0.input.route
+    to: camera0.input.route
   - from: input.vector_map
-    to: classification_camera0.input.vector_map
+    to: camera0.input.vector_map
   - from: input.camera0/image
-    to: classification_camera0.input.image
+    to: camera0.input.image
   - from: input.camera0/camera_info
-    to: classification_camera0.input.camera_info
+    to: camera0.input.camera_info
   - from: input.pointcloud
-    to: classification_camera0.input.pointcloud
+    to: camera0.input.pointcloud
 
   - from: input.route
-    to: classification_camera1.input.route
+    to: camera1.input.route
   - from: input.vector_map
-    to: classification_camera1.input.vector_map
+    to: camera1.input.vector_map
   - from: input.camera1/image
-    to: classification_camera1.input.image
+    to: camera1.input.image
   - from: input.camera1/camera_info
-    to: classification_camera1.input.camera_info
+    to: camera1.input.camera_info
   - from: input.pointcloud
-    to: classification_camera1.input.pointcloud
+    to: camera1.input.pointcloud
 
   - from: input.vector_map
     to: multi_camera_fusion.input.vector_map
   - from: input.camera0/camera_info
     to: multi_camera_fusion.input.camera0/camera_info
-  - from: classification_camera0.output.traffic_signals
+  - from: camera0.output.traffic_signals
     to: multi_camera_fusion.input.camera0/classification/traffic_signals
-  - from: classification_camera0.output.rois
+  - from: camera0.output.rois
     to: multi_camera_fusion.input.camera0/detection/rois
-  - from: classification_camera1.output.traffic_signals
+  - from: camera1.output.traffic_signals
     to: multi_camera_fusion.input.camera1/classification/traffic_signals
-  - from: classification_camera1.output.rois
+  - from: camera1.output.rois
     to: multi_camera_fusion.input.camera1/detection/rois
 
   - from: input.vector_map
-    to: arbiter.input.vector_map
+    to: traffic_light_arbiter.input.vector_map
   - from: multi_camera_fusion.output.traffic_signals
-    to: arbiter.input.perception_traffic_signals
+    to: traffic_light_arbiter.input.perception_traffic_signals
   - from: input.external_traffic_signals
-    to: arbiter.input.external_traffic_signals
+    to: traffic_light_arbiter.input.external_traffic_signals
 
   - from: input.vector_map
-    to: crosswalk_estimator.input.vector_map
+    to: traffic_light_crosswalk_estimator.input.vector_map
   - from: input.route
-    to: crosswalk_estimator.input.route
-  - from: arbiter.output.traffic_signals
-    to: crosswalk_estimator.input.traffic_signals
-  - from: crosswalk_estimator.output.traffic_signals
+    to: traffic_light_crosswalk_estimator.input.route
+  - from: traffic_light_arbiter.output.traffic_signals
+    to: traffic_light_crosswalk_estimator.input.traffic_signals
+  - from: traffic_light_crosswalk_estimator.output.traffic_signals
     to: output.traffic_signals

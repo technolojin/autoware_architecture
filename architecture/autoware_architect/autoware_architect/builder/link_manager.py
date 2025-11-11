@@ -103,25 +103,50 @@ class LinkManager:
     # Error formatting helpers
     # ------------------------------------------------------------------
     def _format_missing_port_error(self, port_name: str, direction: str) -> str:
-        """Return an intuitive error message for a missing port.
-
-        Includes:
-        - entity name and type
-        - direction (input/output)
-        - available port names
-        - closest suggestions using difflib
-        """
-        if direction == "input":
-            available = sorted(self.in_ports.keys())
-        else:
-            available = sorted(self.out_ports.keys())
-        suggestion_list = difflib.get_close_matches(port_name, available, n=5, cutoff=0.6)
-        suggestions = ", ".join(suggestion_list) if suggestion_list else "(no close matches)"
+        """Short missing port error with suggestions."""
+        available = sorted(self.in_ports.keys() if direction == "input" else self.out_ports.keys())
+        suggestions = self._suggest(port_name, available)
         return (
-            f"Port name not found: '{port_name}' (direction={direction}) in instance '{self.instance.name}'.\n"
-            f"Available {direction} ports: {available if available else '(none)'}\n"
-            f"Did you mean: {suggestions}?\n"
-            "Check your YAML connection definition. Example format: '<instance>.input.<port>' or '<instance>.output.<port>'."
+            f"[E_PORT_NOT_FOUND] {direction} '{port_name}' not found in '{self.instance.name}'. "
+            f"Available: {available if available else '(none)'}; Suggest: {suggestions}."
+        )
+
+    # ------------------------------------------------------------------
+    # Centralized error helpers
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _suggest(target: str, pool: List[str], n: int = 5) -> str:
+        """Return comma list of close matches or '-' if none."""
+        m = difflib.get_close_matches(target, pool, n=n, cutoff=0.6)
+        return ", ".join(m) if m else "-"
+
+    def _err_external_decl(self, kind: str, name: str, declared: List[str]):
+        return (
+            f"[E_EXT_DECL] External {kind} '{name}' not declared. Declared: {declared if declared else '(none)'}; "
+            f"Suggest: {self._suggest(name, declared)}"
+        )
+
+    def _err_type_mismatch(self, port: InPort | OutPort, attempted_type: str):
+        return (
+            f"[E_TYPE_MISMATCH] External port '{port.port_path}' type clash: existing={port.msg_type}, new={attempted_type}"
+        )
+
+    def _err_wildcard_no_matches(self, connection: Connection):
+        return (
+            "[E_WILDCARD_EMPTY] No ports matched wildcard patterns. "
+            f"From='{connection.from_instance}.{connection.from_port_name}' To='{connection.to_instance}.{connection.to_port_name}'"
+        )
+
+    def _err_missing_external_io(self, kind: str, name: str, available: List[str]):
+        return (
+            f"[E_EXT_{kind.upper()}_MISSING] External {kind} '{name}' not found. Available: {available if available else '(none)'}; "
+            f"Suggest: {self._suggest(name, available)}"
+        )
+
+    def _err_missing_internal(self, role: str, instance_name: str, port_name: str, available: List[str]):
+        return (
+            f"[E_PORT_MISSING] {role} port '{port_name}' not in '{instance_name}'. Available: {available if available else '(none)'}; "
+            f"Suggest: {self._suggest(port_name, available)}"
         )
 
     def _register_external_port(self, port_dict: Dict[str, Any], port_obj: InPort | OutPort, kind: str):
@@ -132,20 +157,12 @@ class LinkManager:
         cfg_list = self.instance.configuration.external_interfaces.get(kind, [])
         declared_names = {item.get("name") for item in cfg_list}
         if port_obj.name not in declared_names:
-            raise ValidationError(
-                f"External {kind} port not declared: '{port_obj.name}'.\n"
-                f"Declared {kind} ports: {sorted(declared_names) if declared_names else '(none)'}"
-            )
+            raise ValidationError(self._err_external_decl(kind, port_obj.name, sorted(declared_names)))
 
         existing = port_dict.get(port_obj.name)
         if existing:
             if existing.msg_type != port_obj.msg_type:
-                raise ValidationError(
-                    "External port message type mismatch.\n"
-                    f"Port: '{existing.port_path}'\n"
-                    f"Configured type: {existing.msg_type}\n"
-                    f"Attempted new type: {port_obj.msg_type}"
-                )
+                raise ValidationError(self._err_type_mismatch(existing, port_obj.msg_type))
             existing.set_references(port_obj.reference)
         else:
             port_dict[port_obj.name] = port_obj
@@ -192,16 +209,14 @@ class LinkManager:
         if connection.type == ConnectionType.EXTERNAL_TO_INTERNAL:
             if to_port is None:
                 raise ValidationError(
-                    "Target internal input port missing for EXTERNAL_TO_INTERNAL connection.\n"
-                    f"Connection: input.{connection.from_port_name} -> {connection.to_instance}.input.{connection.to_port_name}"
+                    f"[E_CONN_TARGET_MISSING] EXTERNAL_TO_INTERNAL input.{connection.from_port_name} -> {connection.to_instance}.input.{connection.to_port_name}"
                 )
             port_name = (from_info or {}).get("port_name", connection.from_port_name)
             from_port = InPort(port_name, to_port.msg_type, self.instance.namespace)
         elif connection.type == ConnectionType.INTERNAL_TO_EXTERNAL:
             if from_port is None:
                 raise ValidationError(
-                    "Source internal output port missing for INTERNAL_TO_EXTERNAL connection.\n"
-                    f"Connection: {connection.from_instance}.output.{connection.from_port_name} -> output.{connection.to_port_name}"
+                    f"[E_CONN_SOURCE_MISSING] INTERNAL_TO_EXTERNAL {connection.from_instance}.output.{connection.from_port_name} -> output.{connection.to_port_name}"
                 )
             port_name = (to_info or {}).get("port_name", connection.to_port_name)
             to_port = OutPort(port_name, from_port.msg_type, self.instance.namespace)
@@ -240,12 +255,7 @@ class LinkManager:
         
         # Validate matched ports
         if not port_pairs:
-            raise ValidationError(
-                "Wildcard connection produced no matches.\n"
-                f"From pattern: '{connection.from_instance}.{connection.from_port_name}'\n"
-                f"To pattern: '{connection.to_instance}.{connection.to_port_name}'\n"
-                "Verify wildcard usage and existing port names."
-            )
+            raise ValidationError(self._err_wildcard_no_matches(connection))
 
         # Create links for each matched pair
         for from_key, to_key in port_pairs:
@@ -253,9 +263,7 @@ class LinkManager:
             to_info = port_list_to.get(to_key)
 
             if from_info is None or to_info is None:
-                raise ValidationError(
-                    f"Wildcard port metadata missing for pair: {from_key} -> {to_key}. This indicates an internal inconsistency."
-                )
+                raise ValidationError(f"[E_WILDCARD_META] Missing metadata for {from_key} -> {to_key} (internal bug)")
 
             from_port, to_port = self._resolve_ports_for_connection(connection, from_info, to_info)
 
@@ -316,26 +324,14 @@ class LinkManager:
                         available = sorted([
                             k.split(".")[1] for k in port_list_from.keys() if k.startswith(".")
                         ])
-                        suggestion = difflib.get_close_matches(missing_name, available, n=3, cutoff=0.6)
-                        raise ValidationError(
-                            "External input port not declared in 'external_interfaces.input'.\n"
-                            f"Missing: '{missing_name}'\n"
-                            f"Available external inputs: {available if available else '(none)'}\n"
-                            f"Did you mean: {suggestion if suggestion else '(no close matches)'}"
-                        )
+                        raise ValidationError(self._err_missing_external_io("input", missing_name, available))
                     else:
                         # internal output missing
                         instance_name = connection.from_instance or "<root>"
                         available = sorted([
                             k.split(".")[1] for k in port_list_from.keys() if k.startswith(f"{instance_name}.")
                         ])
-                        suggestion = difflib.get_close_matches(connection.from_port_name, available, n=3, cutoff=0.6)
-                        raise ValidationError(
-                            "Source output port not found.\n"
-                            f"Instance: '{instance_name}', Port: '{connection.from_port_name}'\n"
-                            f"Available outputs: {available if available else '(none)'}\n"
-                            f"Did you mean: {suggestion if suggestion else '(no close matches)'}"
-                        )
+                        raise ValidationError(self._err_missing_internal("output", instance_name, connection.from_port_name, available))
 
                 if to_info is None:
                     if connection.type == ConnectionType.INTERNAL_TO_EXTERNAL:
@@ -343,25 +339,13 @@ class LinkManager:
                         available = sorted([
                             k.split(".")[1] for k in port_list_to.keys() if k.startswith(".")
                         ])
-                        suggestion = difflib.get_close_matches(missing_name, available, n=3, cutoff=0.6)
-                        raise ValidationError(
-                            "External output port not declared in 'external_interfaces.output'.\n"
-                            f"Missing: '{missing_name}'\n"
-                            f"Available external outputs: {available if available else '(none)'}\n"
-                            f"Did you mean: {suggestion if suggestion else '(no close matches)'}"
-                        )
+                        raise ValidationError(self._err_missing_external_io("output", missing_name, available))
                     else:
                         instance_name = connection.to_instance or "<root>"
                         available = sorted([
                             k.split(".")[1] for k in port_list_to.keys() if k.startswith(f"{instance_name}.")
                         ])
-                        suggestion = difflib.get_close_matches(connection.to_port_name, available, n=3, cutoff=0.6)
-                        raise ValidationError(
-                            "Target input port not found.\n"
-                            f"Instance: '{instance_name}', Port: '{connection.to_port_name}'\n"
-                            f"Available inputs: {available if available else '(none)'}\n"
-                            f"Did you mean: {suggestion if suggestion else '(no close matches)'}"
-                        )
+                        raise ValidationError(self._err_missing_internal("input", instance_name, connection.to_port_name, available))
 
                 from_port, to_port = self._resolve_ports_for_connection(connection, from_info, to_info)
                 self._create_link_from_ports(from_port, to_port, connection.type)
