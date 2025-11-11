@@ -1,0 +1,22 @@
+name: TrafficLightRecognitionDetectorFine.module
+
+instances:
+  - instance: classifier_car
+    entity: TrafficLightClassifierCar.node
+  - instance: classifier_pedestrian
+    entity: TrafficLightClassifierPedestrian.node
+  - instance: fine_detector
+    entity: TrafficLightFineDetector.node
+  - instance: occlusion_predictor
+    entity: TrafficLightOcclusionPredictor.node
+
+external_interfaces:
+  input:
+    - name: image
+    - name: rois
+    - name: expect_rois
+    - name: pointcloud
+  output:
+    - name: rois
+
+connections: []
