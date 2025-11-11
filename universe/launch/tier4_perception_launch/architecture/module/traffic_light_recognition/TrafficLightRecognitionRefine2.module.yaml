@@ -28,26 +28,15 @@ external_interfaces:
 
 connections:
   - from: input.route
-    to: camera1.input.route
+    to: camera*.input.route
   - from: input.vector_map
-    to: camera1.input.vector_map
-  - from: input.camera1/image
-    to: camera1.input.image
-  - from: input.camera1/camera_info
-    to: camera1.input.camera_info
+    to: camera*.input.vector_map
+  - from: input.camera*/image
+    to: camera*.input.image
+  - from: input.camera*/camera_info
+    to: camera*.input.camera_info
   - from: input.pointcloud
-    to: camera1.input.pointcloud
-
-  - from: input.route
-    to: camera2.input.route
-  - from: input.vector_map
-    to: camera2.input.vector_map
-  - from: input.camera2/image
-    to: camera2.input.image
-  - from: input.camera2/camera_info
-    to: camera2.input.camera_info
-  - from: input.pointcloud
-    to: camera2.input.pointcloud
+    to: camera*.input.pointcloud
 
   - from: input.vector_map
     to: multi_camera_fusion.input.vector_map

@@ -44,56 +44,17 @@ external_interfaces:
 
 connections:
   - from: input.pointcloud
-    to: occlusion_predictor1.input.cloud
+    to: occlusion_predictor*.input.cloud
   - from: input.vector_map
-    to: occlusion_predictor1.input.vector_map
-  - from: input.camera1/camera_info
-    to: occlusion_predictor1.input.camera_info
-  - from: input.camera1_rois
-    to: occlusion_predictor1.input.rois
-  - from: input.camera1_traffic_signals_car
-    to: occlusion_predictor1.input.car/traffic_signals
-  - from: input.camera1_traffic_signals_pedestrian
-    to: occlusion_predictor1.input.pedestrian/traffic_signals
-
-  - from: input.pointcloud
-    to: occlusion_predictor2.input.cloud
-  - from: input.vector_map
-    to: occlusion_predictor2.input.vector_map
-  - from: input.camera2/camera_info
-    to: occlusion_predictor2.input.camera_info
-  - from: input.camera2_rois
-    to: occlusion_predictor2.input.rois
-  - from: input.camera2_traffic_signals_car
-    to: occlusion_predictor2.input.car/traffic_signals
-  - from: input.camera2_traffic_signals_pedestrian
-    to: occlusion_predictor2.input.pedestrian/traffic_signals
-
-  - from: input.pointcloud
-    to: occlusion_predictor3.input.cloud
-  - from: input.vector_map
-    to: occlusion_predictor3.input.vector_map
-  - from: input.camera3/camera_info
-    to: occlusion_predictor3.input.camera_info
-  - from: input.camera3_rois
-    to: occlusion_predictor3.input.rois
-  - from: input.camera3_traffic_signals_car
-    to: occlusion_predictor3.input.car/traffic_signals
-  - from: input.camera3_traffic_signals_pedestrian
-    to: occlusion_predictor3.input.pedestrian/traffic_signals
-
-  - from: input.pointcloud
-    to: occlusion_predictor4.input.cloud
-  - from: input.vector_map
-    to: occlusion_predictor4.input.vector_map
-  - from: input.camera4/camera_info
-    to: occlusion_predictor4.input.camera_info
-  - from: input.camera4_rois
-    to: occlusion_predictor4.input.rois
-  - from: input.camera4_traffic_signals_car
-    to: occlusion_predictor4.input.car/traffic_signals
-  - from: input.camera4_traffic_signals_pedestrian
-    to: occlusion_predictor4.input.pedestrian/traffic_signals
+    to: occlusion_predictor*.input.vector_map
+  - from: input.camera*/camera_info
+    to: occlusion_predictor*.input.camera_info
+  - from: input.camera*_rois
+    to: occlusion_predictor*.input.rois
+  - from: input.camera*_traffic_signals_car
+    to: occlusion_predictor*.input.car/traffic_signals
+  - from: input.camera*_traffic_signals_pedestrian
+    to: occlusion_predictor*.input.pedestrian/traffic_signals
 
   - from: input.vector_map
     to: multi_camera_fusion.input.vector_map

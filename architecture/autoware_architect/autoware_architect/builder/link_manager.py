@@ -34,35 +34,47 @@ def match_and_pair_wildcard_ports(
     source_ports: Dict[str, Any],
     target_ports: Dict[str, Any],
 ) -> List[tuple[str, str]]:
-    """Return matching (source_key, target_key) pairs for wildcard patterns.
+    """Return (source_key, target_key) pairs honoring wildcard usage.
 
-    Simplified implementation:
-    1. Collect keys matching each pattern.
-    2. If both patterns are '*', pair identical keys (intersection).
-    3. Otherwise substitute wildcard capture(s) from source into target pattern and
-       keep the pair only if the produced target key exists.
+    Rules:
+    - Both '*' => intersect identical keys.
+    - One side has '*' => cartesian with other side's concrete match(es).
+    - Both sides have '*' (not both '*') => substitute source captures into target pattern.
     """
-    source_keys = list(source_ports.keys())
-    target_keys = list(target_ports.keys())
-
-    def _filter(pattern: str, keys: List[str]) -> List[str]:
+    def _match(pattern: str, keys: List[str]) -> List[str]:
         return keys if pattern == "*" else [k for k in keys if fnmatch.fnmatch(k, pattern)]
 
-    matched_source = _filter(source_pattern, source_keys)
-    matched_target = _filter(target_pattern, target_keys)
-    if not matched_source or not matched_target:
+    src_matches = _match(source_pattern, list(source_ports.keys()))
+    tgt_matches = _match(target_pattern, list(target_ports.keys()))
+    if not src_matches or not tgt_matches:
         return []
 
-    # Fast path: both '*'
     if source_pattern == "*" and target_pattern == "*":
-        common = set(matched_source).intersection(matched_target)
-        return [(k, k) for k in sorted(common)]
+        common = sorted(set(src_matches) & set(tgt_matches))
+        return [(k, k) for k in common]
 
+    src_wc = "*" in source_pattern
+    tgt_wc = "*" in target_pattern
     pairs: List[tuple[str, str]] = []
-    for s_key in matched_source:
-        t_key = _apply_wildcard_substitution(source_pattern, target_pattern, s_key)
-        if t_key in matched_target and s_key != t_key:
-            pairs.append((s_key, t_key))
+
+    if src_wc and not tgt_wc:  # replicate target across each source expansion
+        for s in sorted(src_matches):
+            for t in tgt_matches:
+                if s != t:
+                    pairs.append((s, t))
+        return pairs
+    if tgt_wc and not src_wc:  # replicate source across each target expansion
+        for s in src_matches:
+            for t in sorted(tgt_matches):
+                if s != t:
+                    pairs.append((s, t))
+        return pairs
+
+    # Both sides have wildcards (non-trivial); use substitution logic.
+    for s in src_matches:
+        t = _apply_wildcard_substitution(source_pattern, target_pattern, s)
+        if t in tgt_matches and s != t:
+            pairs.append((s, t))
     return pairs
 
 
