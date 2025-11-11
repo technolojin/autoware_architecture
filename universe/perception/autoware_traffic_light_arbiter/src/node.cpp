@@ -3,18 +3,18 @@
 
 namespace autoware::traffic_light
 {
-class TrafficLightClassifierNodelet : public rclcpp::Node
+class TrafficLightArbiter : public rclcpp::Node
 {
 public:
-  explicit TrafficLightClassifierNodelet(const rclcpp::NodeOptions & options)
-  : Node("traffic_light_classifier_node", options)
+  explicit TrafficLightArbiter(const rclcpp::NodeOptions & options)
+  : Node("traffic_light_arbiter", options)
   {
     // Create a timer that calls the callback every 2 seconds (1/2 Hz)
     timer_ = this->create_wall_timer(
       std::chrono::seconds(2),
-      std::bind(&TrafficLightClassifierNodelet::timer_callback, this));
+      std::bind(&TrafficLightArbiter::timer_callback, this));
     
-    RCLCPP_INFO(this->get_logger(), "TrafficLightClassifierNodelet started");
+    RCLCPP_INFO(this->get_logger(), "TrafficLightArbiter started");
   }
 
 private:
@@ -33,4 +33,4 @@ private:
 
 #include <rclcpp_components/register_node_macro.hpp>
 
-RCLCPP_COMPONENTS_REGISTER_NODE(autoware::traffic_light::TrafficLightClassifierNodelet)
+RCLCPP_COMPONENTS_REGISTER_NODE(autoware::traffic_light::TrafficLightArbiter)
