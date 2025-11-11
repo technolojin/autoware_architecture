@@ -288,6 +288,7 @@ def main():
         "autoware_traffic_light_multi_camera_fusion",
         "autoware_traffic_light_occlusion_predictor",
         "autoware_traffic_light_selector",
+        "autoware_crosswalk_traffic_light_estimator",
     ]
     
     # Optional: Override from command line arguments
