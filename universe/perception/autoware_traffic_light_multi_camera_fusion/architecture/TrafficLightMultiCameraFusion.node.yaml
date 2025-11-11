@@ -1,0 +1,60 @@
+# node information
+name: TrafficLightMultiCameraFusion.node
+
+launch:
+  package: autoware_traffic_light_multi_camera_fusion
+  plugin: autoware::traffic_light::MultiCameraFusion
+  executable: traffic_light_multi_camera_fusion
+  node_output: screen
+  use_container: false
+  container_name: pointcloud_container
+
+# interfaces
+inputs:
+  - name: vector_map
+    message_type: autoware_map_msgs/msg/LaneletMapBin
+  - name: camera0/camera_info
+    message_type: sensor_msgs/msg/CameraInfo
+  - name: camera0/classification/traffic_signals
+    message_type: tier4_perception_msgs/msg/TrafficLightGroupArray
+  - name: camera0/detection/rois
+    message_type: tier4_perception_msgs/msg/DetectedObjectsWithFeature
+  - name: camera1/camera_info
+    message_type: sensor_msgs/msg/CameraInfo
+  - name: camera1/classification/traffic_signals
+    message_type: tier4_perception_msgs/msg/TrafficLightGroupArray
+  - name: camera1/detection/rois
+    message_type: tier4_perception_msgs/msg/DetectedObjectsWithFeature
+outputs:
+  - name: traffic_signals
+    message_type: tier4_perception_msgs/msg/TrafficLightGroupArray
+    qos:
+      reliability: reliable
+      durability: transient_local
+
+# parameters
+parameter_files:
+  - name: param_path
+    default: config/traffic_light_multi_camera_fusion.param.yaml
+
+parameters:
+  - name: camera_namespaces
+    type: list<string>
+    default: ['camera0', 'camera1']
+    description: List of camera namespaces to be used for fusion.
+
+# processes
+processes:
+  - name: process
+    trigger_conditions:
+      - or:
+        - and:
+          - on_input: camera0/camera_info
+          - on_input: camera0/classification/traffic_signals
+          - on_input: camera0/detection/rois
+        - and:
+          - on_input: camera1/camera_info
+          - on_input: camera1/classification/traffic_signals
+          - on_input: camera1/detection/rois
+    outcomes:
+      - to_output: traffic_signals
