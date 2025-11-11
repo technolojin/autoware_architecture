@@ -36,9 +36,9 @@ processes:
   - name: select
     trigger_conditions:
       - and:
-          - on_input: detected_rois
-          - on_input: rough_rois
-          - on_input: expect_rois
-          - on_input: camera_info
+        - on_input: detected_rois
+        - on_input: rough_rois
+        - on_input: expect_rois
+        - on_input: camera_info
     outcomes:
       - to_output: traffic_rois

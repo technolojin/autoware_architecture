@@ -16,13 +16,13 @@ inputs:
   - name: camera0/camera_info
     message_type: sensor_msgs/msg/CameraInfo
   - name: camera0/classification/traffic_signals
-    message_type: tier4_perception_msgs/msg/TrafficLightGroupArray
+    message_type: tier4_perception_msgs/msg/TrafficLightArray
   - name: camera0/detection/rois
     message_type: tier4_perception_msgs/msg/TrafficLightRoiArray
   - name: camera1/camera_info
     message_type: sensor_msgs/msg/CameraInfo
   - name: camera1/classification/traffic_signals
-    message_type: tier4_perception_msgs/msg/TrafficLightGroupArray
+    message_type: tier4_perception_msgs/msg/TrafficLightArray
   - name: camera1/detection/rois
     message_type: tier4_perception_msgs/msg/TrafficLightRoiArray
 outputs:

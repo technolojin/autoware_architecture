@@ -16,7 +16,7 @@ inputs:
   - name: perception_traffic_signals
     message_type: tier4_perception_msgs/msg/TrafficLightGroupArray
   - name: external_traffic_signals
-    message_type: tier4_perception_msgs/msg/TrafficLightGroupArray
+    message_type: tier4_perception_msgs/msg/TrafficLightGroup
 outputs:
   - name: traffic_signals
     message_type: tier4_perception_msgs/msg/TrafficLightGroupArray

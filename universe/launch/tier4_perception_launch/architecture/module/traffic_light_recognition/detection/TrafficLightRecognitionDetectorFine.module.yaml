@@ -1,22 +1,68 @@
 name: TrafficLightRecognitionDetectorFine.module
 
 instances:
+  - instance: map_based_detector
+    entity: TrafficLightMapBasedDetector.node
+  - instance: fine_detector
+    entity: TrafficLightFineDetector.node
   - instance: classifier_car
     entity: TrafficLightClassifierCar.node
   - instance: classifier_pedestrian
     entity: TrafficLightClassifierPedestrian.node
-  - instance: fine_detector
-    entity: TrafficLightFineDetector.node
   - instance: occlusion_predictor
     entity: TrafficLightOcclusionPredictor.node
 
 external_interfaces:
   input:
+    - name: vector_map
     - name: image
-    - name: rois
-    - name: expect_rois
+    - name: camera_info
+    - name: route
     - name: pointcloud
   output:
+    - name: traffic_signals
     - name: rois
 
-connections: []
+connections:
+  - from: input.vector_map
+    to: map_based_detector.input.vector_map
+  - from: input.route
+    to: map_based_detector.input.route
+  - from: input.camera_info
+    to: map_based_detector.input.camera_info
+  - from: input.route
+    to: map_based_detector.input.route
+  
+  - from: input.image
+    to: fine_detector.input.image
+  - from: map_based_detector.output.rois
+    to: fine_detector.input.rois
+  - from: map_based_detector.output.expected_rois
+    to: fine_detector.input.expect_rois
+  - from: fine_detector.output.rois
+    to: output.rois
+
+  - from: input.image
+    to: classifier_car.input.image
+  - from: fine_detector.output.rois
+    to: classifier_car.input.rois
+
+  - from: input.image
+    to: classifier_pedestrian.input.image
+  - from: fine_detector.output.rois
+    to: classifier_pedestrian.input.rois
+
+  - from: input.pointcloud
+    to: occlusion_predictor.input.cloud
+  - from: input.vector_map
+    to: occlusion_predictor.input.vector_map
+  - from: input.camera_info
+    to: occlusion_predictor.input.camera_info
+  - from: fine_detector.output.rois
+    to: occlusion_predictor.input.rois
+  - from: classifier_car.output.traffic_signals
+    to: occlusion_predictor.input.car/traffic_signals
+  - from: classifier_pedestrian.output.traffic_signals
+    to: occlusion_predictor.input.pedestrian/traffic_signals
+  - from: occlusion_predictor.output.traffic_signals
+    to: output.traffic_signals
