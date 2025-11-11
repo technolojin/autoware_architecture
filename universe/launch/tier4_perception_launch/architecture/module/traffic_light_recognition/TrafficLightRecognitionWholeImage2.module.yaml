@@ -46,18 +46,12 @@ connections:
 
   - from: input.vector_map
     to: multi_camera_fusion.input.vector_map
-  - from: input.camera1/camera_info
-    to: multi_camera_fusion.input.camera1/camera_info
-  - from: camera1.output.traffic_signals
-    to: multi_camera_fusion.input.camera1/classification/traffic_signals
-  - from: camera1.output.rois
-    to: multi_camera_fusion.input.camera1/detection/rois
-  - from: input.camera2/camera_info
-    to: multi_camera_fusion.input.camera2/camera_info
-  - from: camera2.output.traffic_signals
-    to: multi_camera_fusion.input.camera2/classification/traffic_signals
-  - from: camera2.output.rois
-    to: multi_camera_fusion.input.camera2/detection/rois
+  - from: input.camera*/camera_info
+    to: multi_camera_fusion.input.camera*/camera_info
+  - from: camera*.output.traffic_signals
+    to: multi_camera_fusion.input.camera*/classification/traffic_signals
+  - from: camera*.output.rois
+    to: multi_camera_fusion.input.camera*/detection/rois
 
   - from: input.vector_map
     to: traffic_light_arbiter.input.vector_map

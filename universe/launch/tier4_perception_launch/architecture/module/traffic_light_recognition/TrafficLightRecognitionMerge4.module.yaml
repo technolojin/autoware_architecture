@@ -97,30 +97,12 @@ connections:
 
   - from: input.vector_map
     to: multi_camera_fusion.input.vector_map
-  - from: input.camera1/camera_info
-    to: multi_camera_fusion.input.camera1/camera_info
-  - from: occlusion_predictor1.output.traffic_signals
-    to: multi_camera_fusion.input.camera1/classification/traffic_signals
-  - from: input.camera1_rois
-    to: multi_camera_fusion.input.camera1/detection/rois
-  - from: input.camera2/camera_info
-    to: multi_camera_fusion.input.camera2/camera_info
-  - from: occlusion_predictor2.output.traffic_signals
-    to: multi_camera_fusion.input.camera2/classification/traffic_signals
-  - from: input.camera2_rois
-    to: multi_camera_fusion.input.camera2/detection/rois
-  - from: input.camera3/camera_info
-    to: multi_camera_fusion.input.camera3/camera_info
-  - from: occlusion_predictor3.output.traffic_signals
-    to: multi_camera_fusion.input.camera3/classification/traffic_signals
-  - from: input.camera3_rois
-    to: multi_camera_fusion.input.camera3/detection/rois
-  - from: input.camera4/camera_info
-    to: multi_camera_fusion.input.camera4/camera_info
-  - from: occlusion_predictor4.output.traffic_signals
-    to: multi_camera_fusion.input.camera4/classification/traffic_signals
-  - from: input.camera4_rois
-    to: multi_camera_fusion.input.camera4/detection/rois
+  - from: input.camera*/camera_info
+    to: multi_camera_fusion.input.camera*/camera_info
+  - from: occlusion_predictor*.output.traffic_signals
+    to: multi_camera_fusion.input.camera*/classification/traffic_signals
+  - from: input.camera*_rois
+    to: multi_camera_fusion.input.camera*/detection/rois
 
   - from: input.vector_map
     to: traffic_light_arbiter.input.vector_map
