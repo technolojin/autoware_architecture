@@ -14,7 +14,7 @@ inputs:
   - name: image
     message_type: sensor_msgs/msg/Image
   - name: rois
-    message_type: tier4_perception_msgs/msg/DetectedObjectsWithFeature
+    message_type: tier4_perception_msgs/msg/TrafficLightRoiArray
 
 outputs:
   - name: traffic_signals

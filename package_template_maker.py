@@ -287,6 +287,7 @@ def main():
         "autoware_traffic_light_map_based_detector",
         "autoware_traffic_light_multi_camera_fusion",
         "autoware_traffic_light_occlusion_predictor",
+        "autoware_traffic_light_selector",
     ]
     
     # Optional: Override from command line arguments

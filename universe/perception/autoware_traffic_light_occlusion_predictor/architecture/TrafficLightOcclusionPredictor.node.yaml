@@ -18,7 +18,7 @@ inputs:
   - name: pedestrian/traffic_signals
     message_type: tier4_perception_msgs/msg/TrafficLightArray
   - name: rois
-    message_type: tier4_perception_msgs/msg/DetectedObjectsWithFeature
+    message_type: tier4_perception_msgs/msg/TrafficLightRoiArray
   - name: camera_info
     message_type: sensor_msgs/msg/CameraInfo
   - name: cloud

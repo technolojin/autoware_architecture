@@ -23,12 +23,12 @@ inputs:
 
 outputs:
   - name: rois
-    message_type: tier4_perception_msgs/msg/DetectedObjectsWithFeature
+    message_type: tier4_perception_msgs/msg/TrafficLightRoiArray
     qos:
       reliability: reliable
       durability: transient_local
   - name: expected_rois
-    message_type: tier4_perception_msgs/msg/DetectedObjectsWithFeature
+    message_type: tier4_perception_msgs/msg/TrafficLightRoiArray
     qos:
       reliability: reliable
       durability: transient_local

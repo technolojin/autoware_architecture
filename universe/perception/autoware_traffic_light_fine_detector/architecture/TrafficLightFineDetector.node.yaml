@@ -14,13 +14,13 @@ inputs:
   - name: image
     message_type: sensor_msgs/msg/Image
   - name: rois
-    message_type: tier4_perception_msgs/msg/DetectedObjectsWithFeature
+    message_type: tier4_perception_msgs/msg/TrafficLightRoiArray
   - name: expect_rois
-    message_type: tier4_perception_msgs/msg/DetectedObjectsWithFeature
+    message_type: tier4_perception_msgs/msg/TrafficLightRoiArray
 
 outputs:
   - name: rois
-    message_type: tier4_perception_msgs/msg/DetectedObjectsWithFeature
+    message_type: tier4_perception_msgs/msg/TrafficLightRoiArray
 
 # parameters
 parameter_files:

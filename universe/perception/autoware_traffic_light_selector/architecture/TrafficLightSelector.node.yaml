@@ -1,0 +1,44 @@
+# node information
+name: TrafficLightSelector.node
+
+launch:
+  package: autoware_traffic_light_selector
+  plugin: autoware::traffic_light::TrafficLightSelectorNode
+  executable: traffic_light_selector_node
+  node_output: screen
+  use_container: false
+  container_name: pointcloud_container
+
+# interfaces
+inputs:
+  - name: detected_rois
+    message_type: tier4_perception_msgs/msg/DetectedObjectsWithFeature
+  - name: rough_rois
+    message_type: tier4_perception_msgs/msg/TrafficLightRoiArray
+  - name: expect_rois
+    message_type: tier4_perception_msgs/msg/TrafficLightRoiArray
+  - name: camera_info
+    message_type: sensor_msgs/msg/CameraInfo
+
+outputs:
+  - name: traffic_rois
+    message_type: tier4_perception_msgs/msg/TrafficLightRoiArray
+    qos:
+      reliability: reliable
+      durability: transient_local
+
+# parameters
+parameter_files: []
+parameters: []
+
+# processes
+processes:
+  - name: select
+    trigger_conditions:
+      - and:
+          - on_input: detected_rois
+          - on_input: rough_rois
+          - on_input: expect_rois
+          - on_input: camera_info
+    outcomes:
+      - to_output: traffic_rois
