@@ -31,7 +31,6 @@ external_interfaces:
   output:
     - name: detected_objects
     - name: cluster_objects
-  parameter: []
 
 connections:
   - from: input.pointcloud

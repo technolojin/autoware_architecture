@@ -28,7 +28,6 @@ external_interfaces:
   output:
     - name: filtered_obstacle_pointcloud
     - name: detected_objects
-  parameter: []
 
 connections:
   # compare map filter

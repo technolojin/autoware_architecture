@@ -9,7 +9,6 @@ external_interfaces:
     - name: detected_objects
   output:
     - name: objects
-  parameter: []
 
 connections:
   - from: input.detected_objects

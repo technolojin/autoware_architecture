@@ -17,7 +17,6 @@ external_interfaces:
     - name: radar_objects
   output:
     - name: objects
-  parameter: []
 
 connections:
   - from: input.detected_objects

@@ -12,7 +12,6 @@ external_interfaces:
     - name: concatenated_pointcloud
   output:
     - name: pointcloud
-  parameter: []
 
 connections:
   - from: input.concatenated_pointcloud
