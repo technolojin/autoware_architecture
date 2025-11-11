@@ -35,8 +35,8 @@ connections:
   
   - from: input.image
     to: detection.input.image
-  - from: map_based_detector.output.rois
-    to: detection.input.rois
+  - from: map_based_detector.output.rough_rois
+    to: detection.input.rough_rois
   - from: map_based_detector.output.expected_rois
     to: detection.input.expect_rois
   - from: detection.output.rois

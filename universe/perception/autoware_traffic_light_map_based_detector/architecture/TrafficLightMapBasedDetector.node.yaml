@@ -22,7 +22,7 @@ inputs:
     message_type: autoware_planning_msgs/msg/LaneletRoute
 
 outputs:
-  - name: rois
+  - name: rough_rois
     message_type: tier4_perception_msgs/msg/TrafficLightRoiArray
     qos:
       reliability: reliable
@@ -49,5 +49,5 @@ processes:
         - on_input: route
         - on_input: camera_info
     outcomes:
-      - to_output: rois
+      - to_output: rough_rois
       - to_output: expected_rois

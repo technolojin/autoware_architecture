@@ -13,7 +13,7 @@ launch:
 inputs:
   - name: image
     message_type: sensor_msgs/msg/Image
-  - name: rois
+  - name: rough_rois
     message_type: tier4_perception_msgs/msg/TrafficLightRoiArray
   - name: expect_rois
     message_type: tier4_perception_msgs/msg/TrafficLightRoiArray
@@ -43,7 +43,7 @@ processes:
     trigger_conditions:
       - and:
         - on_input: image
-        - on_input: rois
+        - on_input: rough_rois
         - on_input: expect_rois
     outcomes:
       - to_output: rois
