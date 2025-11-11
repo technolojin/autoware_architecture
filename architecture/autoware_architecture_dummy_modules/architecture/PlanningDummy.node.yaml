@@ -13,6 +13,8 @@ inputs:
     message_type: autoware_perception_msgs/msg/PredictedObjects
   - name: occupancy_grid_map
     message_type: nav_msgs/msg/OccupancyGrid
+  - name: traffic_signals
+    message_type: tier4_perception_msgs/msg/TrafficLightGroupArray
 
 outputs:
   - name: mission_planning/route
