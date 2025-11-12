@@ -65,6 +65,8 @@ connections:
     to: object_segmentation.input.concatenated_pointcloud
   - from: object_segmentation.output.pointcloud
     to: object_recognition.input.obstacle_pointcloud
+  - from: lidar.output.concatenated/pointcloud
+    to: object_recognition.input.pointcloud
 
   - from: camera.output.camera*/image
     to: camera_2d_detection.input.image_raw*

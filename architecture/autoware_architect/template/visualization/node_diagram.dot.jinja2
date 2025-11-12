@@ -42,12 +42,14 @@ digraph "{{ name }}" {
 		legend_in -> legend_out [label="flow"];
 	}
 
-	{% macro port_label(port, direction) -%}
+	{% macro node_in_port_label(port, direction) -%}
 		{{ direction }}/{{ port.name }}\n@{{ port.event.frequency }} Hz
 	{%- endmacro %}
-
-	{% macro topic_label(port) -%}
-		/{{ port.topic | join('/') }}\n{{ port.msg_type }}\n@{{ port.event.frequency }} Hz\nw:{{ port.event.warn_rate }}Hz e:{{ port.event.error_rate }}s
+	{% macro node_out_port_label(port, direction) -%}
+		{{ direction }}/{{ port.name }}\n/{{ port.topic | join('/') }}\n{{ port.msg_type }}\n@{{ port.event.frequency }} Hz
+	{%- endmacro %}
+	{% macro module_port_label(port, direction) -%}
+		{{ direction }}/{{ port.name }}
 	{%- endmacro %}
 
 	{% macro build_instance_graph(instance) %}
@@ -62,13 +64,13 @@ digraph "{{ name }}" {
 				// left rank (inputs)
 				subgraph cluster_{{ instance.unique_id }}_in { label=""; color=none; rank=same;
 					{% for p in instance.in_ports %}
-						{{ p.unique_id }} [label="{{ port_label(p, 'in') }}", shape=ellipse, style=filled, fillcolor="#e0f7ff"];
+						{{ p.unique_id }} [label="{{ module_port_label(p, 'in') }}", shape=ellipse, style=filled, fillcolor="#e0f7ff"];
 					{% endfor %}
 				}
 				// right rank (outputs)
 				subgraph cluster_{{ instance.unique_id }}_out { label=""; color=none; rank=same;
 					{% for p in instance.out_ports %}
-						{{ p.unique_id }} [label="{{ port_label(p, 'out') }}", shape=ellipse, style=filled, fillcolor="#fff4e0"];
+						{{ p.unique_id }} [label="{{ module_port_label(p, 'out') }}", shape=ellipse, style=filled, fillcolor="#fff4e0"];
 					{% endfor %}
 				}
 				// connect in -> core -> out for ordering
@@ -95,12 +97,12 @@ digraph "{{ name }}" {
 				{{ core_id }} [label="", shape=point, width=0.01, height=0.01, style=invis];
 				subgraph cluster_{{ instance.unique_id }}_in { label=""; color=none; rank=same;
 					{% for p in instance.in_ports %}
-						{{ p.unique_id }} [label="{{ port_label(p, 'in') }}", shape=ellipse, style=filled, fillcolor="#e0f7ff"];
+						{{ p.unique_id }} [label="{{ node_in_port_label(p, 'in') }}", shape=box, style=filled, fillcolor="#e0f7ff"];
 					{% endfor %}
 				}
 				subgraph cluster_{{ instance.unique_id }}_out { label=""; color=none; rank=same;
 					{% for p in instance.out_ports %}
-						{{ p.unique_id }} [label="{{ port_label(p, 'out') }}", shape=ellipse, style=filled, fillcolor="#fff4e0"];
+						{{ p.unique_id }} [label="{{ node_out_port_label(p, 'out') }}", shape=box, style=filled, fillcolor="#fff4e0"];
 					{% endfor %}
 				}
 				// ordering edges
@@ -109,13 +111,6 @@ digraph "{{ name }}" {
 				{% endfor %}
 				{% for p in instance.out_ports %}
 					{{ core_id }} -> {{ p.unique_id }} [arrowhead=none, style=invis, weight=2];
-				{% endfor %}
-				// local (non-global) output topic notes
-				{% for p in instance.out_ports %}
-					{% if not p.is_global %}
-						{{ p.unique_id }}_topic [label="{{ topic_label(p) }}", shape=note, fontsize=7, color="#bbbbbb", style=filled, fillcolor="#f2f2f2"];
-						{{ p.unique_id }} -> {{ p.unique_id }}_topic [style=dashed, arrowhead=none];
-					{% endif %}
 				{% endfor %}
 			}
 			// global topics (outside cluster)
