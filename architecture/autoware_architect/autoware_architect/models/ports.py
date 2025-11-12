@@ -16,6 +16,7 @@ from typing import List
 import logging
 from .events import Event
 from ..utils.naming import generate_unique_id
+from ..exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,9 @@ class Port:
         self.name = name
         self.msg_type = msg_type
         self.namespace = namespace
+        # Reference list: ports that this port points to (for hierarchical port connections).
+        # OutPort (publisher) can have at most 1 reference (one topic published by one node).
+        # InPort (subscriber) can have multiple references (one topic subscribed by multiple nodes).
         self.reference: List["Port"] = []
         self.topic: List[str] = []
         self.event = None
@@ -69,6 +73,8 @@ class InPort(Port):
     def __init__(self, name, msg_type, namespace: List[str] = []):
         super().__init__(name, msg_type, namespace)
         self.is_required = True
+        # Servers list: ports that this port is subscribed to (for hierarchical port connections).
+        # InPort (subscriber) can have multiple servers (one topic subscribed by multiple nodes).
         self.servers: List[Port] = []
         self.event = Event("input_" + name, namespace)
         self.event.set_type("on_input")
@@ -99,6 +105,8 @@ class OutPort(Port):
         self.frequency = 0.0
         self.is_monitored = False
         self.users: List[Port] = []
+        # Users list: ports that this port is subscribed to (for hierarchical port connections).
+        # OutPort (publisher) can have multiple users (one topic subscribed by multiple nodes).
         self.event = Event("output_" + name, namespace)
         self.event.set_type("to_output")
 
@@ -122,3 +130,17 @@ class OutPort(Port):
                 added.append(port.port_path)
         if added:
             logger.debug(f"OutPort '{self.port_path}' added users: {added}")
+
+    def set_references(self, port_list: List["Port"]):
+        """
+        Override to enforce that OutPort (upstream/publisher) can have at most one reference.
+        This ensures one topic is published by one node (pub/sub system constraint).
+        """
+        super().set_references(port_list)
+        if len(self.reference) > 1:
+            ref_paths = [p.port_path for p in self.reference]
+            raise ValidationError(
+                f"OutPort '{self.port_path}' cannot have more than one reference. "
+                f"This violates the pub/sub rule: one topic must be published by one node. "
+                f"References: {ref_paths}"
+            )
