@@ -414,12 +414,6 @@ class LinkManager:
 
     def check_ports(self):
         """Check and debug port configurations."""
-
-        for out_port in self.out_ports.values():
-            logger.debug(
-                f"[PORT_USER_DEBUG] port path: '{out_port.port_path}' topic: '{out_port.get_topic()}' (users={len(out_port.users)})"
-            )
-
         # check ports only for node. in case of module, the check is done
         if self.instance.entity_type != "node":
             return
