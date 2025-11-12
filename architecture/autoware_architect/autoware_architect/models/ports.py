@@ -131,6 +131,17 @@ class OutPort(Port):
         if added:
             logger.debug(f"OutPort '{self.port_path}' added users: {added}")
 
+    def set_topic(self, topic_namespace: List[str], topic_name: str):
+        """
+        Override to propagate topic changes to all users (InPorts).
+        When topic is set by a higher layer (e.g., external connection),
+        all subscribers need to update their topic as well.
+        """
+        super().set_topic(topic_namespace, topic_name)
+        # Propagate topic to all users (InPorts that subscribe to this OutPort)
+        for user_port in self.users:
+            user_port.set_topic(topic_namespace, topic_name)
+
     def set_references(self, port_list: List["Port"]):
         """
         Override to enforce that OutPort (upstream/publisher) can have at most one reference.
