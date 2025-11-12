@@ -203,9 +203,11 @@ class Deployment:
         # load the template file
         template_dir = os.path.join(os.path.dirname(__file__), "../template")
         node_template_path = os.path.join(template_dir, "node_diagram.puml.jinja2")
-        logic_template_path = os.path.join(template_dir, "logic_diagram.puml.jinja2")
-        sequence_template_path = os.path.join(template_dir, "sequence_diagram.puml.jinja2")
         node_dot_template_path = os.path.join(template_dir, "node_diagram.dot.jinja2")
+        logic_template_path = os.path.join(template_dir, "logic_diagram.puml.jinja2")
+        logit_dot_template_path = os.path.join(template_dir, "logic_diagram.dot.jinja2")
+        sequence_template_path = os.path.join(template_dir, "sequence_diagram.puml.jinja2")
+        sequence_dot_template_path = os.path.join(template_dir, "sequence_diagram.dot.jinja2")
 
         # Generate visualization for each mode
         for mode_key, deploy_instance in self.deploy_instances.items():
@@ -218,9 +220,11 @@ class Deployment:
             # Generate diagrams with mode suffix in filename
             filename_base = f"{self.name}_{mode_key}" if mode_key != "default" else self.name
             self.generate_by_template(data, node_template_path, mode_visualization_dir, filename_base + "_node_graph.puml")
-            self.generate_by_template(data, logic_template_path, mode_visualization_dir, filename_base + "_logic_graph.puml")
-            self.generate_by_template(data, sequence_template_path, mode_visualization_dir, filename_base + "_sequence_graph.puml")
             self.generate_by_template(data, node_dot_template_path, mode_visualization_dir, filename_base + "_node_graph.dot")
+            self.generate_by_template(data, logic_template_path, mode_visualization_dir, filename_base + "_logic_graph.puml")
+            self.generate_by_template(data, logit_dot_template_path, mode_visualization_dir, filename_base + "_logic_graph.dot")
+            self.generate_by_template(data, sequence_template_path, mode_visualization_dir, filename_base + "_sequence_graph.puml")
+            self.generate_by_template(data, sequence_dot_template_path, mode_visualization_dir, filename_base + "_sequence_graph.dot")
             
             logger.info(f"Generated visualization for mode: {mode_key}")
 
