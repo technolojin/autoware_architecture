@@ -14,7 +14,7 @@
 		subgraph cluster_{{ instance.unique_id }} {
 			label="{{ instance.name }}";
 			style=rounded;
-			color=lightgrey;
+			color=gray30;
 			node [style=filled, fillcolor=white];
 			// Ports
 			{% for in_port in instance.in_ports %}
@@ -35,8 +35,8 @@
 		// Global topic clouds (outside but linking into ports)
 		{% for in_port in instance.in_ports %}
 			{% if in_port.is_global %}
-				{{ in_port.unique_id }}_cloud [label="/{{ "/".join(in_port.topic) }}", shape=oval, style=dashed, color=gray];
-				{{ in_port.unique_id }}_cloud -> {{ in_port.unique_id }} [style=dashed, color=gray];
+				{{ in_port.unique_id }}_cloud [label="/{{ "/".join(in_port.topic) }}", shape=hexagon, style=solid, color=gray];
+				{{ in_port.unique_id }}_cloud -> {{ in_port.unique_id }} [color=gray];
 			{% endif %}
 		{% endfor %}
 		// Event triggers
@@ -51,10 +51,10 @@
 				{{ output_trigger.unique_id }} -> {{ out_port.event.unique_id }} [color="#000066"];
 			{% endfor %}
 		{% endfor %}
-		// Input port triggers (dashed style)
+		// Input port triggers
 		{% for in_port in instance.in_ports %}
 			{% for input_trigger in in_port.event.triggers %}
-				{{ input_trigger.unique_id }} -> {{ in_port.event.unique_id }} [style=dashed, color="#000066"];
+				{{ input_trigger.unique_id }} -> {{ in_port.event.unique_id }} [color="#000066"];
 			{% endfor %}
 		{% endfor %}
 	{% elif instance.entity_type == "module" %}
