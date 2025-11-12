@@ -60,6 +60,10 @@ class Link:
             # propagate and finish the connection
             from_port_list = self.from_port.get_reference_list()
             to_port_list = self.to_port.get_reference_list()
+            if self.from_port not in from_port_list:
+                from_port_list = [self.from_port, *from_port_list]
+            if self.to_port not in to_port_list:
+                to_port_list = [self.to_port, *to_port_list]
 
             # check the message type is the same
             for from_port in from_port_list:

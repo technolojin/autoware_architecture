@@ -102,6 +102,9 @@ class OutPort(Port):
         self.event = Event("output_" + name, namespace)
         self.event.set_type("to_output")
 
+        # set default topic
+        self.set_topic(self.namespace, self.name)
+
     @property
     def unique_id(self):
         return generate_unique_id(self.namespace, "output_" + self.name)
