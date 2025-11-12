@@ -60,6 +60,12 @@ class Link:
             # propagate and finish the connection
             from_port_list = self.from_port.get_reference_list()
             to_port_list = self.to_port.get_reference_list()
+            full_from_port_list = [*from_port_list]
+            if self.from_port not in from_port_list:
+                full_from_port_list = [self.from_port, *from_port_list]
+            full_to_port_list = [*to_port_list]
+            if self.to_port not in to_port_list:
+                full_to_port_list = [self.to_port, *to_port_list]
 
             # check the message type is the same
             for from_port in from_port_list:
@@ -86,19 +92,19 @@ class Link:
                     )
 
             # link the ports
-            for from_port_ref in from_port_list:
+            for from_port_ref in full_from_port_list:
                 from_port_ref.set_users(to_port_list)
-            for to_port_ref in to_port_list:
+            for to_port_ref in full_to_port_list:
                 to_port_ref.set_servers(from_port_list)
 
             # determine the topic, set it to the from-ports to publish and to-ports to subscribe
-            for from_port_ref in from_port_list:
+            for from_port_ref in full_from_port_list:
                 from_port_ref.set_topic(self.from_port.namespace, self.from_port.name)
-            for to_port_ref in to_port_list:
+            for to_port_ref in full_to_port_list:
                 to_port_ref.set_topic(self.from_port.namespace, self.from_port.name)
 
             # set the trigger event of the to-port
-            for to_port_ref in to_port_list:
+            for to_port_ref in full_to_port_list:
                 for server_port in to_port_ref.servers:
                     to_port_ref.event.add_trigger_event(server_port.event)
 
