@@ -15,54 +15,6 @@ from autoware_architect.deployment import Deployment
 from autoware_architect.config import SystemConfig
 import pprint
 
-from enum import Enum
-
-
-class PerceptionModality(str, Enum):
-    NONE = "none"
-    CAMERA_LIDAR_RADAR_FUSION = "camera_lidar_radar_fusion"
-    CAMERA_LIDAR_FUSION = "camera_lidar_fusion"
-    LIDAR__RADAR_FUSION = "lidar_radar_fusion"
-    LIDAR = "lidar"
-    CAMERA = "camera"
-    RADAR = "radar"
-
-class ObstacleSegmentationFilterType(Enum):
-    NoFilter = 0
-    SingleFrame = 1
-    TimeSeries = 2
-    Combined = 3
-
-class ObjectRecognitionFusionType(Enum):
-    NONE = 0
-    Serial = 1
-    Parallel = 2
-
-class ObjectRecognitionLidarModelType(Enum):
-    NONE = 0
-    Centerpoint = 1
-    Pointpainting = 2
-    Apollo = 3
-    Transfusion = 4
-
-class ObjectRecognitionPredictionType(Enum):
-    NONE = 0
-    MapBased = 1
-    SimplModel = 2
-
-class OccupancyGridMapType(Enum):
-    NONE = 0
-    PointcloudBased = 1
-    LaserscanBased = 2
-    MultiLidarPointcloudBased = 3
-
-class TrafficLightRecognitionType(Enum):
-    NONE = 0
-    FusionOnly = 1
-    FusionOnlyFineDetection = 2
-    FineDetection = 3
-    WholeImageDetection = 4
-    StandardDetection = 5
 
 def config_to_bool(config_name: str, context) -> bool:
     """Convert LaunchConfiguration to boolean."""
@@ -74,87 +26,186 @@ def config_to_str(config_name: str, context) -> str:
     value = LaunchConfiguration(config_name).perform(context)
     return str(value)
 
-def determine_modes(context) -> tuple[bool, dict]:
+def determine_mode(context) -> dict:
     """Determine mode based on launch configurations."""
-    modes = {
-        "perception_modality": PerceptionModality.NONE,
-        "object_recognition_fusion_type": ObjectRecognitionFusionType.NONE,
-        "object_recognition_lidar_model_type": ObjectRecognitionLidarModelType.NONE,
-        "object_recognition_prediction_type": ObjectRecognitionPredictionType.NONE,
-        "occupancy_grid_map_type": OccupancyGridMapType.NONE,
-        "traffic_light_recognition_type": TrafficLightRecognitionType.NONE,
-    }
-    is_supported = True
+    modes = {}
+    parameters = {}
     
     # common
-    if config_to_bool("downsample_perception_common_pointcloud", context) == True:
-        is_supported = False
-        return is_supported, modes
+    if config_to_bool("downsample_perception_common_pointcloud", context):
+        modes["downsample_perception_common_pointcloud"] = "on"
+    else:
+        modes["downsample_perception_common_pointcloud"] = "off"
 
     if config_to_bool("use_perception_online_evaluator", context):
-        modes["perception_online_evaluator"] = True
+        modes["perception_online_evaluator"] = "on"
     else:
-        modes["perception_online_evaluator"] = False
+        modes["perception_online_evaluator"] = "off"
 
     if config_to_bool("use_perception_analytics_publisher", context):
-        modes["perception_analytics_publisher"] = True
+        modes["perception_analytics_publisher"] = "on"
     else:
-        modes["perception_analytics_publisher"] = False
+        modes["perception_analytics_publisher"] = "off"
 
     # obstacle segmentation
-    if config_to_bool("use_obstacle_segmentation_time_series_filter", context):
+    if config_to_bool("use_obstacle_segmentation_single_frame_filter", context):
         if config_to_bool("use_obstacle_segmentation_time_series_filter", context):
-            modes["obstacle_segmentation_filter"] = ObstacleSegmentationFilterType.TimeSeries
+            modes["obstacle_segmentation_filter"] = "combined"
         else:
-            modes["obstacle_segmentation_filter"] = ObstacleSegmentationFilterType.SingleFrame
+            modes["obstacle_segmentation_filter"] = "single_frame"
     else:
         if config_to_bool("use_obstacle_segmentation_time_series_filter", context):
-            modes["obstacle_segmentation_filter"] = ObstacleSegmentationFilterType.TimeSeries
+            modes["obstacle_segmentation_filter"] = "time_series"
         else:
-            modes["obstacle_segmentation_filter"] = ObstacleSegmentationFilterType.NoFilter
+            modes["obstacle_segmentation_filter"] = "none"
 
     # object recognition
     modality = config_to_str("mode", context)
-    if modality == PerceptionModality.CAMERA_LIDAR_RADAR_FUSION:
-        modes["perception_modality"] = PerceptionModality.CAMERA_LIDAR_RADAR_FUSION
-    elif modality == PerceptionModality.CAMERA_LIDAR_FUSION:
-        modes["perception_modality"] = PerceptionModality.CAMERA_LIDAR_FUSION
-    elif modality == PerceptionModality.LIDAR__RADAR_FUSION:
-        modes["perception_modality"] = PerceptionModality.LIDAR__RADAR_FUSION
-    elif modality == PerceptionModality.LIDAR:
-        modes["perception_modality"] = PerceptionModality.LIDAR
-    elif modality == PerceptionModality.CAMERA:
-        modes["perception_modality"] = PerceptionModality.CAMERA
-    elif modality == PerceptionModality.RADAR:
-        modes["perception_modality"] = PerceptionModality.RADAR
-    else:
-        is_supported = False
-        return is_supported, modes
+    is_lidar_used = False
+    is_lidar_camera_fusion = False
 
-    # use_multi_channel_tracker_merger only supported for camera_lidar_radar_fusion
-    if config_to_bool("use_multi_channel_tracker_merger", context) == True:
-        if modes["perception_modality"] == PerceptionModality.CAMERA_LIDAR_RADAR_FUSION:
-            modes["object_recognition_fusion_type"] = ObjectRecognitionFusionType.Parallel
+    ## multi modality
+    if config_to_bool("use_empty_dynamic_object_publisher", context):
+        modes["object_recognition"] = {"mode":"dummy"}
+        modes["perception_online_evaluator"] = "off"
+        modes["perception_analytics_publisher"] = "off"
+    elif modality == "camera_lidar_radar_fusion":
+        modes["object_recognition"] = {"mode":"camera_lidar_radar_fusion"}
+        is_lidar_used = True
+        is_lidar_camera_fusion = True
+    elif modality == "camera_lidar_fusion":
+        modes["object_recognition"] = {"mode":"camera_lidar_fusion"}
+        modes["irregular_object_detector"] = "on" if config_to_bool("use_irregular_object_detector", context) else "off"
+        is_lidar_used = True
+        is_lidar_camera_fusion = True
+    elif modality == "lidar_radar_fusion":
+        modes["object_recognition"] = {"mode":"lidar_radar_fusion"}
+        is_lidar_used = True
+    ## single modality
+    elif modality == "lidar":
+        modes["object_recognition"] = {"mode":"lidar"}
+        is_lidar_used = True
+    elif modality == "radar":
+        modes["object_recognition"] = {"mode":"radar"}
+    elif modality == "camera":
+        modes["object_recognition"] = {"mode":"camera"}
+    else:
+        return KeyError(f"Invalid mode: {modality}")
+    
+    ## detector additional modes
+    if is_lidar_used:
+        modes["object_recognition"]["detection_by_tracker"] = "on" if config_to_bool("use_detection_by_tracker", context) else "off"
+        modes["object_recognition"]["filter__low_height_cropbox"] = "on" if config_to_bool("use_low_height_cropbox", context) else "off"
+
+        # object filter
+        if config_to_bool("use_object_filter", context):
+            if config_to_str("objects_filter_method", context) == "lanelet_filter":
+                modes["object_recognition"]["filter__object_filter"] = "lanelet_filter"
+            elif config_to_str("objects_filter_method", context) == "position_filter":
+                modes["object_recognition"]["filter__object_filter"] = "position_filter"
+            else:
+                return KeyError(f"Invalid objects filter method: {config_to_str('objects_filter_method', context)}")
         else:
-            modes["object_recognition_fusion_type"] = ObjectRecognitionFusionType.Serial
-    elif config_to_bool("use_multi_channel_tracker_merger", context) == True:
-        # the other modalities do not support multi-channel tracker merger
-        is_supported = False
-        return is_supported, modes
+            modes["object_recognition"]["filter__object_filter"] = "off"
 
-    # lidar detection model
-    lidar_mode, lidar_model = config_to_str("lidar_detection_model", context).split('/')
-    if lidar_mode == "centerpoint":
-        modes["object_recognition_lidar_model_type"] = ObjectRecognitionLidarModelType.Centerpoint
-    elif lidar_mode == "pointpainting":
-        modes["object_recognition_lidar_model_type"] = ObjectRecognitionLidarModelType.Pointpainting
-    elif lidar_mode == "apollo":
-        modes["object_recognition_lidar_model_type"] = ObjectRecognitionLidarModelType.Apollo
-    elif lidar_mode == "transfusion":
-        modes["object_recognition_lidar_model_type"] = ObjectRecognitionLidarModelType.Transfusion
+        # object validator
+        if config_to_bool("use_object_validator", context):
+            if config_to_str("objects_validation_method", context) == "obstacle_pointcloud":
+                if config_to_bool("use_pointcloud_map", context):
+                    modes["object_recognition"]["filter__object_validator"] = "map_filtered_obstacle_pointcloud"
+                else:
+                    modes["object_recognition"]["filter__object_validator"] = "obstacle_pointcloud"
+            elif config_to_str("objects_validation_method", context) == "occupancy_grid":
+                modes["object_recognition"]["filter__object_validator"] = "occupancy_grid"
+            else:
+                return KeyError(f"Invalid objects validation method: {config_to_str('objects_validation_method', context)}")
+
+        # lidar detection model
+        lidar_detection_model_code = LaunchConfiguration("lidar_detection_model").perform(context)
+        lidar_detection_model_type = lidar_detection_model_code.split('/')[0]
+        lidar_detection_model_name = lidar_detection_model_code.split('/')[1] if '/' in lidar_detection_model_code else ""
+        if lidar_detection_model_type == "centerpoint":
+            modes["object_recognition"]["lidar_detection_model"] = {"type": "centerpoint"}
+            if lidar_detection_model_name in ["centerpoint", "centerpoint_tiny", "centerpoint_sigma"]:
+                modes["object_recognition"]["lidar_detection_model"]["name"] = lidar_detection_model_name
+            elif lidar_detection_model_name == "":
+                modes["object_recognition"]["lidar_detection_model"]["name"] = "centerpoint_tiny"
+            else:
+                return KeyError(f"Invalid centerpoint model name: {lidar_detection_model_name}")
+        elif lidar_detection_model_type == "bevfusion":
+            modes["object_recognition"]["lidar_detection_model"] = {"type": "bevfusion", "name": "bevfusion_lidar"}
+        elif lidar_detection_model_type == "pointpainting":
+            modes["object_recognition"]["lidar_detection_model"] = {"type": "pointpainting", "name": "pointpainting"}
+        elif lidar_detection_model_type == "transfusion":
+            modes["object_recognition"]["lidar_detection_model"] = {"type": "transfusion", "name": "transfusion"}
+        elif lidar_detection_model_type == "apollo":
+            modes["object_recognition"]["lidar_detection_model"] = {"type": "apollo"}
+        elif lidar_detection_model_type == "clustering":
+            modes["object_recognition"]["lidar_detection_model"] = {"type": "clustering"}
+        else:
+            return KeyError(f"Invalid lidar detection model type: {lidar_detection_model_type}")
+
+    if is_lidar_camera_fusion:
+        modes["object_recognition"]["irregular_object_detector"] = "on" if config_to_bool("use_irregular_object_detector", context) else "off"
+        modes["object_recognition"]["image_segmentation_based_filter"] = "on" if config_to_bool("use_image_segmentation_based_filter", context) else "off"
+        modes["object_recognition"]["low_intensity_cluster_filter"] = "on" if config_to_bool("use_low_intensity_cluster_filter", context) else "off"
+        parameters["segmentation_pointcloud_fusion_camera_ids"] = config_to_str("segmentation_pointcloud_fusion_camera_ids", context)
+        parameters["ml_camera_lidar_merger_priority_mode"] = int(LaunchConfiguration("ml_camera_lidar_merger_priority_mode").perform(context))
+
+
+    ## detector
+
+    ## tracker merger
+    if config_to_bool("use_multi_channel_tracker_merger", context):
+        modes["tracker"] = "multi_channel_tracker_merger"
     else:
-        is_supported = False
-        return is_supported, modes
+        modes["tracker"] = "single_channel_tracker"
+        if modality == "camera_lidar_radar_fusion":
+            if config_to_bool("use_radar_tracking_fusion", context):
+                modes["object_recognition"]["merger"] = {"type": "camera_lidar_merger"}
+                modes["tracker"] = "tracker_merger_radar_fusion"
+            else:
+                modes["object_recognition"]["merger"] = {"type": "camera_lidar_radar_merger"}
+        elif modality == "camera_lidar_fusion":
+            modes["object_recognition"]["merger"] = {"type": "camera_lidar_merger"}
+        elif modality == "lidar_radar_fusion":
+            modes["object_recognition"]["merger"] = {"type": "lidar_merger"}
+            modes["object_recognition"]["merger"]["radar_object_fusion"] = "on"
+        elif modality == "lidar":
+            modes["object_recognition"]["merger"] = {"type": "lidar_merger"}
+        else:
+            pass
+
+    if modes["object_recognition"]["merger"]:
+        if modes["object_recognition"]["merger"]["type"] in ["camera_lidar_radar_merger", "camera_lidar_merger", "lidar_merger"]:
+            if config_to_bool("use_detection_by_tracker", context):
+                if config_to_bool("use_object_filter", context):
+                    if config_to_str("objects_filter_method", context) == "lanelet_filter":
+                        modes["object_recognition"]["merger"]["object_association_mergers"] = "detection_by_tracker_and_lanelet_filter"
+                    elif config_to_str("objects_filter_method", context) == "position_filter":
+                        modes["object_recognition"]["merger"]["object_association_mergers"] = "detection_by_tracker_and_position_filter"
+                    else:
+                        return KeyError(f"Invalid objects filter method: {config_to_str('objects_filter_method', context)}")
+                else:
+                    modes["object_recognition"]["merger"]["object_association_mergers"] = "detection_by_tracker"
+            else:
+                if config_to_bool("use_object_filter", context):
+                    if config_to_str("objects_filter_method", context) == "lanelet_filter":
+                        modes["object_recognition"]["merger"]["object_association_mergers"] = "lanelet_filter"
+                    elif config_to_str("objects_filter_method", context) == "position_filter":
+                        modes["object_recognition"]["merger"]["object_association_mergers"] = "position_filter"
+                    else:
+                        return KeyError(f"Invalid objects filter method: {config_to_str('objects_filter_method', context)}")
+                else:
+                    modes["object_recognition"]["merger"]["object_association_mergers"] = "single_merger"
+
+        if modes["object_recognition"]["merger"]["type"] in ["camera_lidar_radar_merger", "camera_lidar_merger"]:
+            modes["object_recognition"]["merger"]["filter__roi_detected_object_merger"] = "on"
+            modes["object_recognition"]["merger"]["irregular_detector_merger"] = "on" if config_to_bool("use_irregular_object_detector", context) else "off"
+            
+        if modes["object_recognition"]["merger"]["type"] == "camera_lidar_radar_merger":
+            modes["object_recognition"]["merger"]["radar_object_association_merger"] = "on" if not config_to_bool("use_radar_tracking_fusion", context) else "off"
+            
 
     ## object prediction
     if config_to_bool("use_vector_map", context) == True:
@@ -193,7 +244,7 @@ def determine_modes(context) -> tuple[bool, dict]:
     else:
         modes["traffic_light_recognition"] = "standard_detection"
 
-    return is_supported, modes
+    return modes, parameters
 
 def generate_autoware_system(deployment_file: str, mode: dict, parameters: dict):
     """Generate Autoware System deployment."""
@@ -261,15 +312,10 @@ def launch_generated_launch_file(launch_arguments_names, launcher_file: str):
 
 def opaque_generate_autoware_system(context, deployment_file: str):
     """OpaqueFunction wrapper to generate Autoware System at launch time."""
-    is_supported, modes = determine_modes(context)
-    if is_supported == False:
-        logger.error("Invalid mode configuration. Modes selected: %s", modes)
-        return LaunchDescription([])
-    
-    parameters = {}
+    mode, parameters = determine_mode(context)
     
     deployment_file = "deployment/universe_perception_clr_centerpoint_serial.deployment.yaml"
-    generate_autoware_system(deployment_file, modes, parameters)
+    generate_autoware_system(deployment_file, mode, parameters)
 
     return []
 
@@ -361,7 +407,7 @@ def generate_launch_description():
 
     # Setup launcher file path
     launcher_pkg_install_dir = get_package_share_directory('tier4_perception_launch')
-    launcher_path = "exports/CameraLidarRadarCenterpointSerial.system/launcher/Runtime/main_ecu/object_recognition/object_recognition.launch.xml"
+    launcher_path = "exports/CameraLidarRadarCenterpointSerial.system/launcher/Runtime/main_ecu/perception/perception.launch.xml"
     launcher_file = os.path.join(launcher_pkg_install_dir, launcher_path)
 
     # Create the pointcloud container
