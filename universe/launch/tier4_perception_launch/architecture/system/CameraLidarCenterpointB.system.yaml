@@ -45,7 +45,7 @@ components:
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionModule.parameter_set
   - component: occupancy_grid_map
-    entity: OccupancyGridMapPointcloudBased.module
+    entity: OccupancyGridMapLaserscanBasedDownsampled.module
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionModule.parameter_set

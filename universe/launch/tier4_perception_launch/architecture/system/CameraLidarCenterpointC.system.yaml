@@ -45,7 +45,7 @@ components:
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionModule.parameter_set
   - component: occupancy_grid_map
-    entity: OccupancyGridMapPointcloudBased.module
+    entity: OccupancyGridMapMultiLidar.module
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionModule.parameter_set
@@ -83,8 +83,12 @@ connections:
   - from: map_loader.output.vector_map
     to: object_recognition.input.vector_map
 
-  - from: lidar.output.concatenated/pointcloud
-    to: occupancy_grid_map.input.concatenated_pointcloud
+  - from: lidar.output.top/pointcloud
+    to: occupancy_grid_map.input.pointcloud_1
+  - from: lidar.output.left/pointcloud
+    to: occupancy_grid_map.input.pointcloud_2
+  - from: lidar.output.right/pointcloud
+    to: occupancy_grid_map.input.pointcloud_3
   - from: obstacle_segmentation.output.pointcloud
     to: occupancy_grid_map.input.obstacle_pointcloud
 

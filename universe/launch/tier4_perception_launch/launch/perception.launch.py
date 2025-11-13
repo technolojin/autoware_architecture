@@ -299,10 +299,29 @@ def determine_launcher_paths(modes: dict) -> list[str]:
         logger.warning("Without object recognition: %s", modality)
     
     # occupancy grid map
+    occupancy_grid_map_mode = modes.get("occupancy_grid_map")
+    if occupancy_grid_map_mode == OccupancyGridMapType.PointcloudBased:
+        launcher_paths.append("exports/CameraLidarCenterpointA.system/launcher/Runtime/main_ecu/occupancy_grid_map/occupancy_grid_map.launch.xml")
+    elif occupancy_grid_map_mode == OccupancyGridMapType.LaserscanBased:
+        launcher_paths.append("exports/CameraLidarCenterpointB.system/launcher/Runtime/main_ecu/occupancy_grid_map/occupancy_grid_map.launch.xml")
+    elif occupancy_grid_map_mode == OccupancyGridMapType.MultiLidarPointcloudBased:
+        launcher_paths.append("exports/CameraLidarCenterpointC.system/launcher/Runtime/main_ecu/occupancy_grid_map/occupancy_grid_map.launch.xml")
+    else:
+        logger.error("Invalid occupancy grid map mode: %s", occupancy_grid_map_mode)
 
 
     # traffic light recognition
-
+    traffic_light_mode = modes.get("traffic_light_recognition")
+    if traffic_light_mode == TrafficLightRecognitionType.NONE:
+        pass
+    elif traffic_light_mode == TrafficLightRecognitionType.FusionOnly:
+        launcher_paths.append("exports/CameraLidarCenterpointA.system/launcher/Runtime/main_ecu/traffic_light_recognition/traffic_light_recognition.launch.xml")
+    elif traffic_light_mode == TrafficLightRecognitionType.FineDetection:
+        launcher_paths.append("exports/CameraLidarCenterpointB.system/launcher/Runtime/main_ecu/traffic_light_recognition/traffic_light_recognition.launch.xml")
+    elif traffic_light_mode == TrafficLightRecognitionType.WholeImageDetection:
+        launcher_paths.append("exports/CameraLidarCenterpointC.system/launcher/Runtime/main_ecu/traffic_light_recognition/traffic_light_recognition.launch.xml")
+    else:
+        logger.error("Invalid traffic light recognition mode: %s", traffic_light_mode)
     
     return launcher_paths
 
@@ -466,7 +485,6 @@ def generate_launch_description():
     # Object recognition / tracking
     add_launch_arg("use_radar_tracking_fusion", default_value="true") # merge topology change, only if !use_multi_channel_tracker_merger and radar is used
     add_launch_arg("tracker_publish_merged_objects", default_value="false") # dynamic configuration, only if use_multi_channel_tracker_merger
-
 
     # Object recognition / prediction
     add_launch_arg("use_vector_map", default_value="true") # always true
