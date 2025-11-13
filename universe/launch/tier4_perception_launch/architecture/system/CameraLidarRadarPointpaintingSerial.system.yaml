@@ -61,19 +61,11 @@ components:
     compute_unit: dummy_ecu
 
 connections:
-  - from: lidar.output.concatenated/pointcloud
-    to: object_segmentation.input.concatenated_pointcloud
-  - from: object_segmentation.output.pointcloud
-    to: object_recognition.input.obstacle_pointcloud
-
   - from: camera.output.camera*/image
     to: camera_2d_detection.input.image_raw*
-  - from: camera_2d_detection.output.rois*
-    to: object_recognition.input.rois*
-  - from: camera.output.camera*/camera_info
-    to: object_recognition.input.camera_info*
-  - from: radar.output.detected_objects
-    to: object_recognition.input.radar_objects
+
+  - from: lidar.output.concatenated/pointcloud
+    to: object_segmentation.input.concatenated_pointcloud
 
   - from: lidar.output.concatenated/pointcloud
     to: pointpainting.input.pointcloud
@@ -83,23 +75,33 @@ connections:
     to: pointpainting.input.camera_info*
   - from: camera_2d_detection.output.rois*
     to: pointpainting.input.rois*
+
+  - from: object_segmentation.output.pointcloud
+    to: object_recognition.input.obstacle_pointcloud
+  - from: camera_2d_detection.output.rois*
+    to: object_recognition.input.rois*
+  - from: camera.output.camera*/camera_info
+    to: object_recognition.input.camera_info*
+  - from: radar.output.detected_objects
+    to: object_recognition.input.radar_objects
   - from: pointpainting.output.detected_objects
     to: object_recognition.input.lidar_ml_objects
+  - from: map_loader.output.vector_map
+    to: object_recognition.input.vector_map
+  - from: map_loader.output.pointcloud_map
+    to: object_recognition.input.pointcloud_map
 
   - from: lidar.output.concatenated/pointcloud
     to: occupancy_grid_map.input.concatenated_pointcloud
   - from: object_segmentation.output.pointcloud
     to: occupancy_grid_map.input.obstacle_pointcloud
-  - from: occupancy_grid_map.output.map
-    to: planner.input.occupancy_grid_map
 
   - from: map_loader.output.vector_map
     to: localizer.input.lanelet_map
-  - from: map_loader.output.vector_map
-    to: object_recognition.input.vector_map
+
+  - from: occupancy_grid_map.output.map
+    to: planner.input.occupancy_grid_map
   - from: map_loader.output.vector_map
     to: planner.input.lanelet_map
-  - from: map_loader.output.pointcloud_map
-    to: object_recognition.input.pointcloud_map
   - from: object_recognition.output.objects
     to: planner.input.predicted_objects
