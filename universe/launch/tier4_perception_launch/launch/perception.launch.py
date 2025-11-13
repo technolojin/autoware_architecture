@@ -114,6 +114,7 @@ def determine_modes(context) -> tuple[bool, dict]:
             modes["obstacle_segmentation_filter"] = ObstacleSegmentationFilterType.NoFilter
 
     # object recognition
+    lidar_mode, lidar_model = config_to_str("lidar_detection_model", context).split('/')
     modality = config_to_str("mode", context)
     if modality == PerceptionModality.CAMERA_LIDAR_RADAR_FUSION:
         modes["perception_modality"] = PerceptionModality.CAMERA_LIDAR_RADAR_FUSION
@@ -131,19 +132,7 @@ def determine_modes(context) -> tuple[bool, dict]:
         is_supported = False
         return is_supported, modes
 
-    # use_multi_channel_tracker_merger only supported for camera_lidar_radar_fusion
-    if config_to_bool("use_multi_channel_tracker_merger", context) == True:
-        if modes["perception_modality"] == PerceptionModality.CAMERA_LIDAR_RADAR_FUSION:
-            modes["object_recognition_fusion_type"] = ObjectRecognitionFusionType.Parallel
-        else:
-            modes["object_recognition_fusion_type"] = ObjectRecognitionFusionType.Serial
-    elif config_to_bool("use_multi_channel_tracker_merger", context) == True:
-        # the other modalities do not support multi-channel tracker merger
-        is_supported = False
-        return is_supported, modes
-
     # lidar detection model
-    lidar_mode, lidar_model = config_to_str("lidar_detection_model", context).split('/')
     if lidar_mode == "centerpoint":
         modes["object_recognition_lidar_model_type"] = ObjectRecognitionLidarModelType.Centerpoint
     elif lidar_mode == "pointpainting":
@@ -155,6 +144,20 @@ def determine_modes(context) -> tuple[bool, dict]:
     else:
         is_supported = False
         return is_supported, modes
+
+    # use_multi_channel_tracker_merger only supported for camera_lidar_radar_fusion
+    if config_to_bool("use_multi_channel_tracker_merger", context) == True:
+        if modes["perception_modality"] == PerceptionModality.CAMERA_LIDAR_RADAR_FUSION:
+            modes["object_recognition_fusion_type"] = ObjectRecognitionFusionType.Parallel
+        else:
+            modes["object_recognition_fusion_type"] = ObjectRecognitionFusionType.Serial
+    elif config_to_bool("use_multi_channel_tracker_merger", context) == True:
+        # the other modalities do not support multi-channel tracker merger
+        is_supported = False
+        return is_supported, modes
+    else:
+        # the other modalities with serial fusion
+        modes["object_recognition_fusion_type"] = ObjectRecognitionFusionType.Serial
 
     ## object prediction
     if config_to_bool("use_vector_map", context) == True:
@@ -195,45 +198,74 @@ def determine_modes(context) -> tuple[bool, dict]:
 
     return is_supported, modes
 
-def generate_autoware_system(deployment_file: str, mode: dict, parameters: dict):
-    """Generate Autoware System deployment."""
-    # Load system configuration from YAML file
-
-    system_config = SystemConfig()
-    system_config.debug_mode = True
-    system_config.log_level = "INFO"
-
-    logger = system_config.set_logging()
+def determine_launcher_paths(modes: dict) -> list[str]:
+    """
+    Determine launcher paths based on modes.
     
-    logger.info("=== Determined mode: %s ===", pprint.pformat(mode, indent=2))
-    logger.info("=== Parameters: %s ===", pprint.pformat(parameters, indent=2))
+    Returns a list of launcher file paths (relative to package share directory).
+    These are placeholders that should be filled based on the actual mode combinations.
+    """
+    launcher_paths = []
+    
+    # Placeholder: Determine launcher paths based on modes
+    # This should be implemented based on the actual mode combinations
+    
+    # Example structure (to be replaced with actual logic):
+    modality = modes.get("perception_modality")
+    fusion_type = modes.get("object_recognition_fusion_type")
+    lidar_model = modes.get("object_recognition_lidar_model_type")
+    
+    # Placeholder paths - these should be determined based on actual mode combinations
+    if modality == PerceptionModality.CAMERA_LIDAR_RADAR_FUSION:
+        if fusion_type == ObjectRecognitionFusionType.Parallel:
+            if lidar_model == ObjectRecognitionLidarModelType.Centerpoint:
+                launcher_paths.append("exports/CameraLidarRadarCenterpointParallel.system/launcher/Runtime/main_ecu/object_recognition/object_recognition.launch.xml")
+        elif fusion_type == ObjectRecognitionFusionType.Serial:
+            if lidar_model == ObjectRecognitionLidarModelType.Centerpoint:
+                launcher_paths.append("exports/CameraLidarRadarCenterpointSerial.system/launcher/Runtime/main_ecu/object_recognition/object_recognition.launch.xml")
+    elif modality == PerceptionModality.CAMERA_LIDAR_FUSION:
+        # Placeholder for camera_lidar_fusion launchers
+        launcher_paths.append("exports/CameraLidarCenterpoint.system/launcher/Runtime/main_ecu/object_recognition/object_recognition.launch.xml")
+    elif modality == PerceptionModality.LIDAR__RADAR_FUSION:
+        # Placeholder for lidar_radar_fusion launchers
+        launcher_paths.append("exports/LidarRadarCenterpoint.system/launcher/Runtime/main_ecu/object_recognition/object_recognition.launch.xml")
+    elif modality == PerceptionModality.LIDAR:
+        # Placeholder for lidar-only launchers
+        launcher_paths.append("exports/LidarCenterpoint.system/launcher/Runtime/main_ecu/object_recognition/object_recognition.launch.xml")
+    elif modality == PerceptionModality.CAMERA:
+        # Placeholder for camera-only launchers
+        launcher_paths.append("exports/Camera.system/launcher/Runtime/main_ecu/object_recognition/object_recognition.launch.xml")
+    elif modality == PerceptionModality.RADAR:
+        # Placeholder for radar-only launchers
+        launcher_paths.append("exports/Radar.system/launcher/Runtime/main_ecu/object_recognition/object_recognition.launch.xml")
+    
+    # Add other launchers based on other modes (obstacle_segmentation, traffic_light, etc.)
+    # Placeholder: Add obstacle segmentation launcher if needed
+    # Placeholder: Add traffic light recognition launcher if needed
+    # Placeholder: Add occupancy grid map launcher if needed
+    
+    return launcher_paths
 
-    workspace_root = os.path.dirname(get_package_prefix('autoware_architect')).rsplit('/', 1)[0]
-    architect_pkg_build_dir = os.path.join(workspace_root, 'build', 'autoware_architect')
-    launcher_pkg_install_dir = get_package_share_directory('tier4_perception_launch')
-
-    system_config.manifest_dir = os.path.join(architect_pkg_build_dir, "resource")
-    system_config.deployment_file = os.path.join(launcher_pkg_install_dir, deployment_file)
-    system_config.output_root_dir = os.path.join(launcher_pkg_install_dir)
-    system_config.domains = ['shared', 'dummy_modules']
-
-    logger.info("System YAML List File: %s", system_config.manifest_dir)
-    logger.info("Deployment File: %s", system_config.deployment_file)
-    logger.info("Output Root Dir: %s", system_config.output_root_dir)
-
-    # load and build the deployment
-    logger.info("autoware architect: Building deployment...")
-    deployment = Deployment(system_config)
-
-    # generate the system visualization
-    logger.info("autoware architect: Generating visualization...")
-    deployment.visualize()
-
-    # generate the launch files
-    logger.info("autoware architect: Generating launch files...")
-    deployment.generate_launcher()
-
-    return
+def determine_parameters(context, modes: dict) -> dict:
+    """
+    Determine parameters dictionary based on launch arguments and modes.
+    
+    This is a placeholder function. Parameters should be extracted from launch arguments
+    and organized into a dictionary structure for passing to launchers.
+    """
+    parameters = {}
+    
+    # Placeholder: Extract and organize parameters from context
+    # This should be implemented to extract all relevant launch arguments
+    # and organize them into the appropriate structure
+    
+    # Example (to be replaced with actual logic):
+    # parameters["data_path"] = config_to_str("data_path", context)
+    # parameters["config_path"] = config_to_str("config_path", context)
+    # parameters["vehicle_param_file"] = config_to_str("vehicle_param_file", context)
+    # etc.
+    
+    return parameters
 
 def create_pointcloud_container():
     """Create the pointcloud_container composable node container."""
@@ -245,33 +277,72 @@ def create_pointcloud_container():
         output="screen",
     )
 
-def launch_generated_launch_file(launch_arguments_names, launcher_file: str):
-    """Launch the generated Autoware System launch file."""
-    # Here we would normally load and execute the generated launch file.
-    # For simplicity, we will just print a message.
-    print("Launching generated Autoware System launch file...")
-
+def launch_xml_fallback(launch_arguments_names, xml_launcher_file: str):
+    """Launch XML launcher file with all given arguments (fallback for unsupported modes)."""
     # Build launch arguments dictionary using LaunchConfiguration for each argument
     launch_args_dict = {name: LaunchConfiguration(name) for name in launch_arguments_names}
 
     return IncludeLaunchDescription(
-        XMLLaunchDescriptionSource(launcher_file),
+        XMLLaunchDescriptionSource(xml_launcher_file),
         launch_arguments=launch_args_dict.items()
     )
 
-def opaque_generate_autoware_system(context, deployment_file: str):
-    """OpaqueFunction wrapper to generate Autoware System at launch time."""
-    is_supported, modes = determine_modes(context)
-    if is_supported == False:
-        logger.error("Invalid mode configuration. Modes selected: %s", modes)
-        return LaunchDescription([])
+def launch_prebuilt_launchers(launch_arguments_names, launcher_paths: list[str]):
+    """Launch pre-built launcher files with all given arguments."""
+    launcher_pkg_install_dir = get_package_share_directory('tier4_perception_launch')
     
-    parameters = {}
+    # Build launch arguments dictionary using LaunchConfiguration for each argument
+    launch_args_dict = {name: LaunchConfiguration(name) for name in launch_arguments_names}
     
-    deployment_file = "deployment/universe_perception_clr_centerpoint_serial.deployment.yaml"
-    generate_autoware_system(deployment_file, modes, parameters)
+    launch_actions = []
+    for launcher_path in launcher_paths:
+        launcher_file = os.path.join(launcher_pkg_install_dir, launcher_path)
+        launch_actions.append(
+            IncludeLaunchDescription(
+                XMLLaunchDescriptionSource(launcher_file),
+                launch_arguments=launch_args_dict.items()
+            )
+        )
+    
+    return launch_actions
 
-    return []
+def opaque_launch_perception_system(context, launch_argument_names: list[str], xml_fallback_file: str):
+    """
+    OpaqueFunction wrapper to launch perception system at launch time.
+    
+    Flow:
+    1. Parse arguments and determine modes and if the combination is supported
+    2. If not supported, launch with XML, handing over all the given arguments
+    3. If supported, determine set of launchers (pre-built) and launch them
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    # Parse arguments and determine modes
+    is_supported, modes = determine_modes(context)
+    
+    # Determine parameters (placeholder - to be implemented)
+    parameters = determine_parameters(context, modes)
+    
+    launch_actions = []
+    
+    if not is_supported:
+        # If not supported, launch with XML fallback, handing over all given arguments
+        logger.warning("Mode combination not supported. Using XML fallback. Modes: %s", pprint.pformat(modes, indent=2))
+        launch_actions.append(launch_xml_fallback(launch_argument_names, xml_fallback_file))
+    else:
+        # If supported, determine set of launchers (pre-built) and launch them
+        logger.info("Mode combination supported. Using pre-built launchers. Modes: %s", pprint.pformat(modes, indent=2))
+        launcher_paths = determine_launcher_paths(modes)
+        
+        if not launcher_paths:
+            logger.warning("No launcher paths determined for modes. Using XML fallback. Modes: %s", pprint.pformat(modes, indent=2))
+            launch_actions.append(launch_xml_fallback(launch_argument_names, xml_fallback_file))
+        else:
+            logger.info("Launching pre-built launchers: %s", launcher_paths)
+            launch_actions.extend(launch_prebuilt_launchers(launch_argument_names, launcher_paths))
+    
+    return launch_actions
 
 def generate_launch_description():
     """ Generate autoware system and launch the generated launch file. """
@@ -356,22 +427,18 @@ def generate_launch_description():
     add_launch_arg("traffic_light_recognition/use_high_accuracy_detection", default_value="true") # filter on/off
     add_launch_arg("traffic_light_recognition/high_accuracy_detection_type", default_value="fine_detection") # filter mode, whole_image_detection or fine_detection
 
-    # determine mode
-    deployment_file = "deployment/universe_perception_clr_centerpoint_serial.deployment.yaml"
-
-    # Setup launcher file path
+    # Setup XML fallback launcher file path (for unsupported modes)
     launcher_pkg_install_dir = get_package_share_directory('tier4_perception_launch')
-    launcher_path = "exports/CameraLidarRadarCenterpointSerial.system/launcher/Runtime/main_ecu/object_recognition/object_recognition.launch.xml"
-    launcher_file = os.path.join(launcher_pkg_install_dir, launcher_path)
+    xml_fallback_path = "launch/perception.launch.xml"
+    xml_fallback_file = os.path.join(launcher_pkg_install_dir, xml_fallback_path)
 
     # Create the pointcloud container
     pointcloud_container = create_pointcloud_container()
 
-    # Then launch the generated launch file
+    # Launch the perception system (will determine if supported and launch accordingly)
     return LaunchDescription(
         launch_arguments + [
-            OpaqueFunction(function=lambda context: opaque_generate_autoware_system(context, deployment_file)),
-            pointcloud_container, 
-            launch_generated_launch_file(launch_argument_names, launcher_file)
+            pointcloud_container,
+            OpaqueFunction(function=lambda context: opaque_launch_perception_system(context, launch_argument_names, xml_fallback_file))
         ]
     )

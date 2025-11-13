@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!-- Launcher a node -->
+  <node pkg="autoware_multi_object_tracker" exec="multi_object_tracker_node" name="multi_object_tracker" output="screen">
+  </node>
+
+</launch>
