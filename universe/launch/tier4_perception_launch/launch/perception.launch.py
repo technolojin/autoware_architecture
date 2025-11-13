@@ -105,12 +105,12 @@ def determine_modes(context) -> tuple[bool, dict]:
 
     ## obstacle segmentation
     if config_to_bool("use_obstacle_segmentation_time_series_filter", context):
-        if config_to_bool("use_obstacle_segmentation_time_series_filter", context):
+        if config_to_bool("use_obstacle_segmentation_single_frame_filter", context):
             modes["obstacle_segmentation_filter"] = ObstacleSegmentationFilterType.Combined
         else:
             modes["obstacle_segmentation_filter"] = ObstacleSegmentationFilterType.SingleFrame
     else:
-        if config_to_bool("use_obstacle_segmentation_time_series_filter", context):
+        if config_to_bool("use_obstacle_segmentation_single_frame_filter", context):
             modes["obstacle_segmentation_filter"] = ObstacleSegmentationFilterType.TimeSeries
         else:
             modes["obstacle_segmentation_filter"] = ObstacleSegmentationFilterType.NoFilter
@@ -240,13 +240,13 @@ def determine_launcher_paths(modes: dict) -> list[str]:
 
     # obstacle segmentation
     if modes.get("obstacle_segmentation_filter") == ObstacleSegmentationFilterType.Combined:
-        launcher_paths.append("exports/ObstacleSegmentationCombined.system/launcher/Runtime/main_ecu/obstacle_segmentation/obstacle_segmentation.launch.xml")
+        launcher_paths.append("exports/LidarCenterpoint.system/launcher/Runtime/main_ecu/obstacle_segmentation/obstacle_segmentation.launch.xml")
     elif modes.get("obstacle_segmentation_filter") == ObstacleSegmentationFilterType.SingleFrame:
-        launcher_paths.append("exports/ObstacleSegmentationSingleFrame.system/launcher/Runtime/main_ecu/obstacle_segmentation/obstacle_segmentation.launch.xml")
+        launcher_paths.append("exports/LidarCenterpoint.system/launcher/Runtime/main_ecu/obstacle_segmentation/obstacle_segmentation.launch.xml")
     elif modes.get("obstacle_segmentation_filter") == ObstacleSegmentationFilterType.TimeSeries:
-        launcher_paths.append("exports/ObstacleSegmentationTimeSeries.system/launcher/Runtime/main_ecu/obstacle_segmentation/obstacle_segmentation.launch.xml")
+        launcher_paths.append("exports/LidarCenterpoint.system/launcher/Runtime/main_ecu/obstacle_segmentation/obstacle_segmentation.launch.xml")
     elif modes.get("obstacle_segmentation_filter") == ObstacleSegmentationFilterType.NoFilter:
-        launcher_paths.append("exports/ObstacleSegmentationNoFilter.system/launcher/Runtime/main_ecu/obstacle_segmentation/obstacle_segmentation.launch.xml")
+        launcher_paths.append("exports/LidarCenterpoint.system/launcher/Runtime/main_ecu/obstacle_segmentation/obstacle_segmentation.launch.xml")
     else:
         logger.warning("Without obstacle segmentation: %s", modes.get("obstacle_segmentation_filter"))
         

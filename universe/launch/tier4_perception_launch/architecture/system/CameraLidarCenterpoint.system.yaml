@@ -34,8 +34,8 @@ components:
     entity: LidarCenterpoint.module
     namespace: perception/object_recognition/detection
     compute_unit: main_ecu
-  - component: object_segmentation
-    entity: ObjectSegmentation.module
+  - component: obstacle_segmentation
+    entity: ObstacleSegmentation.module
     namespace: perception
     compute_unit: main_ecu
     parameter_set: TypeBeta2PerceptionModule.parameter_set
@@ -61,14 +61,14 @@ connections:
     to: camera_2d_detection.input.image_raw*
 
   - from: lidar.output.concatenated/pointcloud
-    to: object_segmentation.input.concatenated_pointcloud
+    to: obstacle_segmentation.input.concatenated_pointcloud
 
   - from: lidar.output.concatenated/pointcloud
     to: centerpoint.input.pointcloud
   - from: object_recognition.output.map_filtered_obstacle_pointcloud
     to: centerpoint.input.obstacle_pointcloud
 
-  - from: object_segmentation.output.pointcloud
+  - from: obstacle_segmentation.output.pointcloud
     to: object_recognition.input.obstacle_pointcloud
   - from: camera_2d_detection.output.rois*
     to: object_recognition.input.rois*
@@ -83,7 +83,7 @@ connections:
 
   - from: lidar.output.concatenated/pointcloud
     to: occupancy_grid_map.input.concatenated_pointcloud
-  - from: object_segmentation.output.pointcloud
+  - from: obstacle_segmentation.output.pointcloud
     to: occupancy_grid_map.input.obstacle_pointcloud
 
   - from: map_loader.output.vector_map
