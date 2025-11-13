@@ -418,6 +418,11 @@ class LinkManager:
         if self.instance.entity_type != "node":
             return
 
+        for out_port in self.out_ports.values():
+            logger.debug(
+                f"[PORT_USER_DEBUG] port path: '{out_port.port_path}' topic: '{out_port.get_topic()}' (users={len(out_port.users)})"
+            )
+
         # check ports
         for in_port in self.in_ports.values():
             logger.debug(f"  In port: {in_port.port_path}")

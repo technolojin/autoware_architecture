@@ -31,6 +31,7 @@ external_interfaces:
     - name: vector_map
     - name: traffic_lights
     # lidar
+    - name: pointcloud
     - name: obstacle_pointcloud
     - name: lidar_ml_objects
     # camera
@@ -83,6 +84,8 @@ connections:
 
 
   # detection/irregular object
+  - from: input.pointcloud
+    to: detection/irregular_object.input.pointcloud
   - from: input.rois0
     to: detection/irregular_object.input.rois0
   - from: input.rois1
