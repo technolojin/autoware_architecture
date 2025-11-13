@@ -60,23 +60,19 @@ class Link:
             # propagate and finish the connection
             from_port_list = self.from_port.get_reference_list()
             to_port_list = self.to_port.get_reference_list()
-            if self.from_port not in from_port_list:
-                from_port_list = [self.from_port, *from_port_list]
-            if self.to_port not in to_port_list:
-                to_port_list = [self.to_port, *to_port_list]
 
             # check the message type is the same
-            for from_port in from_port_list:
-                if from_port.msg_type != self.msg_type:
-                    raise ValidationError(
-                        (
-                            "Message type mismatch on source port:\n"
-                            f"  Link expects : {self.msg_type}\n"
-                            f"  Port provides: {from_port.msg_type}\n"
-                            f"  Connection  : {from_port.name} -> {self.to_port.name}\n"
-                            "Action        : Check the 'message_type' of the output port definition."
-                        )
+            from_port_ref = from_port_list[0]
+            if from_port_ref.msg_type != self.msg_type:
+                raise ValidationError(
+                    (
+                        "Message type mismatch on source port:\n"
+                        f"  Link expects : {self.msg_type}\n"
+                        f"  Port provides: {from_port_ref.msg_type}\n"
+                        f"  Connection  : {from_port_ref.name} -> {self.to_port.name}\n"
+                        "Action        : Check the 'message_type' of the output port definition."
                     )
+                )
             for to_port in to_port_list:
                 if to_port.msg_type != self.msg_type:
                     raise ValidationError(
@@ -90,14 +86,12 @@ class Link:
                     )
 
             # link the ports
-            for from_port_ref in from_port_list:
-                from_port_ref.set_users(to_port_list)
+            from_port_ref.set_users(to_port_list)
             for to_port_ref in to_port_list:
                 to_port_ref.set_servers(from_port_list)
 
             # determine the topic, set it to the from-ports to publish and to-ports to subscribe
-            for from_port_ref in from_port_list:
-                from_port_ref.set_topic(self.from_port.namespace, self.from_port.name)
+            from_port_ref.set_topic(self.from_port.namespace, self.from_port.name)
             for to_port_ref in to_port_list:
                 to_port_ref.set_topic(self.from_port.namespace, self.from_port.name)
 
@@ -109,13 +103,8 @@ class Link:
         # case 2: from internal output to external output
         elif is_from_port_internal and not is_to_port_internal:
             # bring the from-port reference to the to-port reference
+            # Note: set_references() will validate that OutPort (to_port) has at most one reference
             reference_port_list = self.from_port.get_reference_list()
-            if self.to_port is None:
-                from_name = getattr(self.from_port, "name", "<unknown>")
-                raise ValidationError(
-                    "Invalid external output connection: target (to_port) is None. "
-                    f"from_port={from_name}, msg_type={self.msg_type}. Check connection definition for spelling or existence."
-                )
             self.to_port.set_references(reference_port_list)
             # set the topic name to the external output, whether it is connected or not
             for reference_port in reference_port_list:
