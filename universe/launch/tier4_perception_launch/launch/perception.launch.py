@@ -22,16 +22,17 @@ class PerceptionModality(str, Enum):
     NONE = "none"
     CAMERA_LIDAR_RADAR_FUSION = "camera_lidar_radar_fusion"
     CAMERA_LIDAR_FUSION = "camera_lidar_fusion"
-    LIDAR__RADAR_FUSION = "lidar_radar_fusion"
+    LIDAR_RADAR_FUSION = "lidar_radar_fusion"
     LIDAR = "lidar"
     CAMERA = "camera"
     RADAR = "radar"
 
 class ObstacleSegmentationFilterType(Enum):
-    NoFilter = 0
-    SingleFrame = 1
-    TimeSeries = 2
-    Combined = 3
+    NONE = 0
+    NoFilter = 1
+    SingleFrame = 2
+    TimeSeries = 3
+    Combined = 4
 
 class ObjectRecognitionFusionType(Enum):
     NONE = 0
@@ -78,6 +79,7 @@ def determine_modes(context) -> tuple[bool, dict]:
     """Determine mode based on launch configurations."""
     modes = {
         "perception_modality": PerceptionModality.NONE,
+        "obstacle_segmentation_filter": ObstacleSegmentationFilterType.NONE,
         "object_recognition_fusion_type": ObjectRecognitionFusionType.NONE,
         "object_recognition_lidar_model_type": ObjectRecognitionLidarModelType.NONE,
         "object_recognition_prediction_type": ObjectRecognitionPredictionType.NONE,
@@ -86,7 +88,7 @@ def determine_modes(context) -> tuple[bool, dict]:
     }
     is_supported = True
     
-    # common
+    ## common
     if config_to_bool("downsample_perception_common_pointcloud", context) == True:
         is_supported = False
         return is_supported, modes
@@ -101,10 +103,10 @@ def determine_modes(context) -> tuple[bool, dict]:
     else:
         modes["perception_analytics_publisher"] = False
 
-    # obstacle segmentation
+    ## obstacle segmentation
     if config_to_bool("use_obstacle_segmentation_time_series_filter", context):
         if config_to_bool("use_obstacle_segmentation_time_series_filter", context):
-            modes["obstacle_segmentation_filter"] = ObstacleSegmentationFilterType.TimeSeries
+            modes["obstacle_segmentation_filter"] = ObstacleSegmentationFilterType.Combined
         else:
             modes["obstacle_segmentation_filter"] = ObstacleSegmentationFilterType.SingleFrame
     else:
@@ -113,34 +115,61 @@ def determine_modes(context) -> tuple[bool, dict]:
         else:
             modes["obstacle_segmentation_filter"] = ObstacleSegmentationFilterType.NoFilter
 
-    # object recognition
+    ## object recognition
+    # modality with lidar detection model
     lidar_mode, lidar_model = config_to_str("lidar_detection_model", context).split('/')
     modality = config_to_str("mode", context)
     if modality == PerceptionModality.CAMERA_LIDAR_RADAR_FUSION:
         modes["perception_modality"] = PerceptionModality.CAMERA_LIDAR_RADAR_FUSION
+        if lidar_mode == "centerpoint":
+            modes["object_recognition_lidar_model_type"] = ObjectRecognitionLidarModelType.Centerpoint
+        elif lidar_mode == "pointpainting":
+            modes["object_recognition_lidar_model_type"] = ObjectRecognitionLidarModelType.Pointpainting
+        elif lidar_mode == "transfusion":
+            modes["object_recognition_lidar_model_type"] = ObjectRecognitionLidarModelType.Transfusion
+        else:
+            is_supported = False
+            return is_supported, modes
     elif modality == PerceptionModality.CAMERA_LIDAR_FUSION:
         modes["perception_modality"] = PerceptionModality.CAMERA_LIDAR_FUSION
-    elif modality == PerceptionModality.LIDAR__RADAR_FUSION:
-        modes["perception_modality"] = PerceptionModality.LIDAR__RADAR_FUSION
-    elif modality == PerceptionModality.LIDAR:
-        modes["perception_modality"] = PerceptionModality.LIDAR
-    elif modality == PerceptionModality.CAMERA:
-        modes["perception_modality"] = PerceptionModality.CAMERA
-    elif modality == PerceptionModality.RADAR:
-        modes["perception_modality"] = PerceptionModality.RADAR
-    else:
+        if lidar_mode == "centerpoint":
+            modes["object_recognition_lidar_model_type"] = ObjectRecognitionLidarModelType.Centerpoint
+        elif lidar_mode == "pointpainting":
+            modes["object_recognition_lidar_model_type"] = ObjectRecognitionLidarModelType.Pointpainting
+        elif lidar_mode == "transfusion":
+            modes["object_recognition_lidar_model_type"] = ObjectRecognitionLidarModelType.Transfusion
+        elif lidar_mode == "apollo":
+            modes["object_recognition_lidar_model_type"] = ObjectRecognitionLidarModelType.Apollo
+        else:
+            is_supported = False
+            return is_supported, modes
+    elif modality == PerceptionModality.LIDAR_RADAR_FUSION:
+        modes["perception_modality"] = PerceptionModality.LIDAR_RADAR_FUSION
+        if lidar_model == "pointpainting":
+            logger.error("Pointpainting is not supported without camera")
+            return False, modes
         is_supported = False
         return is_supported, modes
-
-    # lidar detection model
-    if lidar_mode == "centerpoint":
-        modes["object_recognition_lidar_model_type"] = ObjectRecognitionLidarModelType.Centerpoint
-    elif lidar_mode == "pointpainting":
-        modes["object_recognition_lidar_model_type"] = ObjectRecognitionLidarModelType.Pointpainting
-    elif lidar_mode == "apollo":
-        modes["object_recognition_lidar_model_type"] = ObjectRecognitionLidarModelType.Apollo
-    elif lidar_mode == "transfusion":
-        modes["object_recognition_lidar_model_type"] = ObjectRecognitionLidarModelType.Transfusion
+    elif modality == PerceptionModality.LIDAR:
+        modes["perception_modality"] = PerceptionModality.LIDAR
+        if lidar_model == "pointpainting":
+            logger.error("Pointpainting is not supported without camera")
+            return False, modes
+        if lidar_mode == "centerpoint":
+            modes["object_recognition_lidar_model_type"] = ObjectRecognitionLidarModelType.Centerpoint
+        elif lidar_mode == "transfusion":
+            modes["object_recognition_lidar_model_type"] = ObjectRecognitionLidarModelType.Transfusion
+        else:
+            is_supported = False
+            return is_supported, modes
+    elif modality == PerceptionModality.CAMERA:
+        modes["perception_modality"] = PerceptionModality.CAMERA
+        is_supported = False
+        return is_supported, modes
+    elif modality == PerceptionModality.RADAR:
+        modes["perception_modality"] = PerceptionModality.RADAR
+        is_supported = False
+        return is_supported, modes
     else:
         is_supported = False
         return is_supported, modes
@@ -159,16 +188,14 @@ def determine_modes(context) -> tuple[bool, dict]:
         # the other modalities with serial fusion
         modes["object_recognition_fusion_type"] = ObjectRecognitionFusionType.Serial
 
-    ## object prediction
-    if config_to_bool("use_vector_map", context) == True:
-        if config_to_str("prediction_model_type", context) == "map_based":
-            modes["object_prediction"] = "map_based"
-        else:
-            modes["object_prediction"] = "simpl_model"
+    # object prediction
+    if config_to_str("prediction_model_type", context) == "map_based":
+        modes["object_recognition_prediction_type"] = ObjectRecognitionPredictionType.MapBased
     else:
-        modes["object_prediction"] = "off"
+        is_supported = False
+        return is_supported, modes
 
-    # occupancy grid map
+    ## occupancy grid map
     if config_to_str("occupancy_grid_map_method", context) == "pointcloud_based_occupancy_grid_map":
         modes["occupancy_grid_map"] = "pointcloud_based"
     elif config_to_str("occupancy_grid_map_method", context) == "laserscan_based_occupancy_grid_map":
@@ -178,7 +205,7 @@ def determine_modes(context) -> tuple[bool, dict]:
     else:
         modes["occupancy_grid_map"] = "off"
 
-    # traffic light recognition
+    ## traffic light recognition
     if config_to_bool("use_traffic_light_recognition", context) == False:
         modes["traffic_light_recognition"] = "off"
     elif config_to_bool("traffic_light_recognition/fusion_only", context) == True:
@@ -207,42 +234,73 @@ def determine_launcher_paths(modes: dict) -> list[str]:
     """
     launcher_paths = []
     
-    # Placeholder: Determine launcher paths based on modes
-    # This should be implemented based on the actual mode combinations
-    
-    # Example structure (to be replaced with actual logic):
+    # common
+
+
+
+    # obstacle segmentation
+    if modes.get("obstacle_segmentation_filter") == ObstacleSegmentationFilterType.Combined:
+        launcher_paths.append("exports/ObstacleSegmentationCombined.system/launcher/Runtime/main_ecu/obstacle_segmentation/obstacle_segmentation.launch.xml")
+    elif modes.get("obstacle_segmentation_filter") == ObstacleSegmentationFilterType.SingleFrame:
+        launcher_paths.append("exports/ObstacleSegmentationSingleFrame.system/launcher/Runtime/main_ecu/obstacle_segmentation/obstacle_segmentation.launch.xml")
+    elif modes.get("obstacle_segmentation_filter") == ObstacleSegmentationFilterType.TimeSeries:
+        launcher_paths.append("exports/ObstacleSegmentationTimeSeries.system/launcher/Runtime/main_ecu/obstacle_segmentation/obstacle_segmentation.launch.xml")
+    elif modes.get("obstacle_segmentation_filter") == ObstacleSegmentationFilterType.NoFilter:
+        launcher_paths.append("exports/ObstacleSegmentationNoFilter.system/launcher/Runtime/main_ecu/obstacle_segmentation/obstacle_segmentation.launch.xml")
+    else:
+        logger.warning("Without obstacle segmentation: %s", modes.get("obstacle_segmentation_filter"))
+        
+    # object recognition
     modality = modes.get("perception_modality")
     fusion_type = modes.get("object_recognition_fusion_type")
     lidar_model = modes.get("object_recognition_lidar_model_type")
-    
-    # Placeholder paths - these should be determined based on actual mode combinations
+
     if modality == PerceptionModality.CAMERA_LIDAR_RADAR_FUSION:
         if fusion_type == ObjectRecognitionFusionType.Parallel:
             if lidar_model == ObjectRecognitionLidarModelType.Centerpoint:
+                launcher_paths.append("exports/CameraLidarRadarCenterpointParallel.system/launcher/Runtime/main_ecu/centerpoint/centerpoint.launch.xml")
                 launcher_paths.append("exports/CameraLidarRadarCenterpointParallel.system/launcher/Runtime/main_ecu/object_recognition/object_recognition.launch.xml")
         elif fusion_type == ObjectRecognitionFusionType.Serial:
             if lidar_model == ObjectRecognitionLidarModelType.Centerpoint:
+                launcher_paths.append("exports/CameraLidarRadarCenterpointSerial.system/launcher/Runtime/main_ecu/centerpoint/centerpoint.launch.xml")
                 launcher_paths.append("exports/CameraLidarRadarCenterpointSerial.system/launcher/Runtime/main_ecu/object_recognition/object_recognition.launch.xml")
+        else:
+            logger.error("Invalid fusion type for camera_lidar_radar_fusion: %s", fusion_type)
     elif modality == PerceptionModality.CAMERA_LIDAR_FUSION:
-        # Placeholder for camera_lidar_fusion launchers
-        launcher_paths.append("exports/CameraLidarCenterpoint.system/launcher/Runtime/main_ecu/object_recognition/object_recognition.launch.xml")
-    elif modality == PerceptionModality.LIDAR__RADAR_FUSION:
-        # Placeholder for lidar_radar_fusion launchers
-        launcher_paths.append("exports/LidarRadarCenterpoint.system/launcher/Runtime/main_ecu/object_recognition/object_recognition.launch.xml")
+        if lidar_model == ObjectRecognitionLidarModelType.Centerpoint:
+            launcher_paths.append("exports/CameraLidarCenterpoint.system/launcher/Runtime/main_ecu/centerpoint/centerpoint.launch.xml")
+            launcher_paths.append("exports/CameraLidarCenterpoint.system/launcher/Runtime/main_ecu/object_recognition/object_recognition.launch.xml")
+        elif lidar_model == ObjectRecognitionLidarModelType.Pointpainting:
+            launcher_paths.append("exports/CameraLidarPointpainting.system/launcher/Runtime/main_ecu/pointpainting/pointpainting.launch.xml")
+            launcher_paths.append("exports/CameraLidarPointpainting.system/launcher/Runtime/main_ecu/object_recognition/object_recognition.launch.xml")
+        elif lidar_model == ObjectRecognitionLidarModelType.Apollo:
+            launcher_paths.append("exports/CameraLidarApollo.system/launcher/Runtime/main_ecu/apollo/apollo.launch.xml")
+            launcher_paths.append("exports/CameraLidarApollo.system/launcher/Runtime/main_ecu/object_recognition/object_recognition.launch.xml")
+        else:
+            logger.error("Invalid lidar model for camera_lidar_fusion: %s", lidar_model)
+
+    elif modality == PerceptionModality.LIDAR_RADAR_FUSION:
+        logger.error("Lidar radar fusion is not supported")
     elif modality == PerceptionModality.LIDAR:
-        # Placeholder for lidar-only launchers
-        launcher_paths.append("exports/LidarCenterpoint.system/launcher/Runtime/main_ecu/object_recognition/object_recognition.launch.xml")
+        if lidar_model == ObjectRecognitionLidarModelType.Centerpoint:
+            launcher_paths.append("exports/LidarCenterpoint.system/launcher/Runtime/main_ecu/centerpoint/centerpoint.launch.xml")
+            launcher_paths.append("exports/LidarCenterpoint.system/launcher/Runtime/main_ecu/object_recognition/object_recognition.launch.xml")
+        elif lidar_model == ObjectRecognitionLidarModelType.Transfusion:
+            launcher_paths.append("exports/LidarTransfusion.system/launcher/Runtime/main_ecu/transfusion/transfusion.launch.xml")
+            launcher_paths.append("exports/LidarTransfusion.system/launcher/Runtime/main_ecu/object_recognition/object_recognition.launch.xml")
+        else:
+            logger.error("Invalid lidar model for lidar: %s", lidar_model)
     elif modality == PerceptionModality.CAMERA:
-        # Placeholder for camera-only launchers
-        launcher_paths.append("exports/Camera.system/launcher/Runtime/main_ecu/object_recognition/object_recognition.launch.xml")
+        logger.error("Camera is not supported")
     elif modality == PerceptionModality.RADAR:
-        # Placeholder for radar-only launchers
-        launcher_paths.append("exports/Radar.system/launcher/Runtime/main_ecu/object_recognition/object_recognition.launch.xml")
+        logger.error("Radar is not supported")
+    else:
+        logger.warning("Without object recognition: %s", modality)
     
-    # Add other launchers based on other modes (obstacle_segmentation, traffic_light, etc.)
-    # Placeholder: Add obstacle segmentation launcher if needed
-    # Placeholder: Add traffic light recognition launcher if needed
-    # Placeholder: Add occupancy grid map launcher if needed
+    # occupancy grid map
+
+    # traffic light recognition
+
     
     return launcher_paths
 
