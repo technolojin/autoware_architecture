@@ -6,7 +6,7 @@ from launch.actions import DeclareLaunchArgument
 from launch.actions import OpaqueFunction
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, EnvironmentVariable, PathJoinSubstitution
 from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
 
 from ament_index_python.packages import get_package_share_directory, get_package_prefix
@@ -257,16 +257,15 @@ def determine_launcher_paths(modes: dict) -> list[str]:
     lidar_model = modes.get("object_recognition_lidar_model_type")
 
     if modality == PerceptionModality.CAMERA_LIDAR_RADAR_FUSION:
-        if fusion_type == ObjectRecognitionFusionType.Parallel:
-            if lidar_model == ObjectRecognitionLidarModelType.Centerpoint:
-                launcher_paths.append("exports/CameraLidarRadarCenterpointParallel.system/launcher/Runtime/main_ecu/centerpoint/centerpoint.launch.xml")
+        # centerpoint only
+        if lidar_model == ObjectRecognitionLidarModelType.Centerpoint:
+            if fusion_type == ObjectRecognitionFusionType.Parallel:
                 launcher_paths.append("exports/CameraLidarRadarCenterpointParallel.system/launcher/Runtime/main_ecu/object_recognition/object_recognition.launch.xml")
-        elif fusion_type == ObjectRecognitionFusionType.Serial:
-            if lidar_model == ObjectRecognitionLidarModelType.Centerpoint:
-                launcher_paths.append("exports/CameraLidarRadarCenterpointSerial.system/launcher/Runtime/main_ecu/centerpoint/centerpoint.launch.xml")
+            elif fusion_type == ObjectRecognitionFusionType.Serial:
                 launcher_paths.append("exports/CameraLidarRadarCenterpointSerial.system/launcher/Runtime/main_ecu/object_recognition/object_recognition.launch.xml")
+            launcher_paths.append("exports/CameraLidarCenterpointA.system/launcher/Runtime/main_ecu/centerpoint/centerpoint.launch.xml")
         else:
-            logger.error("Invalid fusion type for camera_lidar_radar_fusion: %s", fusion_type)
+            logger.error("Invalid lidar model type for camera_lidar_radar_fusion: %s", lidar_model)
     elif modality == PerceptionModality.CAMERA_LIDAR_FUSION:
         if lidar_model == ObjectRecognitionLidarModelType.Centerpoint:
             launcher_paths.append("exports/CameraLidarCenterpointA.system/launcher/Runtime/main_ecu/centerpoint/centerpoint.launch.xml")
@@ -439,7 +438,7 @@ def generate_launch_description():
     add_launch_arg("camera_2d_detector/color_map_path", default_value="$(var data_path)/tensorrt_yolox/semseg_color_map.csv")
 
     # deployment configuration
-    add_launch_arg("data_path", default_value="$(env HOME)/autoware_data") # config
+    add_launch_arg("data_path", default_value=[PathJoinSubstitution([EnvironmentVariable('HOME'), 'autoware_data'])]) # config
     add_launch_arg("config_path", default_value="install/autoware_configs/share/autoware_configs/config/default") # config
     add_launch_arg("vehicle_param_file", default_value="$(find-pkg-share $(var vehicle_model)_description)/config/vehicle_info.param.yaml") # config
     
