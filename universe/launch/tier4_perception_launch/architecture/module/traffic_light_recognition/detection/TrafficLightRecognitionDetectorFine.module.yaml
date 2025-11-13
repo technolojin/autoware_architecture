@@ -30,8 +30,6 @@ connections:
     to: map_based_detector.input.route
   - from: input.camera_info
     to: map_based_detector.input.camera_info
-  - from: input.route
-    to: map_based_detector.input.route
   
   - from: input.image
     to: detection.input.image

@@ -1,4 +1,4 @@
-name: CameraLidarCenterpoint.system
+name: CameraLidarCenterpointA.system
 
 modes:
   - name: Runtime

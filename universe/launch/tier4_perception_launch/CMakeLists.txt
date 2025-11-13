@@ -18,7 +18,8 @@ add_library(${PROJECT_NAME} SHARED src/empty.cpp)
 
 # Call the function to build and deploy the modules
 autoware_architect_build_deploy(${PROJECT_NAME} CameraLidarApollo.system dummy_modules;tier4_perception_launch)
-autoware_architect_build_deploy(${PROJECT_NAME} CameraLidarCenterpoint.system dummy_modules;tier4_perception_launch)
+autoware_architect_build_deploy(${PROJECT_NAME} CameraLidarCenterpointA.system dummy_modules;tier4_perception_launch)
+autoware_architect_build_deploy(${PROJECT_NAME} CameraLidarCenterpointB.system dummy_modules;tier4_perception_launch)
 autoware_architect_build_deploy(${PROJECT_NAME} CameraLidarPointpainting.system dummy_modules;tier4_perception_launch)
 autoware_architect_build_deploy(${PROJECT_NAME} CameraLidarRadarCenterpointParallel.system dummy_modules;tier4_perception_launch)
 autoware_architect_build_deploy(${PROJECT_NAME} CameraLidarRadarCenterpointSerial.system dummy_modules;tier4_perception_launch)

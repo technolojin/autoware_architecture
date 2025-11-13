@@ -29,8 +29,6 @@ connections:
     to: detection.input.vector_map
   - from: input.obstacle_pointcloud
     to: detection.input.obstacle_pointcloud
-  - from: input.pointcloud_map
-    to: detection.input.pointcloud_map
   - from: input.lidar_ml_objects
     to: detection.input.lidar_ml_objects
   - from: detection.output.filtered_obstacle_pointcloud

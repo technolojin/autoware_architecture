@@ -282,9 +282,55 @@ class LinkManager:
             self._create_link_from_ports(from_port, to_port, connection.type)
 
 
+    def _check_and_deduplicate_connections(self, connection_list: List[Connection]) -> List[Connection]:
+        """Check for duplicate connections and deduplicate if identical, error if conflicting.
+        
+        Args:
+            connection_list: List of Connection objects to check
+            
+        Returns:
+            Deduplicated list of Connection objects
+            
+        Raises:
+            ValidationError: If duplicate connections are found that differ in some way
+        """
+        def _format_connection_string(conn: Connection) -> str:
+            """Format connection for display in error messages."""
+            if conn.from_instance == "":
+                from_str = f"input.{conn.from_port_name}"
+            else:
+                from_str = f"{conn.from_instance}.output.{conn.from_port_name}"
+            
+            if conn.to_instance == "":
+                to_str = f"output.{conn.to_port_name}"
+            else:
+                to_str = f"{conn.to_instance}.input.{conn.to_port_name}"
+            
+            return f"{from_str} -> {to_str}"
+        
+        seen_connections: Dict[str, Connection] = {}  # key: connection signature, value: first occurrence
+        duplicate_indices: List[int] = []  # indices of duplicates to remove
+        
+        for idx, conn in enumerate(connection_list):
+            # Create a signature for the connection (endpoints only)
+            conn_signature = f"{conn.from_instance}.{conn.from_port_name} -> {conn.to_instance}.{conn.to_port_name}"
+            
+            if conn_signature in seen_connections:
+                conn_str = _format_connection_string(conn)
+                file_path = getattr(self.instance.configuration, 'file_path', 'unknown')
+                raise ValidationError(f"[E_DUPLICATE_CONNECTION] Duplicate connection found: {conn_str} (type={conn.type.name}). At {file_path}")
+            else:
+                seen_connections[conn_signature] = conn
+        
+        # Return deduplicated list (keep first occurrence, remove duplicates)
+        return [conn for idx, conn in enumerate(connection_list) if idx not in duplicate_indices]
+
     def set_links(self):
         """Set up links based on entity connections."""
         connection_list: List[Connection] = [Connection(cfg) for cfg in self.instance.configuration.connections]
+        
+        # Check for and deduplicate duplicate connections
+        connection_list = self._check_and_deduplicate_connections(connection_list)
 
         # dictionary of ports, having field of instance, port-name, port-type
         port_list_from: Dict[str, Dict[str, Any]] = {}

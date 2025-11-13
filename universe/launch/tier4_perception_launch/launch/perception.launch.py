@@ -269,8 +269,8 @@ def determine_launcher_paths(modes: dict) -> list[str]:
             logger.error("Invalid fusion type for camera_lidar_radar_fusion: %s", fusion_type)
     elif modality == PerceptionModality.CAMERA_LIDAR_FUSION:
         if lidar_model == ObjectRecognitionLidarModelType.Centerpoint:
-            launcher_paths.append("exports/CameraLidarCenterpoint.system/launcher/Runtime/main_ecu/centerpoint/centerpoint.launch.xml")
-            launcher_paths.append("exports/CameraLidarCenterpoint.system/launcher/Runtime/main_ecu/object_recognition/object_recognition.launch.xml")
+            launcher_paths.append("exports/CameraLidarCenterpointA.system/launcher/Runtime/main_ecu/centerpoint/centerpoint.launch.xml")
+            launcher_paths.append("exports/CameraLidarCenterpointA.system/launcher/Runtime/main_ecu/object_recognition/object_recognition.launch.xml")
         elif lidar_model == ObjectRecognitionLidarModelType.Pointpainting:
             launcher_paths.append("exports/CameraLidarPointpainting.system/launcher/Runtime/main_ecu/pointpainting/pointpainting.launch.xml")
             launcher_paths.append("exports/CameraLidarPointpainting.system/launcher/Runtime/main_ecu/object_recognition/object_recognition.launch.xml")
