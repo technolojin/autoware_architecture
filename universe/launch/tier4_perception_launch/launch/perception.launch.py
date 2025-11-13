@@ -197,31 +197,32 @@ def determine_modes(context) -> tuple[bool, dict]:
 
     ## occupancy grid map
     if config_to_str("occupancy_grid_map_method", context) == "pointcloud_based_occupancy_grid_map":
-        modes["occupancy_grid_map"] = "pointcloud_based"
+        modes["occupancy_grid_map"] = OccupancyGridMapType.PointcloudBased
     elif config_to_str("occupancy_grid_map_method", context) == "laserscan_based_occupancy_grid_map":
-        modes["occupancy_grid_map"] = "laserscan_based"
+        modes["occupancy_grid_map"] = OccupancyGridMapType.LaserscanBased
     elif config_to_str("occupancy_grid_map_method", context) == "multi_lidar_pointcloud_based_occupancy_grid_map":
-        modes["occupancy_grid_map"] = "multi_lidar_pointcloud_based"
+        modes["occupancy_grid_map"] = OccupancyGridMapType.MultiLidarPointcloudBased
     else:
-        modes["occupancy_grid_map"] = "off"
+        modes["occupancy_grid_map"] = OccupancyGridMapType.NONE
 
     ## traffic light recognition
     if config_to_bool("use_traffic_light_recognition", context) == False:
-        modes["traffic_light_recognition"] = "off"
+        modes["traffic_light_recognition"] = TrafficLightRecognitionType.NONE
     elif config_to_bool("traffic_light_recognition/fusion_only", context) == True:
         if config_to_str("traffic_light_recognition/high_accuracy_detection_type", context) == "fine_detection":
-            modes["traffic_light_recognition"] = "fusion_only_fine_detection"
+            modes["traffic_light_recognition"] = TrafficLightRecognitionType.FusionOnlyFineDetection
         else:
-            modes["traffic_light_recognition"] = "fusion_only"
+            modes["traffic_light_recognition"] = TrafficLightRecognitionType.FusionOnly
     elif config_to_bool("traffic_light_recognition/use_high_accuracy_detection", context) == True:
         if config_to_str("traffic_light_recognition/high_accuracy_detection_type", context) == "fine_detection":
-            modes["traffic_light_recognition"] = "high_accuracy_fine_detection"
+            modes["traffic_light_recognition"] = TrafficLightRecognitionType.FineDetection
         elif config_to_str("traffic_light_recognition/high_accuracy_detection_type", context) == "whole_image_detection":
-            modes["traffic_light_recognition"] = "high_accuracy_whole_image_detection"
+            modes["traffic_light_recognition"] = TrafficLightRecognitionType.WholeImageDetection
         else:
-            modes["traffic_light_recognition"] = "standard_detection"
+            is_supported = False
+            return is_supported, modes
     else:
-        modes["traffic_light_recognition"] = "standard_detection"
+        modes["traffic_light_recognition"] = TrafficLightRecognitionType.NONE
 
     return is_supported, modes
 
@@ -298,6 +299,7 @@ def determine_launcher_paths(modes: dict) -> list[str]:
         logger.warning("Without object recognition: %s", modality)
     
     # occupancy grid map
+
 
     # traffic light recognition
 
