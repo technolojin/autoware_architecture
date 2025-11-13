@@ -42,9 +42,9 @@ connections:
     to: multi_camera_fusion.input.vector_map
   - from: input.camera*/camera_info
     to: multi_camera_fusion.input.camera*/camera_info
-  - from: camera*.output.traffic_signals
+  - from: camera*.output.classification/traffic_signals
     to: multi_camera_fusion.input.camera*/classification/traffic_signals
-  - from: camera*.output.rois
+  - from: camera*.output.detection/rois
     to: multi_camera_fusion.input.camera*/detection/rois
 
   - from: input.vector_map

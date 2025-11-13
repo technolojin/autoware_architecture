@@ -211,7 +211,11 @@ def _generate_component_launcher(compute_unit: str, namespace: str, components: 
     component_dir = os.path.join(output_dir, compute_unit, namespace)
     _ensure_directory(component_dir)
     
-    launcher_file = os.path.join(component_dir, f"{namespace}.launch.xml")
+    # Sanitize namespace for filename: replace slashes with double underscores
+    # This prevents creating nested directories in the filename while preserving the full name
+    filename = namespace.replace('/', '__')
+    
+    launcher_file = os.path.join(component_dir, f"{filename}.launch.xml")
     
     logger.debug(f"Creating component launcher: {launcher_file}")
     

@@ -24,8 +24,8 @@ external_interfaces:
     - name: camera_info
     - name: route
   output:
-    - name: traffic_signals
-    - name: rois
+    - name: classification/traffic_signals
+    - name: detection/rois
 
 connections:
   - from: input.vector_map

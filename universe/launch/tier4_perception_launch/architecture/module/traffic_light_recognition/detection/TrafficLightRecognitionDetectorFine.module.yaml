@@ -20,8 +20,8 @@ external_interfaces:
     - name: route
     - name: pointcloud
   output:
-    - name: traffic_signals
-    - name: rois
+    - name: classification/traffic_signals
+    - name: detection/rois
 
 connections:
   - from: input.vector_map
@@ -40,7 +40,7 @@ connections:
   - from: map_based_detector.output.expected_rois
     to: detection.input.expect_rois
   - from: detection.output.rois
-    to: output.rois
+    to: output.detection/rois
 
   - from: input.image
     to: classifier_car.input.image
@@ -65,4 +65,4 @@ connections:
   - from: classifier_pedestrian.output.traffic_signals
     to: occlusion_predictor.input.pedestrian/traffic_signals
   - from: occlusion_predictor.output.traffic_signals
-    to: output.traffic_signals
+    to: output.classification/traffic_signals

@@ -23,6 +23,14 @@ components:
     entity: LocalizationDummy.node
     namespace: localization
     compute_unit: dummy_ecu
+  - component: traffic_light_recognition/camera4
+    entity: TrafficLightRecognitionDummy.module
+    namespace: perception
+    compute_unit: dummy_ecu
+  - component: traffic_light_recognition/camera5
+    entity: TrafficLightRecognitionDummy.module
+    namespace: perception
+    compute_unit: dummy_ecu
 
   # perception
   - component: camera_2d_detection
@@ -92,6 +100,19 @@ connections:
 
   - from: map_loader.output.vector_map
     to: localizer.input.lanelet_map
+
+  - from: traffic_light_recognition/camera4.output.classification/car/traffic_signals
+    to: traffic_light_recognition.input.camera1_traffic_signals_car
+  - from: traffic_light_recognition/camera4.output.classification/pedestrian/traffic_signals
+    to: traffic_light_recognition.input.camera1_traffic_signals_pedestrian
+  - from: traffic_light_recognition/camera4.output.detection/rois
+    to: traffic_light_recognition.input.camera1_rois
+  - from: traffic_light_recognition/camera5.output.classification/car/traffic_signals
+    to: traffic_light_recognition.input.camera2_traffic_signals_car
+  - from: traffic_light_recognition/camera5.output.classification/pedestrian/traffic_signals
+    to: traffic_light_recognition.input.camera2_traffic_signals_pedestrian
+  - from: traffic_light_recognition/camera5.output.detection/rois
+    to: traffic_light_recognition.input.camera2_rois
 
   - from: map_loader.output.vector_map
     to: traffic_light_recognition.input.vector_map
