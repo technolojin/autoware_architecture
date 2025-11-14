@@ -420,9 +420,12 @@ def launch_prebuilt_launchers(context, launch_arguments_names: list[str], launch
             ))
         elif terminal_method == 'terminator':
             # Launch with terminator: create split panes using layout file
+            titles = [os.path.basename(path) for path in launcher_paths]
+            if launch_pointcloud_container:
+                titles.insert(0, 'pointcloud_container')
             launch_actions.extend(launch_in_terminator(
                 context, launch_arguments_names, launcher_paths, launcher_pkg_install_dir,
-                launch_pointcloud_container=launch_pointcloud_container
+                launch_pointcloud_container=launch_pointcloud_container, titles=titles
             ))
     else:
         # Use regular launch (current approach)
@@ -435,8 +438,7 @@ def launch_prebuilt_launchers(context, launch_arguments_names: list[str], launch
                     XMLLaunchDescriptionSource(launcher_file),
                     launch_arguments=launch_args_dict.items()
                 )
-            )
-    
+            )    
     return launch_actions
 
 def opaque_launch_perception_system(context, launch_argument_names: list[str], xml_fallback_file: str):
