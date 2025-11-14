@@ -1,4 +1,5 @@
 import os
+import logging
 
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
@@ -16,6 +17,14 @@ from autoware_architect.config import SystemConfig
 import pprint
 
 from enum import Enum
+
+logger = logging.getLogger(__name__)
+# Configure logger to output to terminal
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
 
 
 class PerceptionModality(str, Enum):
@@ -358,6 +367,7 @@ def create_pointcloud_container():
 def launch_xml_fallback(launch_arguments_names, xml_launcher_file: str):
     """Launch XML launcher file with all given arguments (fallback for unsupported modes)."""
     # Build launch arguments dictionary using LaunchConfiguration for each argument
+    logger.info("Launching XML fallback: %s", xml_launcher_file)
     launch_args_dict = {name: LaunchConfiguration(name) for name in launch_arguments_names}
 
     return IncludeLaunchDescription(
@@ -393,9 +403,6 @@ def opaque_launch_perception_system(context, launch_argument_names: list[str], x
     2. If not supported, launch with XML, handing over all the given arguments
     3. If supported, determine set of launchers (pre-built) and launch them
     """
-    import logging
-    logger = logging.getLogger(__name__)
-    
     # Parse arguments and determine modes
     is_supported, modes = determine_modes(context)
     
@@ -417,7 +424,11 @@ def opaque_launch_perception_system(context, launch_argument_names: list[str], x
             logger.warning("No launcher paths determined for modes. Using XML fallback. Modes: %s", pprint.pformat(modes, indent=2))
             launch_actions.append(launch_xml_fallback(launch_argument_names, xml_fallback_file))
         else:
-            logger.info("Launching pre-built launchers: %s", launcher_paths)
+            # print launcher paths with indent
+            logger.info("Launching pre-built launchers:")
+            for launcher_path in launcher_paths:
+                logger.info("  - %s", launcher_path)
+            # launch the pre-built launchers
             launch_actions.extend(launch_prebuilt_launchers(launch_argument_names, launcher_paths))
     
     return launch_actions
