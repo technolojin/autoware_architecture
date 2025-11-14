@@ -29,6 +29,7 @@ if str(launch_dir) not in sys.path:
 import multi_terminal_launcher
 detect_terminal_method = multi_terminal_launcher.detect_terminal_method
 launch_in_tmux = multi_terminal_launcher.launch_in_tmux
+launch_in_terminator = multi_terminal_launcher.launch_in_terminator
 
 # Configuration: Enable/disable launching each launcher in separate terminals
 USE_SEPARATE_TERMINALS = True
@@ -414,6 +415,12 @@ def launch_prebuilt_launchers(context, launch_arguments_names: list[str], launch
         if terminal_method == 'tmux':
             # Launch with tmux: create new panes in a single window
             launch_actions.extend(launch_in_tmux(
+                context, launch_arguments_names, launcher_paths, launcher_pkg_install_dir,
+                launch_pointcloud_container=launch_pointcloud_container
+            ))
+        elif terminal_method == 'terminator':
+            # Launch with terminator: create split panes using layout file
+            launch_actions.extend(launch_in_terminator(
                 context, launch_arguments_names, launcher_paths, launcher_pkg_install_dir,
                 launch_pointcloud_container=launch_pointcloud_container
             ))

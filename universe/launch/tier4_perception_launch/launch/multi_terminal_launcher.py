@@ -12,7 +12,12 @@ logger = logging.getLogger(__name__)
 
 def detect_terminal_method() -> str:
     """Detect available terminal method for launching separate terminals."""
-    return 'tmux' if shutil.which('tmux') is not None else 'none'
+    if shutil.which('terminator') is not None:
+        return 'terminator'
+    elif shutil.which('tmux') is not None:
+        return 'tmux'
+    else:
+        return 'none'
 
 
 def detect_gui_terminal() -> str:
@@ -175,6 +180,192 @@ def launch_in_tmux(context, launch_arguments_names: list[str], launcher_paths: l
     script_path = create_tmux_launcher_script(
         launcher_paths, launch_args_cmd, launcher_pkg_install_dir,
         launcher_pkg_name, session_name, window_name, launch_pointcloud_container
+    )
+    return [ExecuteProcess(cmd=['bash', script_path], output='screen')]
+
+
+def create_terminator_launcher_script(launcher_paths: list[str], launch_args_cmd: list[str],
+                                     launcher_pkg_install_dir: str,
+                                     launcher_pkg_name: str = 'tier4_perception_launch',
+                                     layout_name: str = 'ros2_launchers',
+                                     launch_pointcloud_container: bool = False) -> str:
+    """Create a bash script that launches terminator with a layout and runs launchers."""
+    script_content = "#!/bin/bash\nset -e\n\n"
+    
+    workspace_install_dir = os.path.dirname(os.path.dirname(os.path.dirname(launcher_pkg_install_dir)))
+    setup_bash_path = os.path.join(workspace_install_dir, 'setup.bash')
+    script_content += f"WORKSPACE_SETUP={shlex.quote(setup_bash_path)}\n"
+    script_content += f"LAYOUT_NAME={shlex.quote(layout_name)}\n\n"
+    
+    script_content += "command -v terminator &> /dev/null || { echo 'ERROR: terminator not found' >&2; exit 1; }\n\n"
+    
+    total_panes = len(launcher_paths) + (1 if launch_pointcloud_container else 0)
+    script_content += f"echo \"Launching terminator with {total_panes} panes\"\n\n"
+    
+    # Build commands for each launcher
+    commands = []
+    
+    def build_cmd_part(cmd_parts):
+        """Build command part (without source) that will be combined in bash script."""
+        cmd_quoted = ' '.join(shlex.quote(p) for p in cmd_parts)
+        return escape_dollar_signs_for_bash(cmd_quoted)
+    
+    if launch_pointcloud_container:
+        container_cmd_part = build_cmd_part(['ros2', 'run', 'rclcpp_components', 'component_container',
+                                            '--ros-args', '-r', '__node:=pointcloud_container', '--log-level', 'info'])
+        commands.append(('pointcloud_container', container_cmd_part))
+    
+    for launcher_path in launcher_paths:
+        launcher_name = os.path.basename(launcher_path)
+        full_launcher_path = os.path.join(launcher_pkg_install_dir, launcher_path)
+        launch_cmd_part = build_cmd_part(['ros2', 'launch', full_launcher_path] + launch_args_cmd)
+        commands.append((launcher_name, launch_cmd_part))
+    
+    # Create terminator config with profiles and layout
+    # Terminator uses INI-style config with [profiles] and [layouts] sections
+    script_content += "TERMINATOR_CONFIG_DIR=\"$HOME/.config/terminator\"\n"
+    script_content += "TERMINATOR_CONFIG_FILE=\"$TERMINATOR_CONFIG_DIR/config\"\n"
+    script_content += "mkdir -p \"$TERMINATOR_CONFIG_DIR\"\n"
+    script_content += "# Backup existing config if it exists\n"
+    script_content += "if [ -f \"$TERMINATOR_CONFIG_FILE\" ]; then\n"
+    script_content += "  cp \"$TERMINATOR_CONFIG_FILE\" \"$TERMINATOR_CONFIG_FILE.bak.$$\"\n"
+    script_content += "fi\n"
+    
+    # Create profiles section for each launcher
+    # Use unquoted heredoc so $WORKSPACE_SETUP expands
+    # For \$ in commands, we need \\$ so bash interprets it as \$ in the final command
+    script_content += "# Create profiles for each launcher\n"
+    script_content += "PROFILES_SECTION=$(cat << PROFILES_EOF\n"
+    
+    # Generate profiles for each command
+    for i, (title, cmd) in enumerate(commands, 1):
+        profile_name = f"{layout_name}_profile_{i}"
+        # The cmd has \$ for ROS2 substitutions (from escape_dollar_signs_for_bash)
+        # and ${WORKSPACE_SETUP} which should expand
+        # In unquoted heredoc, \$ becomes $ (bash interprets backslash-dollar as dollar)
+        # But we want ROS2 to see $ for substitutions, so we need \$ in the final command
+        # Solution: In unquoted heredoc, \\$ becomes \$ (backslash escapes backslash, then dollar)
+        # So we need to double-escape: convert \$ to \\$
+        cmd_double_escaped = cmd.replace('\\$', '\\\\$')
+        # Escape double quotes for INI format
+        cmd_escaped_for_ini = cmd_double_escaped.replace('"', '\\"')
+        bash_cmd = f'bash -ic "{cmd_escaped_for_ini}; bash"'
+        # Escape double quotes in the bash command for INI format
+        bash_cmd_escaped = bash_cmd.replace('"', '\\"')
+        script_content += f"  [[{profile_name}]]\n"
+        script_content += f'    custom_command = "{bash_cmd_escaped}"\n'
+    
+    script_content += "PROFILES_EOF\n"
+    script_content += ")\n\n"
+    
+    # Create layout section
+    script_content += "# Create layout section\n"
+    script_content += "LAYOUT_SECTION=$(cat << 'LAYOUT_EOF'\n"
+    
+    # Generate layout in terminator's INI format
+    script_content += f"  [[{layout_name}]]\n"
+    script_content += "    [[[window0]]]\n"
+    script_content += "      type = Window\n"
+    script_content += "      parent = \"\"\n"
+    
+    if len(commands) == 0:
+        # Empty layout
+        script_content += "    [[[child1]]]\n"
+        script_content += "      type = Terminal\n"
+        script_content += "      parent = window0\n"
+        script_content += "      profile = default\n"
+    elif len(commands) == 1:
+        # Single terminal
+        title, _ = commands[0]
+        profile_name = f"{layout_name}_profile_1"
+        script_content += f"    [[[child1]]]\n"
+        script_content += f"      type = Terminal\n"
+        script_content += f"      parent = window0\n"
+        script_content += f"      profile = {profile_name}\n"
+        script_content += f"      title = {shlex.quote(title)}\n"
+    else:
+        # Multiple terminals - create vertical split using VPaned
+        script_content += "    [[[child1]]]\n"
+        script_content += "      type = VPaned\n"
+        script_content += "      parent = window0\n"
+        
+        # Add terminals as children of the VPaned
+        for i, (title, _) in enumerate(commands, 1):
+            profile_name = f"{layout_name}_profile_{i}"
+            script_content += f"    [[[[child{i}]]]]\n"
+            script_content += f"      type = Terminal\n"
+            script_content += f"      parent = child1\n"
+            script_content += f"      profile = {profile_name}\n"
+            script_content += f"      title = {shlex.quote(title)}\n"
+    
+    script_content += "LAYOUT_EOF\n"
+    script_content += ")\n\n"
+    
+    # Merge profiles and layout into config file
+    script_content += "# Check if [profiles] section exists\n"
+    script_content += "if ! grep -q '^\\[profiles\\]' \"$TERMINATOR_CONFIG_FILE\" 2>/dev/null; then\n"
+    script_content += "  # Add [profiles] section if it doesn't exist\n"
+    script_content += "  echo '' >> \"$TERMINATOR_CONFIG_FILE\"\n"
+    script_content += "  echo '[profiles]' >> \"$TERMINATOR_CONFIG_FILE\"\n"
+    script_content += "fi\n"
+    script_content += "# Append profiles to config file\n"
+    script_content += "echo \"$PROFILES_SECTION\" >> \"$TERMINATOR_CONFIG_FILE\"\n"
+    script_content += "echo \"Profiles added to config\"\n\n"
+    
+    script_content += "# Check if [layouts] section exists\n"
+    script_content += "if ! grep -q '^\\[layouts\\]' \"$TERMINATOR_CONFIG_FILE\" 2>/dev/null; then\n"
+    script_content += "  # Add [layouts] section if it doesn't exist\n"
+    script_content += "  echo '' >> \"$TERMINATOR_CONFIG_FILE\"\n"
+    script_content += "  echo '[layouts]' >> \"$TERMINATOR_CONFIG_FILE\"\n"
+    script_content += "fi\n"
+    script_content += "# Append layout to config file\n"
+    script_content += "echo \"$LAYOUT_SECTION\" >> \"$TERMINATOR_CONFIG_FILE\"\n"
+    script_content += "echo \"Layout added to config: $TERMINATOR_CONFIG_FILE\"\n\n"
+    
+    # Launch terminator with the layout
+    # Terminator uses --layout (or -l) with the layout name
+    script_content += "TERMINATOR_PID=\"\"\n"
+    script_content += "terminator --layout=\"$LAYOUT_NAME\" &\n"
+    script_content += "TERMINATOR_PID=$!\n"
+    script_content += "sleep 2\n"
+    script_content += "echo \"Terminator launched with PID: $TERMINATOR_PID\"\n\n"
+    
+    script_content += "cleanup_and_exit() {\n"
+    script_content += "  if [ -n \"$TERMINATOR_PID\" ] && kill -0 \"$TERMINATOR_PID\" 2>/dev/null; then\n"
+    script_content += "    kill -TERM \"$TERMINATOR_PID\" 2>/dev/null || true\n"
+    script_content += "    sleep 1\n"
+    script_content += "    kill -KILL \"$TERMINATOR_PID\" 2>/dev/null || true\n"
+    script_content += "  fi\n"
+    script_content += "  # Restore config backup if it exists\n"
+    script_content += "  if [ -f \"$TERMINATOR_CONFIG_FILE.bak.$$\" ]; then\n"
+    script_content += "    mv \"$TERMINATOR_CONFIG_FILE.bak.$$\" \"$TERMINATOR_CONFIG_FILE\"\n"
+    script_content += "    echo \"Config restored from backup\"\n"
+    script_content += "  fi\n"
+    script_content += "  exit 0\n"
+    script_content += "}\n"
+    script_content += "trap cleanup_and_exit SIGINT SIGTERM\n"
+    script_content += "while kill -0 \"$TERMINATOR_PID\" 2>/dev/null; do sleep 1; done\n"
+    script_content += "cleanup_and_exit\n"
+    
+    # Write script to temporary file
+    fd, script_path = tempfile.mkstemp(suffix='.sh', prefix='terminator_launcher_')
+    with os.fdopen(fd, 'w') as f:
+        f.write(script_content)
+    os.chmod(script_path, 0o755)
+    
+    return script_path
+
+
+def launch_in_terminator(context, launch_arguments_names: list[str], launcher_paths: list[str],
+                         launcher_pkg_install_dir: str,
+                         launcher_pkg_name: str = 'tier4_perception_launch',
+                         layout_name: str = 'ros2_launchers',
+                         launch_pointcloud_container: bool = False) -> list[ExecuteProcess]:
+    """Launch multiple launchers in terminator with split panes using a layout file."""
+    launch_args_cmd = format_launch_args_for_command(context, launch_arguments_names)
+    script_path = create_terminator_launcher_script(
+        launcher_paths, launch_args_cmd, launcher_pkg_install_dir,
+        launcher_pkg_name, layout_name, launch_pointcloud_container
     )
     return [ExecuteProcess(cmd=['bash', script_path], output='screen')]
 
