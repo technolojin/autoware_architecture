@@ -70,21 +70,21 @@ def format_launch_args_for_command(context, launch_arguments_names: list[str]) -
     return args_list
 
 
-def escape_for_tmux_send_keys(cmd_str: str) -> str:
+def escape_dollar_signs_for_bash(cmd_str: str) -> str:
     """
-    Escape a command string for use with tmux send-keys.
+    Escape dollar signs in a command string so they're not interpreted by bash.
     
-    This properly escapes single quotes and preserves ROS2 launch substitutions
-    like $(var ...) and $(find-pkg-share ...).
+    This preserves ROS2 launch substitutions like $(var ...) and $(find-pkg-share ...)
+    by escaping $ as \$ so bash treats them as literal dollar signs.
     """
-    # Escape single quotes by ending the quoted string, adding an escaped quote, and continuing
-    # Replace ' with '\'' (end quote, escaped quote, start quote)
-    escaped = cmd_str.replace("'", "'\\''")
-    return escaped
+    # Escape dollar signs: $ -> \$
+    # This needs to be done before the string is used in bash
+    return cmd_str.replace("$", "\\$")
 
 
 def create_tmux_launcher_script(launcher_paths: list[str], launch_args_cmd: list[str], 
                                 launcher_pkg_install_dir: str, 
+                                launcher_pkg_name: str = 'tier4_perception_launch',
                                 session_name: str = 'ros2_launchers',
                                 window_name: str = 'launchers') -> str:
     """
@@ -94,6 +94,7 @@ def create_tmux_launcher_script(launcher_paths: list[str], launch_args_cmd: list
         launcher_paths: List of launcher file paths (relative to package install directory)
         launch_args_cmd: List of launch arguments in command-line format
         launcher_pkg_install_dir: Package install directory where launchers are located
+        launcher_pkg_name: Package name for ros2 launch command
         session_name: Name for the tmux session
         window_name: Name for the tmux window
         
@@ -107,7 +108,15 @@ def create_tmux_launcher_script(launcher_paths: list[str], launch_args_cmd: list
     script_content += "set -x  # Enable command tracing for debugging\n\n"
     
     script_content += f"SESSION_NAME={shlex.quote(session_name)}\n"
-    script_content += f"WINDOW_NAME={shlex.quote(window_name)}\n\n"
+    script_content += f"WINDOW_NAME={shlex.quote(window_name)}\n"
+    
+    # Calculate workspace install directory
+    # launcher_pkg_install_dir is like /path/to/workspace/install/tier4_perception_launch/share/tier4_perception_launch
+    # workspace_install_dir should be /path/to/workspace/install
+    # Need to go up 3 levels: share/pkg -> pkg -> install
+    workspace_install_dir = os.path.dirname(os.path.dirname(os.path.dirname(launcher_pkg_install_dir)))
+    setup_bash_path = os.path.join(workspace_install_dir, 'setup.bash')
+    script_content += f"WORKSPACE_SETUP={shlex.quote(setup_bash_path)}\n\n"
     
     # Kill existing session if it exists
     script_content += "# Kill existing session if it exists\n"
@@ -127,7 +136,7 @@ def create_tmux_launcher_script(launcher_paths: list[str], launch_args_cmd: list
     script_content += "echo \"Using tmux: $(which tmux)\"\n"
     script_content += "echo \"Tmux version: $(tmux -V)\"\n\n"
     
-    # Create session with first pane (test mode - no actual launcher)
+    # Create session with first pane
     script_content += f"# Create session with first pane\n"
     script_content += f"echo \"Creating tmux session: $SESSION_NAME\"\n"
     # Create session with bash shell
@@ -174,35 +183,72 @@ def create_tmux_launcher_script(launcher_paths: list[str], launch_args_cmd: list
         script_content += "echo \"Terminal window opened. You can monitor the tmux session there.\"\n"
         script_content += "echo \"\"\n"
     
-    script_content += "echo \"Session created, sending test command to pane 0...\"\n"
-    # Send a test command to pane 0 (first pane) - just echo for now
-    first_launcher_name = os.path.basename(launcher_paths[0]) if launcher_paths else "test"
-    test_cmd = f"echo 'Pane 0: {first_launcher_name} (test mode - launcher disabled)'"
-    test_cmd_escaped = escape_for_tmux_send_keys(test_cmd)
-    script_content += f"tmux send-keys -t $SESSION_NAME:0.0 '{test_cmd_escaped}' Enter\n"
-    script_content += "sleep 0.5\n"
+    # Launch first launcher in pane 0
+    if launcher_paths:
+        first_launcher_path = launcher_paths[0]
+        first_launcher_name = os.path.basename(first_launcher_path)
+        script_content += f"# Launch first launcher in pane 0\n"
+        script_content += f"echo \"Launching launcher 0: {first_launcher_name}\"\n"
+        # Build ros2 launch command
+        # Use ros2 launch with full absolute path to the XML file
+        # Construct full path: launcher_pkg_install_dir + launcher_path
+        full_launcher_path = os.path.join(launcher_pkg_install_dir, first_launcher_path)
+        launch_cmd_parts = ['ros2', 'launch', full_launcher_path]
+        launch_cmd_parts.extend(launch_args_cmd)
+        # Join parts with spaces, quoting each part to handle spaces in values
+        # Then escape $ characters so ROS2 substitutions like $(var ...) are not interpreted by bash
+        launch_cmd_quoted = ' '.join(shlex.quote(part) for part in launch_cmd_parts)
+        launch_cmd_escaped = escape_dollar_signs_for_bash(launch_cmd_quoted)
+        # Combine source and launch command: source setup.bash && ros2 launch ...
+        # We need $WORKSPACE_SETUP to be expanded by bash, so we construct the command
+        # so that the source part uses $WORKSPACE_SETUP directly (not quoted)
+        # and the launch command part is properly escaped
+        # Store launch command in a variable first
+        script_content += f"LAUNCH_CMD_PART_0={shlex.quote(launch_cmd_escaped)}\n"
+        # Then combine with source command - $WORKSPACE_SETUP will be expanded by bash
+        script_content += f"LAUNCH_CMD_0=\"source $WORKSPACE_SETUP && $LAUNCH_CMD_PART_0\"\n"
+        # Use the variable in tmux send-keys - bash will expand $WORKSPACE_SETUP and $LAUNCH_CMD_PART_0
+        script_content += f"tmux send-keys -t $SESSION_NAME:0.0 \"$LAUNCH_CMD_0\" Enter\n"
+        script_content += "sleep 1\n"
+    
     script_content += "echo \"Session created successfully\"\n"
     script_content += "echo \"Session info: $(tmux list-sessions | grep $SESSION_NAME)\"\n\n"
     
-    # Split and add remaining panes (test mode - no actual launchers)
+    # Split and add remaining panes with launchers
     # Stack panes from top to bottom using vertical splits only
     for i, launcher_path in enumerate(launcher_paths[1:], 1):
         launcher_name = os.path.basename(launcher_path)
         
         # Always use vertical splits to stack panes top to bottom
-        script_content += f"# Split and add pane {i+1}\n"
-        script_content += f"echo \"Splitting window and adding pane {i+1}\"\n"
+        script_content += f"# Split and add pane {i+1} with launcher\n"
+        script_content += f"echo \"Splitting window and adding pane {i+1}: {launcher_name}\"\n"
         # Split window vertically - the new pane becomes the active one
         script_content += f"if ! tmux split-window -v -t $SESSION_NAME:0 'bash' 2>&1; then\n"
         script_content += f"  echo \"ERROR: Failed to split window for pane {i+1}\" >&2\n"
         script_content += f"  exit 1\n"
         script_content += f"fi\n"
         script_content += "sleep 0.3\n"
-        # Send a test command to the newly created pane
-        test_cmd = f"echo 'Pane {i+1}: {launcher_name} (test mode - launcher disabled)'"
-        test_cmd_escaped = escape_for_tmux_send_keys(test_cmd)
-        script_content += f"tmux send-keys -t $SESSION_NAME:0. '{test_cmd_escaped}' Enter\n"
-        script_content += "sleep 0.5\n\n"
+        # Build and send ros2 launch command to the newly created pane
+        # Use ros2 launch with full absolute path to the XML file
+        # Construct full path: launcher_pkg_install_dir + launcher_path
+        full_launcher_path = os.path.join(launcher_pkg_install_dir, launcher_path)
+        launch_cmd_parts = ['ros2', 'launch', full_launcher_path]
+        launch_cmd_parts.extend(launch_args_cmd)
+        # Join parts with spaces, quoting each part to handle spaces in values
+        # Then escape $ characters so ROS2 substitutions like $(var ...) are not interpreted by bash
+        launch_cmd_quoted = ' '.join(shlex.quote(part) for part in launch_cmd_parts)
+        launch_cmd_escaped = escape_dollar_signs_for_bash(launch_cmd_quoted)
+        # Combine source and launch command: source setup.bash && ros2 launch ...
+        # We need $WORKSPACE_SETUP to be expanded by bash, so we construct the command
+        # so that the source part uses $WORKSPACE_SETUP directly (not quoted)
+        # and the launch command part is properly escaped
+        # Store launch command in a variable first
+        script_content += f"LAUNCH_CMD_PART_{i}={shlex.quote(launch_cmd_escaped)}\n"
+        # Then combine with source command - $WORKSPACE_SETUP will be expanded by bash
+        script_content += f"LAUNCH_CMD_{i}=\"source $WORKSPACE_SETUP && $LAUNCH_CMD_PART_{i}\"\n"
+        # Use the variable in tmux send-keys - bash will expand $WORKSPACE_SETUP and $LAUNCH_CMD_PART_{i}
+        script_content += f"tmux send-keys -t $SESSION_NAME:0. \"$LAUNCH_CMD_{i}\" Enter\n"
+        script_content += "sleep 1\n\n"
     
     # Make all panes evenly sized
     script_content += "# Make all panes evenly sized\n"
@@ -211,7 +257,7 @@ def create_tmux_launcher_script(launcher_paths: list[str], launch_args_cmd: list
     script_content += "sleep 0.3\n"
     
     script_content += f"echo \"Tmux session $SESSION_NAME created with {len(launcher_paths)} panes\"\n"
-    script_content += "echo \"TEST MODE: Launchers are disabled, only test commands are sent to panes\"\n"
+    script_content += f"echo \"Launched {len(launcher_paths)} ROS2 launchers in separate panes\"\n"
     script_content += "echo \"\"\n"
     
     # Try to automatically attach to the tmux session (only if GUI terminal wasn't opened)
@@ -265,6 +311,7 @@ def create_tmux_launcher_script(launcher_paths: list[str], launch_args_cmd: list
 
 def launch_in_tmux(context, launch_arguments_names: list[str], launcher_paths: list[str],
                    launcher_pkg_install_dir: str,
+                   launcher_pkg_name: str = 'tier4_perception_launch',
                    session_name: str = 'ros2_launchers',
                    window_name: str = 'launchers') -> list[ExecuteProcess]:
     """
@@ -275,6 +322,7 @@ def launch_in_tmux(context, launch_arguments_names: list[str], launcher_paths: l
         launch_arguments_names: List of launch argument names
         launcher_paths: List of launcher file paths (relative to package install directory)
         launcher_pkg_install_dir: Package install directory where launchers are located
+        launcher_pkg_name: Package name for ros2 launch command
         session_name: Name for the tmux session
         window_name: Name for the tmux window
         
@@ -287,7 +335,7 @@ def launch_in_tmux(context, launch_arguments_names: list[str], launcher_paths: l
     # Create the tmux launcher script
     script_path = create_tmux_launcher_script(
         launcher_paths, launch_args_cmd, launcher_pkg_install_dir,
-        session_name, window_name
+        launcher_pkg_name, session_name, window_name
     )
     
     # Return the action to execute the script
