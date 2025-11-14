@@ -18,6 +18,21 @@ import pprint
 
 from enum import Enum
 
+# Import multi-terminal launcher functionality
+# ROS2 launch files don't support relative imports, so we add the launch directory to path
+import sys
+from pathlib import Path
+launch_dir = Path(__file__).parent
+if str(launch_dir) not in sys.path:
+    sys.path.insert(0, str(launch_dir))
+
+import multi_terminal_launcher
+detect_terminal_method = multi_terminal_launcher.detect_terminal_method
+launch_in_tmux = multi_terminal_launcher.launch_in_tmux
+
+# Configuration: Enable/disable launching each launcher in separate terminals
+USE_SEPARATE_TERMINALS = True
+
 logger = logging.getLogger(__name__)
 # Configure logger to output to terminal
 if not logger.handlers:
@@ -375,22 +390,42 @@ def launch_xml_fallback(launch_arguments_names, xml_launcher_file: str):
         launch_arguments=launch_args_dict.items()
     )
 
-def launch_prebuilt_launchers(launch_arguments_names, launcher_paths: list[str]):
-    """Launch pre-built launcher files with all given arguments."""
+
+def launch_prebuilt_launchers(context, launch_arguments_names: list[str], launcher_paths: list[str], 
+                                use_separate_terminals: bool, terminal_method: str):
+    """
+    Launch pre-built launcher files with all given arguments.
+    
+    Args:
+        context: Launch context
+        launch_arguments_names: List of launch argument names
+        launcher_paths: List of launcher file paths (relative to package share directory)
+        use_separate_terminals: Whether to launch in separate terminals
+        terminal_method: Terminal method to use ('terminator', 'tmux', or 'none')
+    """
     launcher_pkg_install_dir = get_package_share_directory('tier4_perception_launch')
     
-    # Build launch arguments dictionary using LaunchConfiguration for each argument
-    launch_args_dict = {name: LaunchConfiguration(name) for name in launch_arguments_names}
-    
     launch_actions = []
-    for launcher_path in launcher_paths:
-        launcher_file = os.path.join(launcher_pkg_install_dir, launcher_path)
-        launch_actions.append(
-            IncludeLaunchDescription(
-                XMLLaunchDescriptionSource(launcher_file),
-                launch_arguments=launch_args_dict.items()
+    
+    if use_separate_terminals and terminal_method != 'none':
+        # Launch each launcher in a separate terminal
+        if terminal_method == 'tmux':
+            # Launch with tmux: create new panes in a single window
+            launch_actions.extend(launch_in_tmux(
+                context, launch_arguments_names, launcher_paths, launcher_pkg_install_dir
+            ))
+    else:
+        # Use regular launch (current approach)
+        launch_args_dict = {name: LaunchConfiguration(name) for name in launch_arguments_names}
+        
+        for launcher_path in launcher_paths:
+            launcher_file = os.path.join(launcher_pkg_install_dir, launcher_path)
+            launch_actions.append(
+                IncludeLaunchDescription(
+                    XMLLaunchDescriptionSource(launcher_file),
+                    launch_arguments=launch_args_dict.items()
+                )
             )
-        )
     
     return launch_actions
 
@@ -408,6 +443,15 @@ def opaque_launch_perception_system(context, launch_argument_names: list[str], x
     
     # Determine parameters (placeholder - to be implemented)
     parameters = determine_parameters(context, modes)
+    
+    # Detect terminal method if separate terminals are enabled
+    terminal_method = 'none'
+    if USE_SEPARATE_TERMINALS:
+        terminal_method = detect_terminal_method()
+        if terminal_method != 'none':
+            logger.info("Using separate terminals with method: %s", terminal_method)
+        else:
+            logger.info("Separate terminals requested but no suitable terminal found. Using regular launch.")
     
     launch_actions = []
     
@@ -429,7 +473,10 @@ def opaque_launch_perception_system(context, launch_argument_names: list[str], x
             for launcher_path in launcher_paths:
                 logger.info("  - %s", launcher_path)
             # launch the pre-built launchers
-            launch_actions.extend(launch_prebuilt_launchers(launch_argument_names, launcher_paths))
+            launch_actions.extend(launch_prebuilt_launchers(
+                context, launch_argument_names, launcher_paths, 
+                USE_SEPARATE_TERMINALS, terminal_method
+            ))
     
     return launch_actions
 
