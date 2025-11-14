@@ -86,7 +86,8 @@ def create_tmux_launcher_script(launcher_paths: list[str], launch_args_cmd: list
                                 launcher_pkg_install_dir: str, 
                                 launcher_pkg_name: str = 'tier4_perception_launch',
                                 session_name: str = 'ros2_launchers',
-                                window_name: str = 'launchers') -> str:
+                                window_name: str = 'launchers',
+                                launch_pointcloud_container: bool = False) -> str:
     """
     Create a bash script that launches tmux with split panes and runs launchers.
     
@@ -97,6 +98,7 @@ def create_tmux_launcher_script(launcher_paths: list[str], launch_args_cmd: list
         launcher_pkg_name: Package name for ros2 launch command
         session_name: Name for the tmux session
         window_name: Name for the tmux window
+        launch_pointcloud_container: If True, launch pointcloud container in first pane
         
     Returns:
         Path to the created script file
@@ -139,8 +141,13 @@ def create_tmux_launcher_script(launcher_paths: list[str], launch_args_cmd: list
     # Create session with first pane
     script_content += f"# Create session with first pane\n"
     script_content += f"echo \"Creating tmux session: $SESSION_NAME\"\n"
-    # Create session with bash shell
-    script_content += f"TMUX_ERROR=$(tmux new-session -d -s $SESSION_NAME -n $WINDOW_NAME -x 200 -y 50 'bash' 2>&1)\n"
+    # Calculate window size based on number of panes needed
+    # Each pane needs at least ~10-15 lines, so we need more height for more panes
+    total_panes = len(launcher_paths) + (1 if launch_pointcloud_container else 0)
+    window_height = max(80, total_panes * 5)  # At least 80 lines, or 15 lines per pane
+    window_width = 200  # Keep width at 200
+    # Create session with bash shell and larger window size
+    script_content += f"TMUX_ERROR=$(tmux new-session -d -s $SESSION_NAME -n $WINDOW_NAME -x {window_width} -y {window_height} 'bash' 2>&1)\n"
     script_content += f"TMUX_EXIT_CODE=$?\n"
     script_content += f"if [ $TMUX_EXIT_CODE -ne 0 ]; then\n"
     script_content += f"  echo \"ERROR: Failed to create tmux session (exit code: $TMUX_EXIT_CODE)\" >&2\n"
@@ -157,34 +164,69 @@ def create_tmux_launcher_script(launcher_paths: list[str], launch_args_cmd: list
     script_content += "  exit 1\n"
     script_content += "fi\n"
     
-    # Open new terminal window to monitor tmux session (do this early, before adding panes)
+    # CRITICAL: Resize tmux window BEFORE any terminal attaches
+    # Once a terminal attaches, it constrains the tmux window size
+    # We must set the size while the session is detached
+    script_content += "# Resize tmux window to ensure it's large enough for all panes\n"
+    script_content += f"echo \"Resizing tmux window to {window_width}x{window_height} (before terminal attach)...\"\n"
+    script_content += f"tmux resize-window -t $SESSION_NAME:0 -x {window_width} -y {window_height} 2>/dev/null || true\n"
+    script_content += "sleep 0.3\n"
+    
+    # Open new terminal window to monitor tmux session (after resizing, before adding panes)
     gui_terminal = detect_gui_terminal()
     if gui_terminal:
         script_content += "# Open new terminal window to monitor tmux session\n"
         script_content += "echo \"Opening new terminal window to monitor tmux session...\"\n"
-        # Wait a moment for session to be fully ready, then open terminal
-        script_content += "sleep 0.5\n"
         # Use $SESSION_NAME (bash variable) in the command - need to escape $ for Python f-string
         session_var = "$SESSION_NAME"
+        # Calculate terminal window size (geometry format: WIDTHxHEIGHT+X+Y)
+        # Use the calculated window size for the terminal geometry
+        term_cols = window_width
+        term_rows = window_height
         if gui_terminal == 'gnome-terminal':
-            # Use -- to separate options from command, use double quotes so $SESSION_NAME expands
-            script_content += f"gnome-terminal -- bash -c \"tmux attach-session -t {session_var} || bash\" &\n"
+            # gnome-terminal: --geometry WIDTHxHEIGHT+X+Y
+            script_content += f"gnome-terminal --geometry {term_cols}x{term_rows}+0+0 -- bash -c \"tmux attach-session -t {session_var} || bash\" &\n"
         elif gui_terminal == 'xterm':
-            script_content += f"xterm -e bash -c \"tmux attach-session -t {session_var} || bash\" &\n"
+            # xterm: -geometry WIDTHxHEIGHT+X+Y
+            script_content += f"xterm -geometry {term_cols}x{term_rows} -e bash -c \"tmux attach-session -t {session_var} || bash\" &\n"
         elif gui_terminal == 'konsole':
-            script_content += f"konsole -e bash -c \"tmux attach-session -t {session_var} || bash\" &\n"
+            # Konsole: --geometry WIDTHxHEIGHT+X+Y
+            script_content += f"konsole --geometry {term_cols}x{term_rows} -e bash -c \"tmux attach-session -t {session_var} || bash\" &\n"
         elif gui_terminal == 'xfce4-terminal':
-            script_content += f"xfce4-terminal -e \"bash -c \\\"tmux attach-session -t {session_var} || bash\\\"\" &\n"
+            # xfce4-terminal: --geometry WIDTHxHEIGHT+X+Y
+            script_content += f"xfce4-terminal --geometry {term_cols}x{term_rows} -e \"bash -c \\\"tmux attach-session -t {session_var} || bash\\\"\" &\n"
         elif gui_terminal == 'mate-terminal':
-            script_content += f"mate-terminal -e \"bash -c \\\"tmux attach-session -t {session_var} || bash\\\"\" &\n"
+            # mate-terminal: --geometry WIDTHxHEIGHT+X+Y
+            script_content += f"mate-terminal --geometry {term_cols}x{term_rows} -e \"bash -c \\\"tmux attach-session -t {session_var} || bash\\\"\" &\n"
         elif gui_terminal == 'terminator':
+            # Terminator doesn't support geometry directly, but we can try to resize after
             script_content += f"terminator -e \"bash -c \\\"tmux attach-session -t {session_var} || bash\\\"\" &\n"
         script_content += "sleep 1\n"
         script_content += "echo \"Terminal window opened. You can monitor the tmux session there.\"\n"
         script_content += "echo \"\"\n"
     
-    # Launch first launcher in pane 0
-    if launcher_paths:
+    # Initialize LAUNCHERS_SKIPPED variable (used to track if we need to skip launchers)
+    script_content += "# Initialize LAUNCHERS_SKIPPED variable\n"
+    script_content += "LAUNCHERS_SKIPPED=false\n"
+    
+    # Launch first item in pane 0 (pointcloud container or first launcher)
+    if launch_pointcloud_container:
+        script_content += f"# Launch pointcloud container in pane 0\n"
+        script_content += f"echo \"Launching pointcloud container in pane 0\"\n"
+        # Build ros2 run command for pointcloud container
+        # ros2 run rclcpp_components component_container --ros-args -r __node:=pointcloud_container --log-level info
+        container_cmd_parts = ['ros2', 'run', 'rclcpp_components', 'component_container', 
+                              '--ros-args', '-r', '__node:=pointcloud_container', '--log-level', 'info']
+        # Join parts with spaces, quoting each part to handle spaces in values
+        container_cmd_quoted = ' '.join(shlex.quote(part) for part in container_cmd_parts)
+        # Combine source and container command: source setup.bash && ros2 run ...
+        script_content += f"CONTAINER_CMD_PART={shlex.quote(container_cmd_quoted)}\n"
+        script_content += f"CONTAINER_CMD=\"source $WORKSPACE_SETUP && $CONTAINER_CMD_PART\"\n"
+        script_content += f"tmux send-keys -t $SESSION_NAME:0.0 \"$CONTAINER_CMD\" Enter\n"
+        script_content += "sleep 1\n"
+    
+    # Launch first launcher if there are launchers and we haven't used pane 0 yet
+    if launcher_paths and not launch_pointcloud_container:
         first_launcher_path = launcher_paths[0]
         first_launcher_name = os.path.basename(first_launcher_path)
         script_content += f"# Launch first launcher in pane 0\n"
@@ -210,12 +252,59 @@ def create_tmux_launcher_script(launcher_paths: list[str], launch_args_cmd: list
         # Use the variable in tmux send-keys - bash will expand $WORKSPACE_SETUP and $LAUNCH_CMD_PART_0
         script_content += f"tmux send-keys -t $SESSION_NAME:0.0 \"$LAUNCH_CMD_0\" Enter\n"
         script_content += "sleep 1\n"
+    elif launcher_paths and launch_pointcloud_container:
+        # We already launched pointcloud container, now launch first launcher in a new pane
+        first_launcher_path = launcher_paths[0]
+        first_launcher_name = os.path.basename(first_launcher_path)
+        script_content += f"# Split and add pane 1 with first launcher\n"
+        script_content += f"echo \"Splitting window and adding pane 1: {first_launcher_name}\"\n"
+        script_content += f"SPLIT_ERROR_0=$(tmux split-window -v -t $SESSION_NAME:0 'bash' 2>&1)\n"
+        script_content += f"SPLIT_EXIT_CODE_0=$?\n"
+        script_content += f"if [ $SPLIT_EXIT_CODE_0 -ne 0 ]; then\n"
+        script_content += f"  echo \"WARNING: Failed to split window for pane 1: $SPLIT_ERROR_0\" >&2\n"
+        script_content += f"  echo \"Continuing with pointcloud container only (launchers will not be started)\" >&2\n"
+        script_content += f"  # Skip remaining launchers\n"
+        script_content += f"  LAUNCHERS_SKIPPED=true\n"
+        script_content += f"else\n"
+        script_content += "sleep 0.3\n"
+        # Build and send ros2 launch command to the newly created pane
+        full_launcher_path = os.path.join(launcher_pkg_install_dir, first_launcher_path)
+        launch_cmd_parts = ['ros2', 'launch', full_launcher_path]
+        launch_cmd_parts.extend(launch_args_cmd)
+        launch_cmd_quoted = ' '.join(shlex.quote(part) for part in launch_cmd_parts)
+        launch_cmd_escaped = escape_dollar_signs_for_bash(launch_cmd_quoted)
+        script_content += f"  LAUNCH_CMD_PART_0={shlex.quote(launch_cmd_escaped)}\n"
+        script_content += f"  LAUNCH_CMD_0=\"source $WORKSPACE_SETUP && $LAUNCH_CMD_PART_0\"\n"
+        script_content += f"  tmux send-keys -t $SESSION_NAME:0. \"$LAUNCH_CMD_0\" Enter\n"
+        script_content += f"  sleep 1\n"
+        script_content += f"fi\n\n"
     
     script_content += "echo \"Session created successfully\"\n"
     script_content += "echo \"Session info: $(tmux list-sessions | grep $SESSION_NAME)\"\n\n"
     
     # Split and add remaining panes with launchers
     # Stack panes from top to bottom using vertical splits only
+    # Start from index 1 since first launcher is already handled (either in pane 0 or pane 1)
+    script_content += "# Track successful pane creations\n"
+    # Count initial panes based on what was already created
+    if launch_pointcloud_container:
+        if launcher_paths:
+            # Pointcloud container in pane 0, first launcher in pane 1 (if split succeeded)
+            script_content += "if [ \"$LAUNCHERS_SKIPPED\" = \"false\" ]; then\n"
+            script_content += "  SUCCESSFUL_PANES=2\n"  # Pointcloud container + first launcher
+            script_content += "else\n"
+            script_content += "  SUCCESSFUL_PANES=1\n"  # Only pointcloud container
+            script_content += "fi\n"
+        else:
+            script_content += "SUCCESSFUL_PANES=1\n"  # Only pointcloud container
+    else:
+        if launcher_paths:
+            script_content += "SUCCESSFUL_PANES=1\n"  # First launcher in pane 0
+        else:
+            script_content += "SUCCESSFUL_PANES=0\n"  # No panes yet (shouldn't happen)
+    
+    # Only try to add remaining launchers if we haven't skipped them
+    script_content += "if [ \"$LAUNCHERS_SKIPPED\" != \"true\" ]; then\n"
     for i, launcher_path in enumerate(launcher_paths[1:], 1):
         launcher_name = os.path.basename(launcher_path)
         
@@ -223,10 +312,14 @@ def create_tmux_launcher_script(launcher_paths: list[str], launch_args_cmd: list
         script_content += f"# Split and add pane {i+1} with launcher\n"
         script_content += f"echo \"Splitting window and adding pane {i+1}: {launcher_name}\"\n"
         # Split window vertically - the new pane becomes the active one
-        script_content += f"if ! tmux split-window -v -t $SESSION_NAME:0 'bash' 2>&1; then\n"
-        script_content += f"  echo \"ERROR: Failed to split window for pane {i+1}\" >&2\n"
-        script_content += f"  exit 1\n"
+        script_content += f"SPLIT_ERROR=$(tmux split-window -v -t $SESSION_NAME:0 'bash' 2>&1)\n"
+        script_content += f"SPLIT_EXIT_CODE=$?\n"
+        script_content += f"if [ $SPLIT_EXIT_CODE -ne 0 ]; then\n"
+        script_content += f"  echo \"WARNING: Failed to split window for pane {i+1}: $SPLIT_ERROR\" >&2\n"
+        script_content += f"  echo \"Continuing with {i} panes (some launchers may not be started)\" >&2\n"
+        script_content += f"  break\n"
         script_content += f"fi\n"
+        script_content += "SUCCESSFUL_PANES=$((SUCCESSFUL_PANES + 1))\n"
         script_content += "sleep 0.3\n"
         # Build and send ros2 launch command to the newly created pane
         # Use ros2 launch with full absolute path to the XML file
@@ -249,6 +342,7 @@ def create_tmux_launcher_script(launcher_paths: list[str], launch_args_cmd: list
         # Use the variable in tmux send-keys - bash will expand $WORKSPACE_SETUP and $LAUNCH_CMD_PART_{i}
         script_content += f"tmux send-keys -t $SESSION_NAME:0. \"$LAUNCH_CMD_{i}\" Enter\n"
         script_content += "sleep 1\n\n"
+    script_content += "fi\n"  # End of if LAUNCHERS_SKIPPED check
     
     # Make all panes evenly sized
     script_content += "# Make all panes evenly sized\n"
@@ -256,8 +350,20 @@ def create_tmux_launcher_script(launcher_paths: list[str], launch_args_cmd: list
     script_content += f"tmux select-layout -t $SESSION_NAME:0 even-vertical\n"
     script_content += "sleep 0.3\n"
     
-    script_content += f"echo \"Tmux session $SESSION_NAME created with {len(launcher_paths)} panes\"\n"
-    script_content += f"echo \"Launched {len(launcher_paths)} ROS2 launchers in separate panes\"\n"
+    total_panes = len(launcher_paths) + (1 if launch_pointcloud_container else 0)
+    script_content += f"echo \"Tmux session $SESSION_NAME created with $SUCCESSFUL_PANES panes (requested {total_panes})\"\n"
+    if launch_pointcloud_container:
+        script_content += f"if [ $SUCCESSFUL_PANES -lt {total_panes} ]; then\n"
+        script_content += f"  echo \"WARNING: Only $SUCCESSFUL_PANES panes created out of {total_panes} requested\" >&2\n"
+        script_content += f"  echo \"Some launchers may not have been started. Try resizing the terminal or reducing the number of launchers.\" >&2\n"
+        script_content += f"fi\n"
+        script_content += f"echo \"Launched pointcloud container and $((SUCCESSFUL_PANES - 1)) ROS2 launchers in separate panes\"\n"
+    else:
+        script_content += f"if [ $SUCCESSFUL_PANES -lt {total_panes} ]; then\n"
+        script_content += f"  echo \"WARNING: Only $SUCCESSFUL_PANES panes created out of {total_panes} requested\" >&2\n"
+        script_content += f"  echo \"Some launchers may not have been started. Try resizing the terminal or reducing the number of launchers.\" >&2\n"
+        script_content += f"fi\n"
+        script_content += f"echo \"Launched $SUCCESSFUL_PANES ROS2 launchers in separate panes\"\n"
     script_content += "echo \"\"\n"
     
     # Try to automatically attach to the tmux session (only if GUI terminal wasn't opened)
@@ -292,13 +398,11 @@ def create_tmux_launcher_script(launcher_paths: list[str], launch_args_cmd: list
         script_content += "fi\n"
     script_content += "echo \"\"\n"
     
-    # Keep script running to maintain the session (only if exec above didn't work)
-    script_content += "# Keep script running to maintain the session\n"
-    script_content += "# (This only runs if exec above didn't replace the process)\n"
-    script_content += "trap 'echo \"Tmux launcher script stopped, but tmux session remains\"' EXIT\n"
-    script_content += "while tmux has-session -t $SESSION_NAME 2>/dev/null; do\n"
-    script_content += "  sleep 1\n"
-    script_content += "done\n"
+    # Exit script - tmux session persists independently
+    # The main terminal should remain free for other processes (e.g., pointcloud container)
+    script_content += "# Exit script - tmux session runs independently\n"
+    script_content += "# The main terminal remains available for other processes\n"
+    script_content += "exit 0\n"
     
     # Write script to temporary file
     fd, script_path = tempfile.mkstemp(suffix='.sh', prefix='tmux_launcher_')
@@ -313,7 +417,8 @@ def launch_in_tmux(context, launch_arguments_names: list[str], launcher_paths: l
                    launcher_pkg_install_dir: str,
                    launcher_pkg_name: str = 'tier4_perception_launch',
                    session_name: str = 'ros2_launchers',
-                   window_name: str = 'launchers') -> list[ExecuteProcess]:
+                   window_name: str = 'launchers',
+                   launch_pointcloud_container: bool = False) -> list[ExecuteProcess]:
     """
     Launch multiple launchers in a single tmux session with split panes.
     
@@ -325,6 +430,7 @@ def launch_in_tmux(context, launch_arguments_names: list[str], launcher_paths: l
         launcher_pkg_name: Package name for ros2 launch command
         session_name: Name for the tmux session
         window_name: Name for the tmux window
+        launch_pointcloud_container: If True, launch pointcloud container in first pane
         
     Returns:
         List of ExecuteProcess actions (single action that runs the tmux script)
@@ -335,7 +441,7 @@ def launch_in_tmux(context, launch_arguments_names: list[str], launcher_paths: l
     # Create the tmux launcher script
     script_path = create_tmux_launcher_script(
         launcher_paths, launch_args_cmd, launcher_pkg_install_dir,
-        launcher_pkg_name, session_name, window_name
+        launcher_pkg_name, session_name, window_name, launch_pointcloud_container
     )
     
     # Return the action to execute the script

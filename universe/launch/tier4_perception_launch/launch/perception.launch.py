@@ -392,7 +392,8 @@ def launch_xml_fallback(launch_arguments_names, xml_launcher_file: str):
 
 
 def launch_prebuilt_launchers(context, launch_arguments_names: list[str], launcher_paths: list[str], 
-                                use_separate_terminals: bool, terminal_method: str):
+                                use_separate_terminals: bool, terminal_method: str,
+                                launch_pointcloud_container: bool = False):
     """
     Launch pre-built launcher files with all given arguments.
     
@@ -402,6 +403,7 @@ def launch_prebuilt_launchers(context, launch_arguments_names: list[str], launch
         launcher_paths: List of launcher file paths (relative to package share directory)
         use_separate_terminals: Whether to launch in separate terminals
         terminal_method: Terminal method to use ('terminator', 'tmux', or 'none')
+        launch_pointcloud_container: If True, launch pointcloud container in separate terminal
     """
     launcher_pkg_install_dir = get_package_share_directory('tier4_perception_launch')
     
@@ -412,7 +414,8 @@ def launch_prebuilt_launchers(context, launch_arguments_names: list[str], launch
         if terminal_method == 'tmux':
             # Launch with tmux: create new panes in a single window
             launch_actions.extend(launch_in_tmux(
-                context, launch_arguments_names, launcher_paths, launcher_pkg_install_dir
+                context, launch_arguments_names, launcher_paths, launcher_pkg_install_dir,
+                launch_pointcloud_container=launch_pointcloud_container
             ))
     else:
         # Use regular launch (current approach)
@@ -455,6 +458,14 @@ def opaque_launch_perception_system(context, launch_argument_names: list[str], x
     
     launch_actions = []
     
+    # Determine if pointcloud container should be launched in separate terminal
+    launch_pointcloud_container_in_terminal = USE_SEPARATE_TERMINALS and terminal_method != 'none'
+    
+    # If using separate terminals but terminal method is not available, add pointcloud container directly
+    if USE_SEPARATE_TERMINALS and terminal_method == 'none':
+        logger.info("Adding pointcloud container directly (terminal method not available)")
+        launch_actions.append(create_pointcloud_container())
+    
     if not is_supported:
         # If not supported, launch with XML fallback, handing over all given arguments
         logger.warning("Mode combination not supported. Using XML fallback. Modes: %s", pprint.pformat(modes, indent=2))
@@ -475,7 +486,8 @@ def opaque_launch_perception_system(context, launch_argument_names: list[str], x
             # launch the pre-built launchers
             launch_actions.extend(launch_prebuilt_launchers(
                 context, launch_argument_names, launcher_paths, 
-                USE_SEPARATE_TERMINALS, terminal_method
+                USE_SEPARATE_TERMINALS, terminal_method,
+                launch_pointcloud_container=launch_pointcloud_container_in_terminal
             ))
     
     return launch_actions
@@ -567,13 +579,17 @@ def generate_launch_description():
     xml_fallback_path = "launch/perception.launch.xml"
     xml_fallback_file = os.path.join(launcher_pkg_install_dir, xml_fallback_path)
 
-    # Create the pointcloud container
-    pointcloud_container = create_pointcloud_container()
-
     # Launch the perception system (will determine if supported and launch accordingly)
-    return LaunchDescription(
-        launch_arguments + [
-            pointcloud_container,
-            OpaqueFunction(function=lambda context: opaque_launch_perception_system(context, launch_argument_names, xml_fallback_file))
-        ]
-    )
+    # The pointcloud container will be launched in a separate terminal if multi-terminal is enabled
+    # Otherwise, it will be added directly to the launch description
+    launch_actions_list = [
+        OpaqueFunction(function=lambda context: opaque_launch_perception_system(context, launch_argument_names, xml_fallback_file))
+    ]
+    
+    # Only add pointcloud container directly if NOT using separate terminals
+    # (If using separate terminals, it will be handled in the opaque function)
+    if not USE_SEPARATE_TERMINALS:
+        pointcloud_container = create_pointcloud_container()
+        launch_actions_list.insert(0, pointcloud_container)
+    
+    return LaunchDescription(launch_arguments + launch_actions_list)
