@@ -205,142 +205,164 @@ def create_terminator_launcher_script(launcher_paths: list[str], launch_args_cmd
     # Build commands for each launcher
     commands = []
     
-    def build_cmd_part(cmd_parts):
-        """Build command part (without source) that will be combined in bash script."""
+    def build_cmd_part_for_terminator(cmd_parts):
+        """Build command part for terminator (no dollar escaping needed with single quotes)."""
         cmd_quoted = ' '.join(shlex.quote(p) for p in cmd_parts)
-        return escape_dollar_signs_for_bash(cmd_quoted)
+        return cmd_quoted  # No escape_dollar_signs_for_bash since we'll use single quotes
     
     if launch_pointcloud_container:
-        container_cmd_part = build_cmd_part(['ros2', 'run', 'rclcpp_components', 'component_container',
+        container_cmd_part = build_cmd_part_for_terminator(['ros2', 'run', 'rclcpp_components', 'component_container',
                                             '--ros-args', '-r', '__node:=pointcloud_container', '--log-level', 'info'])
         commands.append(('pointcloud_container', container_cmd_part))
     
     for launcher_path in launcher_paths:
         launcher_name = os.path.basename(launcher_path)
         full_launcher_path = os.path.join(launcher_pkg_install_dir, launcher_path)
-        launch_cmd_part = build_cmd_part(['ros2', 'launch', full_launcher_path] + launch_args_cmd)
+        launch_cmd_part = build_cmd_part_for_terminator(['ros2', 'launch', full_launcher_path] + launch_args_cmd)
         commands.append((launcher_name, launch_cmd_part))
     
-    # Create terminator config with profiles and layout
-    # Terminator uses INI-style config with [profiles] and [layouts] sections
-    script_content += "TERMINATOR_CONFIG_DIR=\"$HOME/.config/terminator\"\n"
-    script_content += "TERMINATOR_CONFIG_FILE=\"$TERMINATOR_CONFIG_DIR/config\"\n"
-    script_content += "mkdir -p \"$TERMINATOR_CONFIG_DIR\"\n"
-    script_content += "# Backup existing config if it exists\n"
-    script_content += "if [ -f \"$TERMINATOR_CONFIG_FILE\" ]; then\n"
-    script_content += "  cp \"$TERMINATOR_CONFIG_FILE\" \"$TERMINATOR_CONFIG_FILE.bak.$$\"\n"
-    script_content += "fi\n"
+    # Create a standalone terminator config file for this session
+    # This avoids conflicts with the user's existing config
+    config_fd, config_path = tempfile.mkstemp(suffix='_terminator_config', prefix='ros2_launcher_')
     
-    # Create profiles section for each launcher
-    # Use unquoted heredoc so $WORKSPACE_SETUP expands
-    # For \$ in commands, we need \\$ so bash interprets it as \$ in the final command
-    script_content += "# Create profiles for each launcher\n"
-    script_content += "PROFILES_SECTION=$(cat << PROFILES_EOF\n"
+    # Build terminator config content manually (terminator uses custom INI format)
+    config_content = "[global_config]\n"
+    config_content += "  suppress_multiple_term_dialog = True\n\n"
     
-    # Generate profiles for each command
+    config_content += "[keybindings]\n\n"
+    
+    # Add profiles section with our custom profiles
+    config_content += "[profiles]\n"
+    config_content += "  [[default]]\n\n"
+    
     for i, (title, cmd) in enumerate(commands, 1):
         profile_name = f"{layout_name}_profile_{i}"
-        # The cmd has \$ for ROS2 substitutions (from escape_dollar_signs_for_bash)
-        # and ${WORKSPACE_SETUP} which should expand
-        # In unquoted heredoc, \$ becomes $ (bash interprets backslash-dollar as dollar)
-        # But we want ROS2 to see $ for substitutions, so we need \$ in the final command
-        # Solution: In unquoted heredoc, \\$ becomes \$ (backslash escapes backslash, then dollar)
-        # So we need to double-escape: convert \$ to \\$
-        cmd_double_escaped = cmd.replace('\\$', '\\\\$')
-        # Escape double quotes for INI format
-        cmd_escaped_for_ini = cmd_double_escaped.replace('"', '\\"')
-        bash_cmd = f'bash -ic "{cmd_escaped_for_ini}; bash"'
-        # Escape double quotes in the bash command for INI format
-        bash_cmd_escaped = bash_cmd.replace('"', '\\"')
-        script_content += f"  [[{profile_name}]]\n"
-        script_content += f'    custom_command = "{bash_cmd_escaped}"\n'
+        # Escape single quotes in the command
+        cmd_for_single_quote = cmd.replace("'", "'\\''")
+        # Build the bash command that sources setup and runs the ros2 command
+        setup_bash_quoted = shlex.quote(setup_bash_path)
+        full_cmd = f"source {setup_bash_quoted} && {cmd}"
+        bash_cmd = f"bash -c {shlex.quote(full_cmd)}; exec bash"
+
+        config_content += f"  [[{profile_name}]]\n"
+        config_content += f"    use_custom_command = True\n"
+        config_content += f"    custom_command = {shlex.quote(bash_cmd)}\n\n"
     
-    script_content += "PROFILES_EOF\n"
-    script_content += ")\n\n"
-    
-    # Create layout section
-    script_content += "# Create layout section\n"
-    script_content += "LAYOUT_SECTION=$(cat << 'LAYOUT_EOF'\n"
-    
-    # Generate layout in terminator's INI format
-    script_content += f"  [[{layout_name}]]\n"
-    script_content += "    [[[window0]]]\n"
-    script_content += "      type = Window\n"
-    script_content += "      parent = \"\"\n"
+    # Add layouts section
+    config_content += "[layouts]\n"
+    config_content += f"  [[{layout_name}]]\n"
+    config_content += "    [[[window0]]]\n"
+    config_content += "      type = Window\n"
+    config_content += '      parent = ""\n'
     
     if len(commands) == 0:
         # Empty layout
-        script_content += "    [[[child1]]]\n"
-        script_content += "      type = Terminal\n"
-        script_content += "      parent = window0\n"
-        script_content += "      profile = default\n"
+        config_content += "    [[[child1]]]\n"
+        config_content += "      type = Terminal\n"
+        config_content += "      parent = window0\n"
+        config_content += "      profile = default\n"
     elif len(commands) == 1:
         # Single terminal
         title, _ = commands[0]
         profile_name = f"{layout_name}_profile_1"
-        script_content += f"    [[[child1]]]\n"
-        script_content += f"      type = Terminal\n"
-        script_content += f"      parent = window0\n"
-        script_content += f"      profile = {profile_name}\n"
-        script_content += f"      title = {shlex.quote(title)}\n"
-    else:
-        # Multiple terminals - create vertical split using VPaned
-        script_content += "    [[[child1]]]\n"
-        script_content += "      type = VPaned\n"
-        script_content += "      parent = window0\n"
+        config_content += "    [[[child1]]]\n"
+        config_content += "      type = Terminal\n"
+        config_content += "      parent = window0\n"
+        config_content += f"      profile = {profile_name}\n"
+        config_content += f"      title = {title}\n"
+    elif len(commands) == 2:
+        # Two terminals - simple VPaned split
+        config_content += "    [[[child1]]]\n"
+        config_content += "      type = VPaned\n"
+        config_content += "      parent = window0\n"
         
-        # Add terminals as children of the VPaned
-        for i, (title, _) in enumerate(commands, 1):
-            profile_name = f"{layout_name}_profile_{i}"
-            script_content += f"    [[[[child{i}]]]]\n"
-            script_content += f"      type = Terminal\n"
-            script_content += f"      parent = child1\n"
-            script_content += f"      profile = {profile_name}\n"
-            script_content += f"      title = {shlex.quote(title)}\n"
+        for i, (title, _) in enumerate(commands):
+            profile_name = f"{layout_name}_profile_{i+1}"
+            config_content += f"    [[[[child{i+2}]]]]\n"
+            config_content += "      type = Terminal\n"
+            config_content += "      parent = child1\n"
+            config_content += f"      profile = {profile_name}\n"
+            config_content += f"      title = {title}\n"
+            config_content += f"      order = {i}\n"
+    else:
+        # Multiple terminals - create nested VPaned structures
+        # Structure: VPaned(Terminal1, VPaned(Terminal2, VPaned(Terminal3, ...)))
+        child_counter = 1
+
+        for i, (title, _) in enumerate(commands):
+            profile_name = f"{layout_name}_profile_{i+1}"
+            is_first = (i == 0)
+            is_last = (i == len(commands) - 1)
+
+            if is_first:
+                # Root VPaned
+                config_content += f"    [[[child{child_counter}]]]\n"
+                config_content += "      type = VPaned\n"
+                config_content += "      parent = window0\n"
+                config_content += "      order = 0\n"
+                parent_pane = f"child{child_counter}"
+                child_counter += 1
+
+                # First terminal
+                config_content += f"    [[[child{child_counter}]]]\n"
+                config_content += "      type = Terminal\n"
+                config_content += f"      parent = {parent_pane}\n"
+                config_content += f"      profile = {profile_name}\n"
+                config_content += f"      title = {title}\n"
+                config_content += "      order = 0\n"
+                child_counter += 1
+            elif is_last:
+                # Last terminal (order=1 child of previous VPaned)
+                config_content += f"    [[[child{child_counter}]]]\n"
+                config_content += "      type = Terminal\n"
+                config_content += f"      parent = {parent_pane}\n"
+                config_content += f"      profile = {profile_name}\n"
+                config_content += f"      title = {title}\n"
+                config_content += "      order = 1\n"
+                child_counter += 1
+            else:
+                # Nested VPaned (order=1 child of previous VPaned)
+                config_content += f"    [[[child{child_counter}]]]\n"
+                config_content += "      type = VPaned\n"
+                config_content += f"      parent = {parent_pane}\n"
+                config_content += "      order = 1\n"
+                parent_pane = f"child{child_counter}"
+                child_counter += 1
+
+                # Terminal in this VPaned
+                config_content += f"    [[[child{child_counter}]]]\n"
+                config_content += "      type = Terminal\n"
+                config_content += f"      parent = {parent_pane}\n"
+                config_content += f"      profile = {profile_name}\n"
+                config_content += f"      title = {title}\n"
+                config_content += "      order = 0\n"
+                child_counter += 1
     
-    script_content += "LAYOUT_EOF\n"
-    script_content += ")\n\n"
+    # Write config to temp file
+    with os.fdopen(config_fd, 'w') as f:
+        f.write(config_content)
     
-    # Merge profiles and layout into config file
-    script_content += "# Check if [profiles] section exists\n"
-    script_content += "if ! grep -q '^\\[profiles\\]' \"$TERMINATOR_CONFIG_FILE\" 2>/dev/null; then\n"
-    script_content += "  # Add [profiles] section if it doesn't exist\n"
-    script_content += "  echo '' >> \"$TERMINATOR_CONFIG_FILE\"\n"
-    script_content += "  echo '[profiles]' >> \"$TERMINATOR_CONFIG_FILE\"\n"
-    script_content += "fi\n"
-    script_content += "# Append profiles to config file\n"
-    script_content += "echo \"$PROFILES_SECTION\" >> \"$TERMINATOR_CONFIG_FILE\"\n"
-    script_content += "echo \"Profiles added to config\"\n\n"
+    config_path_quoted = shlex.quote(config_path)
     
-    script_content += "# Check if [layouts] section exists\n"
-    script_content += "if ! grep -q '^\\[layouts\\]' \"$TERMINATOR_CONFIG_FILE\" 2>/dev/null; then\n"
-    script_content += "  # Add [layouts] section if it doesn't exist\n"
-    script_content += "  echo '' >> \"$TERMINATOR_CONFIG_FILE\"\n"
-    script_content += "  echo '[layouts]' >> \"$TERMINATOR_CONFIG_FILE\"\n"
-    script_content += "fi\n"
-    script_content += "# Append layout to config file\n"
-    script_content += "echo \"$LAYOUT_SECTION\" >> \"$TERMINATOR_CONFIG_FILE\"\n"
-    script_content += "echo \"Layout added to config: $TERMINATOR_CONFIG_FILE\"\n\n"
+    # Add commands to use this config file
+    script_content += f"TERMINATOR_CONFIG={config_path_quoted}\n"
+    script_content += "echo \"Using terminator config: $TERMINATOR_CONFIG\"\n\n"
     
-    # Launch terminator with the layout
-    # Terminator uses --layout (or -l) with the layout name
+    # Launch terminator with the custom config and layout
     script_content += "TERMINATOR_PID=\"\"\n"
-    script_content += "terminator --layout=\"$LAYOUT_NAME\" &\n"
+    script_content += "terminator --config=\"$TERMINATOR_CONFIG\" --layout=\"$LAYOUT_NAME\" &\n"
     script_content += "TERMINATOR_PID=$!\n"
     script_content += "sleep 2\n"
     script_content += "echo \"Terminator launched with PID: $TERMINATOR_PID\"\n\n"
-    
+
     script_content += "cleanup_and_exit() {\n"
     script_content += "  if [ -n \"$TERMINATOR_PID\" ] && kill -0 \"$TERMINATOR_PID\" 2>/dev/null; then\n"
     script_content += "    kill -TERM \"$TERMINATOR_PID\" 2>/dev/null || true\n"
     script_content += "    sleep 1\n"
     script_content += "    kill -KILL \"$TERMINATOR_PID\" 2>/dev/null || true\n"
     script_content += "  fi\n"
-    script_content += "  # Restore config backup if it exists\n"
-    script_content += "  if [ -f \"$TERMINATOR_CONFIG_FILE.bak.$$\" ]; then\n"
-    script_content += "    mv \"$TERMINATOR_CONFIG_FILE.bak.$$\" \"$TERMINATOR_CONFIG_FILE\"\n"
-    script_content += "    echo \"Config restored from backup\"\n"
-    script_content += "  fi\n"
+    script_content += "  # Clean up temp files\n"
+    script_content += "  rm -f \"$TERMINATOR_CONFIG\" 2>/dev/null || true\n"
     script_content += "  exit 0\n"
     script_content += "}\n"
     script_content += "trap cleanup_and_exit SIGINT SIGTERM\n"
