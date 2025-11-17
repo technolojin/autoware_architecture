@@ -20,6 +20,13 @@ GUI_TERMINAL_CANDIDATES = (
     'terminator',
 )
 
+TERMINATOR_SIGINT_WAIT_SECONDS = 20
+TERMINATOR_SIGTERM_WAIT_SECONDS = 8
+TERMINATOR_SIGKILL_WAIT_SECONDS = 3
+
+TERMINAL_SIGTERM_TIMEOUT = 25.0
+TERMINAL_SIGKILL_TIMEOUT = 10.0
+
 
 def _first_available_command(candidates: tuple[str, ...]) -> str:
     """Return the first executable available from the candidates."""

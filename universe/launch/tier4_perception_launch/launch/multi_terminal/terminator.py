@@ -9,9 +9,12 @@ from launch.actions import ExecuteProcess
 from . import multi_terminal_launcher as base
 
 
-def _build_process_supervision_functions() -> str:
+def _build_process_supervision_functions(
+        sigint_wait: int = base.TERMINATOR_SIGINT_WAIT_SECONDS,
+        sigterm_wait: int = base.TERMINATOR_SIGTERM_WAIT_SECONDS,
+        sigkill_wait: int = base.TERMINATOR_SIGKILL_WAIT_SECONDS) -> str:
     """Return bash helpers for supervising launcher child processes."""
-    return textwrap.dedent("""\
+    supervision_block = textwrap.dedent("""\
     child_processes_running() {
       for pid_file in $COMMAND_PID_FILES; do
         [ -f "$pid_file" ] || continue
@@ -66,9 +69,9 @@ def _build_process_supervision_functions() -> str:
           break
         fi
         local wait_time=0
-        [ "$sig" = "SIGINT" ] && wait_time=10
-        [ "$sig" = "SIGTERM" ] && wait_time=5
-        [ "$sig" = "SIGKILL" ] && wait_time=2
+        [ "$sig" = "SIGINT" ] && wait_time=__SIGINT_WAIT__
+        [ "$sig" = "SIGTERM" ] && wait_time=__SIGTERM_WAIT__
+        [ "$sig" = "SIGKILL" ] && wait_time=__SIGKILL_WAIT__
         if [ "$wait_time" -gt 0 ]; then
           wait_for_children_to_exit "$wait_time" && break
         fi
@@ -78,6 +81,11 @@ def _build_process_supervision_functions() -> str:
       done
     }
     """).strip()
+
+    return (supervision_block
+            .replace("__SIGINT_WAIT__", str(sigint_wait))
+            .replace("__SIGTERM_WAIT__", str(sigterm_wait))
+            .replace("__SIGKILL_WAIT__", str(sigkill_wait)))
 
 
 def _create_command_script(index: int, title: str, cmd: str,
@@ -295,6 +303,7 @@ def create_terminator_launcher_script(launcher_paths: list[str], launch_args_cmd
         "fi", "",
         f"COMMAND_SCRIPTS=\"{' '.join(shlex.quote(p) for p, _ in command_scripts)}\"",
         f"COMMAND_PID_FILES=\"{' '.join(shlex.quote(p) for _, p in command_scripts)}\"", "",
+        "CLEANUP_IN_PROGRESS=false", "",
     ])
 
     process_supervision_block = _build_process_supervision_functions()
@@ -302,6 +311,11 @@ def create_terminator_launcher_script(launcher_paths: list[str], launch_args_cmd
     script_lines.extend([
         "",
         "cleanup_and_exit() {",
+        "  if [ \"$CLEANUP_IN_PROGRESS\" = true ]; then",
+        "    echo \"Cleanup already in progress. Waiting for shutdown to finish...\"",
+        "    return",
+        "  fi",
+        "  CLEANUP_IN_PROGRESS=true",
         "  echo \"Shutting down all processes...\"",
         "  terminate_child_launchers",
         "  wait_for_children_to_exit 0 || true",
@@ -351,4 +365,9 @@ def launch_in_terminator(context, launch_arguments_names: list[str], launcher_pa
         launcher_paths, launch_args_cmd, launcher_pkg_install_dir,
         launcher_pkg_name, layout_name, launch_pointcloud_container, titles,
     )
-    return [ExecuteProcess(cmd=['bash', script_path], output='screen')]
+    return [ExecuteProcess(
+        cmd=['bash', script_path],
+        output='screen',
+        sigterm_timeout=str(base.TERMINAL_SIGTERM_TIMEOUT),
+        sigkill_timeout=str(base.TERMINAL_SIGKILL_TIMEOUT),
+    )]
