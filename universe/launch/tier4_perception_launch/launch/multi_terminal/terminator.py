@@ -198,6 +198,7 @@ def _generate_terminator_layout(commands: list[tuple[str, str]], layout_name: st
         "    [[[window0]]]",
         "      type = Window",
         '      parent = ""',
+        "      size = 1200, 1400",
     ])
 
     num_terminals = len(commands)
@@ -221,6 +222,7 @@ def _generate_terminator_layout(commands: list[tuple[str, str]], layout_name: st
         config_lines.append("    [[[child1]]]")
         config_lines.append("      type = VPaned")
         config_lines.append("      parent = window0")
+        config_lines.append("      ratio = 0.5")
         for i, (title, _) in enumerate(commands):
             config_lines.extend([
                 f"    [[[[child{i + 2}]]]]",
@@ -238,12 +240,18 @@ def _generate_terminator_layout(commands: list[tuple[str, str]], layout_name: st
             profile_name = f"{layout_name}_profile_{i + 1}"
             is_first = (i == 0)
             is_last = (i == num_terminals - 1)
+            
+            # Calculate ratio for equal splits: first terminal gets 1/n, second split is 1/(n-1), etc.
+            # For terminal i (0-indexed), ratio should be 1/(num_terminals - i)
+            terminals_remaining = num_terminals - i
+            split_ratio = 1.0 / terminals_remaining if terminals_remaining > 1 else 0.5
 
             if is_first:
                 config_lines.extend([
                     f"    [[[child{child_counter}]]]",
                     "      type = VPaned",
                     "      parent = window0",
+                    f"      ratio = {split_ratio:.6f}",
                     "      order = 0",
                 ])
                 parent_pane = f"child{child_counter}"
@@ -272,6 +280,7 @@ def _generate_terminator_layout(commands: list[tuple[str, str]], layout_name: st
                     f"    [[[child{child_counter}]]]",
                     "      type = VPaned",
                     f"      parent = {parent_pane}",
+                    f"      ratio = {split_ratio:.6f}",
                     "      order = 1",
                 ])
                 parent_pane = f"child{child_counter}"
