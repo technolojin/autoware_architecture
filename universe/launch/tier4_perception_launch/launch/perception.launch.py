@@ -26,7 +26,7 @@ launch_dir = Path(__file__).parent
 if str(launch_dir) not in sys.path:
     sys.path.insert(0, str(launch_dir))
 
-import multi_terminal_launcher
+import multi_terminal.multi_terminal_launcher as multi_terminal_launcher
 detect_terminal_method = multi_terminal_launcher.detect_terminal_method
 launch_in_tmux = multi_terminal_launcher.launch_in_tmux
 launch_in_terminator = multi_terminal_launcher.launch_in_terminator

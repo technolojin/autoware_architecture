@@ -4,6 +4,7 @@ import shlex
 import tempfile
 import logging
 import uuid
+import textwrap
 
 from launch.actions import ExecuteProcess
 from launch.substitutions import LaunchConfiguration
@@ -72,6 +73,77 @@ def _write_temp_script(content: str, prefix: str, suffix: str = '.sh') -> str:
         f.write(content)
     os.chmod(script_path, 0o755)
     return script_path
+
+
+def _build_process_supervision_functions() -> str:
+    """Return bash helpers for supervising launcher child processes."""
+    return textwrap.dedent("""\
+    child_processes_running() {
+      for pid_file in $COMMAND_PID_FILES; do
+        [ -f "$pid_file" ] || continue
+        local child_pid=$(cat "$pid_file" 2>/dev/null)
+        [ -n "$child_pid" ] || continue
+        if kill -0 "$child_pid" 2>/dev/null; then
+          return 0
+        fi
+      done
+      return 1
+    }
+
+    send_signal_to_children() {
+      local sig=$1
+      local sent_any=false
+      for pid_file in $COMMAND_PID_FILES; do
+        [ -f "$pid_file" ] || continue
+        local child_pid=$(cat "$pid_file" 2>/dev/null)
+        [ -n "$child_pid" ] || continue
+        if kill -0 "$child_pid" 2>/dev/null; then
+          sent_any=true
+          echo "Sending $sig to PID $child_pid"
+          kill -$sig "$child_pid" 2>/dev/null || true
+        fi
+      done
+      [ "$sent_any" = true ]
+    }
+
+    wait_for_children_to_exit() {
+      local timeout=${1:-0}
+      local waited=0
+      local notice_shown=false
+      while child_processes_running; do
+        if [ "$notice_shown" = "false" ]; then
+          echo "Waiting for ROS 2 launchers to exit..."
+          notice_shown=true
+        fi
+        if [ "$timeout" -gt 0 ] && [ "$waited" -ge "$timeout" ]; then
+          return 1
+        fi
+        sleep 1
+        waited=$((waited + 1))
+      done
+      return 0
+    }
+
+    terminate_child_launchers() {
+      [ -n "$COMMAND_PID_FILES" ] || return
+      echo "Requesting ROS 2 launchers to shut down..."
+      for sig in SIGINT SIGTERM SIGKILL; do
+        if ! send_signal_to_children "$sig"; then
+          break
+        fi
+        local wait_time=0
+        [ "$sig" = "SIGINT" ] && wait_time=10
+        [ "$sig" = "SIGTERM" ] && wait_time=5
+        [ "$sig" = "SIGKILL" ] && wait_time=2
+        if [ "$wait_time" -gt 0 ]; then
+          wait_for_children_to_exit "$wait_time" && break
+        fi
+        if ! child_processes_running; then
+          break
+        fi
+      done
+    }
+    """).strip()
 
 
 def _build_tmux_launch_commands(launcher_paths: list[str], launch_args_cmd: list[str],
@@ -437,9 +509,17 @@ def create_terminator_launcher_script(launcher_paths: list[str], launch_args_cmd
         "  exit 1",
         "fi", "",
         f"COMMAND_SCRIPTS=\"{' '.join(shlex.quote(p) for p, _ in command_scripts)}\"",
-        f"COMMAND_PID_FILES=\"{' '.join(shlex.quote(p) for _, p in command_scripts)}\"", "",
+        f"COMMAND_PID_FILES=\"{' '.join(shlex.quote(p) for _, p in command_scripts)}\"", ""
+    ])
+
+    process_supervision_block = _build_process_supervision_functions()
+    script_lines.extend(process_supervision_block.splitlines())
+    script_lines.extend([
+        "",
         "cleanup_and_exit() {",
         "  echo \"Shutting down all processes...\"",
+        "  terminate_child_launchers",
+        "  wait_for_children_to_exit 0 || true",
         "  if [ -n \"$TERMINATOR_PID\" ] && kill -0 \"$TERMINATOR_PID\" 2>/dev/null; then",
         "    echo \"Terminating terminator (PID: $TERMINATOR_PID)...\"",
         "    kill -TERM \"$TERMINATOR_PID\" 2>/dev/null || true",
@@ -452,19 +532,7 @@ def create_terminator_launcher_script(launcher_paths: list[str], launch_args_cmd
         "  fi",
         "  if [ -n \"$COMMAND_PID_FILES\" ]; then",
         "    for pid_file in $COMMAND_PID_FILES; do",
-        "      if [ -f \"$pid_file\" ]; then",
-        "        child_pid=$(cat \"$pid_file\" 2>/dev/null)",
-        "        if [ -n \"$child_pid\" ]; then",
-        "          for sig in SIGINT SIGTERM SIGKILL; do",
-        "            if kill -0 \"$child_pid\" 2>/dev/null; then",
-        "              echo \"Sending $sig to PID $child_pid\"",
-        "              kill -$sig \"$child_pid\" 2>/dev/null || true",
-        "              [ \"$sig\" != \"SIGKILL\" ] && sleep 1",
-        "            fi",
-        "          done",
-        "        fi",
-        "        rm -f \"$pid_file\" 2>/dev/null || true",
-        "      fi",
+        "      rm -f \"$pid_file\" 2>/dev/null || true",
         "    done",
         "  fi",
         "  rm -f \"$TERMINATOR_CONFIG\" 2>/dev/null || true",
