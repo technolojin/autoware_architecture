@@ -10,25 +10,42 @@ from launch.substitutions import LaunchConfiguration
 
 logger = logging.getLogger(__name__)
 
+TERMINAL_METHOD_PRIORITY = ('terminator', 'tmux')
+GUI_TERMINAL_CANDIDATES = (
+    'gnome-terminal',
+    'xterm',
+    'konsole',
+    'xfce4-terminal',
+    'mate-terminal',
+    'terminator',
+)
+
+
+def _first_available_command(candidates: tuple[str, ...]) -> str:
+    """Return the first executable available from the candidates."""
+    return next((cmd for cmd in candidates if shutil.which(cmd)), '')
+
 
 def detect_terminal_method() -> str:
     """Detect available terminal method for launching separate terminals."""
-    return 'terminator' if shutil.which('terminator') else 'tmux' if shutil.which('tmux') else 'none'
+    return _first_available_command(TERMINAL_METHOD_PRIORITY) or 'none'
 
 
 def detect_gui_terminal() -> str:
     """Detect available GUI terminal emulator."""
     if os.environ.get('DISPLAY') is None:
         return ''
-    terminals = ['gnome-terminal', 'xterm', 'konsole', 'xfce4-terminal', 'mate-terminal', 'terminator']
-    return next((t for t in terminals if shutil.which(t)), '')
+    return _first_available_command(GUI_TERMINAL_CANDIDATES)
 
 
 def format_launch_args_for_command(context, launch_arguments_names: list[str]) -> list[str]:
     """Convert launch arguments to command-line format."""
-    return [f"{name}:={LaunchConfiguration(name).perform(context)}" 
-            for name in launch_arguments_names 
-            if LaunchConfiguration(name).perform(context) is not None]
+    launch_args = []
+    for name in launch_arguments_names:
+        value = LaunchConfiguration(name).perform(context)
+        if value is not None:
+            launch_args.append(f"{name}:={value}")
+    return launch_args
 
 
 def escape_dollar_signs_for_bash(cmd_str: str) -> str:
@@ -55,6 +72,39 @@ def _write_temp_script(content: str, prefix: str, suffix: str = '.sh') -> str:
         f.write(content)
     os.chmod(script_path, 0o755)
     return script_path
+
+
+def _build_tmux_launch_commands(launcher_paths: list[str], launch_args_cmd: list[str],
+                                launcher_pkg_install_dir: str) -> list[tuple[str, str]]:
+    """Return (launcher_name, command_part) tuples for tmux scripts."""
+    commands: list[tuple[str, str]] = []
+    for launcher_path in launcher_paths:
+        launcher_name = os.path.basename(launcher_path)
+        full_path = os.path.join(launcher_pkg_install_dir, launcher_path)
+        cmd_part = _build_command_string(['ros2', 'launch', full_path] + launch_args_cmd)
+        commands.append((launcher_name, cmd_part))
+    return commands
+
+
+def _create_command_script(index: int, title: str, cmd: str,
+                           setup_bash_path: str) -> tuple[str, str]:
+    """Create a wrapper script for a command and return (script_path, pid_file)."""
+    pid_fd, pid_file_path = tempfile.mkstemp(suffix='.pid', prefix=f'ros2_cmd_{index}_')
+    os.close(pid_fd)
+
+    script_content = '\n'.join([
+        "#!/bin/bash",
+        "set -x",
+        f"PID_FILE={shlex.quote(pid_file_path)}",
+        "echo $$ > \"$PID_FILE\"",
+        f"echo \"Starting launcher: {title} (PID $$)\"",
+        f"source {shlex.quote(setup_bash_path)}",
+        "",
+        f"exec {cmd}"
+    ])
+
+    script_path = _write_temp_script(script_content, f'ros2_cmd_{index}_')
+    return script_path, pid_file_path
 
 
 def _generate_terminator_layout(commands: list[tuple[str, str]], layout_name: str, 
@@ -185,7 +235,8 @@ def create_tmux_launcher_script(launcher_paths: list[str], launch_args_cmd: list
                                 launch_pointcloud_container: bool = False) -> str:
     """Create a bash script that launches tmux with split panes and runs launchers."""
     setup_bash_path = _get_workspace_setup_path(launcher_pkg_install_dir)
-    total_panes = len(launcher_paths) + (1 if launch_pointcloud_container else 0)
+    launch_commands = _build_tmux_launch_commands(launcher_paths, launch_args_cmd, launcher_pkg_install_dir)
+    total_panes = len(launch_commands) + (1 if launch_pointcloud_container else 0)
     window_height, window_width = max(80, total_panes * 5), 200
     gui_terminal = detect_gui_terminal()
     
@@ -210,7 +261,9 @@ def create_tmux_launcher_script(launcher_paths: list[str], launch_args_cmd: list
             'mate-terminal': f"mate-terminal --geometry {window_width}x{window_height} -e \"bash -c \\\"tmux attach-session -t $SESSION_NAME || bash\\\"\"",
             'terminator': f"terminator -e \"bash -c \\\"tmux attach-session -t $SESSION_NAME || bash\\\"\""
         }
-        lines.extend([f"{term_commands.get(gui_terminal, '')} &", "sleep 1"])
+        gui_cmd = term_commands.get(gui_terminal)
+        if gui_cmd:
+            lines.extend([f"{gui_cmd} &", "sleep 1"])
     
     lines.append("LAUNCHERS_SKIPPED=false")
     
@@ -225,15 +278,12 @@ def create_tmux_launcher_script(launcher_paths: list[str], launch_args_cmd: list
             "sleep 1"
         ])
     
-    if launcher_paths:
-        first_path = launcher_paths[0]
-        first_name = os.path.basename(first_path)
-        full_path = os.path.join(launcher_pkg_install_dir, first_path)
-        cmd_part = _build_command_string(['ros2', 'launch', full_path] + launch_args_cmd)
+    if launch_commands:
+        first_name, first_cmd_part = launch_commands[0]
         
         if not launch_pointcloud_container:
             lines.extend([
-                f"LAUNCH_CMD_PART_0={shlex.quote(cmd_part)}",
+                f"LAUNCH_CMD_PART_0={shlex.quote(first_cmd_part)}",
                 "LAUNCH_CMD_0=\"source $WORKSPACE_SETUP && $LAUNCH_CMD_PART_0\"",
                 f"echo \"Launching: {first_name}\"",
                 "tmux send-keys -t $SESSION_NAME:0.0 \"$LAUNCH_CMD_0\" Enter",
@@ -243,7 +293,7 @@ def create_tmux_launcher_script(launcher_paths: list[str], launch_args_cmd: list
             lines.extend([
                 "tmux split-window -v -t $SESSION_NAME:0 'bash' || { LAUNCHERS_SKIPPED=true; }",
                 "[ \"$LAUNCHERS_SKIPPED\" = \"false\" ] && {",
-                f"  LAUNCH_CMD_PART_0={shlex.quote(cmd_part)}",
+                f"  LAUNCH_CMD_PART_0={shlex.quote(first_cmd_part)}",
                 "  LAUNCH_CMD_0=\"source $WORKSPACE_SETUP && $LAUNCH_CMD_PART_0\"",
                 f"  echo \"Launching: {first_name}\"",
                 "  tmux send-keys -t $SESSION_NAME:0. \"$LAUNCH_CMD_0\" Enter",
@@ -251,14 +301,11 @@ def create_tmux_launcher_script(launcher_paths: list[str], launch_args_cmd: list
                 "}"
             ])
     
-    initial_panes = 1 + (1 if launch_pointcloud_container and launcher_paths else 0)
+    initial_panes = 1 + (1 if launch_pointcloud_container and launch_commands else 0)
     lines.append(f"SUCCESSFUL_PANES=$(({initial_panes}))")
     lines.append("[ \"$LAUNCHERS_SKIPPED\" != \"true\" ] && {")
     
-    for i, launcher_path in enumerate(launcher_paths[1:], 1):
-        launcher_name = os.path.basename(launcher_path)
-        full_path = os.path.join(launcher_pkg_install_dir, launcher_path)
-        cmd_part = _build_command_string(['ros2', 'launch', full_path] + launch_args_cmd)
+    for i, (launcher_name, cmd_part) in enumerate(launch_commands[1:], 1):
         lines.extend([
             "  tmux split-window -v -t $SESSION_NAME:0 'bash' || break",
             f"  LAUNCH_CMD_PART_{i}={shlex.quote(cmd_part)}",
@@ -321,11 +368,11 @@ def create_terminator_launcher_script(launcher_paths: list[str], launch_args_cmd
     setup_bash_path = _get_workspace_setup_path(launcher_pkg_install_dir)
     session_group_id = f"autoware-multi-terminal-{uuid.uuid4()}"
     group_env = f"AUTOWARE_MULTI_TERMINAL_GROUP={session_group_id}"
-    total_panes = len(launcher_paths) + (1 if launch_pointcloud_container else 0)
     
     # Build commands
     commands = []
     all_titles = []
+    escaped_args = [escape_dollar_signs_for_bash(arg) for arg in launch_args_cmd]
     
     if launch_pointcloud_container:
         cmd = _build_command_string(['env', group_env, 'ros2', 'run', 'rclcpp_components', 
@@ -337,7 +384,6 @@ def create_terminator_launcher_script(launcher_paths: list[str], launch_args_cmd
     for launcher_path in launcher_paths:
         launcher_name = os.path.basename(launcher_path)
         full_path = os.path.join(launcher_pkg_install_dir, launcher_path)
-        escaped_args = [escape_dollar_signs_for_bash(arg) for arg in launch_args_cmd]
         cmd = _build_command_string(['env', group_env, 'ros2', 'launch', full_path] + escaped_args, 
                                    escape_dollars=False)
         commands.append((launcher_name, cmd))
@@ -346,25 +392,13 @@ def create_terminator_launcher_script(launcher_paths: list[str], launch_args_cmd
     if titles:
         all_titles = titles
     
+    total_panes = len(commands)
+    
     # Create command scripts
-    command_scripts = []
-    for i, (title, cmd) in enumerate(commands, 1):
-        pid_fd, pid_file_path = tempfile.mkstemp(suffix='.pid', prefix=f'ros2_cmd_{i}_')
-        os.close(pid_fd)
-        
-        script_content = '\n'.join([
-            "#!/bin/bash",
-            "set -x",
-            f"PID_FILE={shlex.quote(pid_file_path)}",
-            "echo $$ > \"$PID_FILE\"",
-            f"echo \"Starting launcher: {title} (PID $$)\"",
-            f"source {shlex.quote(setup_bash_path)}",
-            "",
-            f"exec {cmd}"
-        ])
-        
-        script_path = _write_temp_script(script_content, f'ros2_cmd_{i}_')
-        command_scripts.append((script_path, pid_file_path))
+    command_scripts = [
+        _create_command_script(i, title, cmd, setup_bash_path)
+        for i, (title, cmd) in enumerate(commands, 1)
+    ]
     
     # Generate terminator config
     script_paths = [path for path, _ in command_scripts]
