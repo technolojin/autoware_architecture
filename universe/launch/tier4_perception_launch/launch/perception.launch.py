@@ -517,7 +517,7 @@ def generate_launch_description():
 
     # for perception ecu (now using LaunchConfiguration to reference data_path)
     add_launch_arg("config_path", default_value=[PathJoinSubstitution([FindPackageShare('autoware_launch'), 'config'])]) # config
-    
+    add_launch_arg("vehicle_model", default_value="j6_gen2") # vehicle model
     add_launch_arg("pointcloud_container_name", default_value="pointcloud_container")
 
 

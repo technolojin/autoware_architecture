@@ -1,13 +1,13 @@
 name: universe_perception_obstacle_segmentation_single.parameter_set
 parameters:
-  - node: /perception/occupancy_grid_map/crop_box_filter
+  - node: /perception/obstacle_segmentation/crop_box_filter
     parameter_files:
-      - crop_box_filter_param_file: $(var config_path)/perception/occupancy_grid_map/single_ground_segmentation/crop_box_filter.param.yaml
+      - crop_box_filter_param_file: $(var config_path)/perception/obstacle_segmentation/single_ground_segmentation/crop_box_filter.param.yaml
     parameters: []
-  - node: /perception/occupancy_grid_map/common_ground_filter
+  - node: /perception/obstacle_segmentation/common_ground_filter
     parameter_files:
-      - ground_segmentation_param_file: $(var config_path)/perception/occupancy_grid_map/single_ground_segmentation/ground_segmentation.param.yaml
-      - vehicle_info_param_file: $(var config_path)/perception/obstacle_segmentation/common_ground_filter/vehicle_info_param_file.param.yaml
+      - ground_segmentation_param_file: $(var config_path)/perception/obstacle_segmentation/single_ground_segmentation/ground_segmentation.param.yaml
+      - vehicle_info_param_file: $(find-pkg-share $(var vehicle_model)_description)/config/vehicle_info.param.yaml
     parameters:
       - name: max_z
         value: 3.0
