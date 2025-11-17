@@ -27,6 +27,22 @@ def _build_process_supervision_functions(
       return 1
     }
 
+    get_container_pid() {
+      [ -n "$POINTCLOUD_CONTAINER_PID_FILE" ] || return 1
+      [ -f "$POINTCLOUD_CONTAINER_PID_FILE" ] || return 1
+      local container_pid=$(cat "$POINTCLOUD_CONTAINER_PID_FILE" 2>/dev/null)
+      [ -n "$container_pid" ] || return 1
+      if kill -0 "$container_pid" 2>/dev/null; then
+        echo "$container_pid"
+        return 0
+      fi
+      return 1
+    }
+
+    container_is_running() {
+      get_container_pid >/dev/null 2>&1
+    }
+
     send_signal_to_children() {
       local sig=$1
       local sent_any=false
@@ -36,7 +52,6 @@ def _build_process_supervision_functions(
         [ -n "$child_pid" ] || continue
         if kill -0 "$child_pid" 2>/dev/null; then
           sent_any=true
-          echo "Sending $sig to PID $child_pid"
           kill -$sig "$child_pid" 2>/dev/null || true
         fi
       done
@@ -46,12 +61,7 @@ def _build_process_supervision_functions(
     wait_for_children_to_exit() {
       local timeout=${1:-0}
       local waited=0
-      local notice_shown=false
       while child_processes_running; do
-        if [ "$notice_shown" = "false" ]; then
-          echo "Waiting for ROS 2 launchers to exit..."
-          notice_shown=true
-        fi
         if [ "$timeout" -gt 0 ] && [ "$waited" -ge "$timeout" ]; then
           return 1
         fi
@@ -61,24 +71,77 @@ def _build_process_supervision_functions(
       return 0
     }
 
+    wait_for_container_to_exit() {
+      local timeout=${1:-0}
+      local waited=0
+      while container_is_running; do
+        if [ "$timeout" -gt 0 ] && [ "$waited" -ge "$timeout" ]; then
+          return 1
+        fi
+        sleep 1
+        waited=$((waited + 1))
+      done
+      return 0
+    }
+
+    kill_container_directly() {
+      if [ -z "$POINTCLOUD_CONTAINER_PID_FILE" ]; then
+        return 1
+      fi
+      local container_pid=$(cat "$POINTCLOUD_CONTAINER_PID_FILE" 2>/dev/null)
+      if [ -z "$container_pid" ]; then
+        return 1
+      fi
+      if kill -0 "$container_pid" 2>/dev/null; then
+        local sig=${1:-TERM}
+        kill -$sig "$container_pid" 2>/dev/null || true
+        return 0
+      fi
+      return 1
+    }
+
+    wait_for_container_death() {
+      local timeout=${1:-5}
+      local waited=0
+      if [ -z "$POINTCLOUD_CONTAINER_PID_FILE" ]; then
+        return 0
+      fi
+      local container_pid=$(cat "$POINTCLOUD_CONTAINER_PID_FILE" 2>/dev/null)
+      if [ -z "$container_pid" ]; then
+        return 0
+      fi
+      while [ "$waited" -lt "$timeout" ]; do
+        if ! kill -0 "$container_pid" 2>/dev/null; then
+          return 0
+        fi
+        sleep 1
+        waited=$((waited + 1))
+      done
+      return 1
+    }
+
     terminate_child_launchers() {
       [ -n "$COMMAND_PID_FILES" ] || return
-      echo "Requesting ROS 2 launchers to shut down..."
-      for sig in SIGINT SIGTERM SIGKILL; do
-        if ! send_signal_to_children "$sig"; then
-          break
+      
+      echo "Shutting down ROS2 launchers..."
+      send_signal_to_children SIGINT
+      sleep 3
+      
+      if child_processes_running; then
+        send_signal_to_children SIGTERM
+        if ! wait_for_children_to_exit 5; then
+          send_signal_to_children SIGKILL
+          wait_for_children_to_exit 2 || true
         fi
-        local wait_time=0
-        [ "$sig" = "SIGINT" ] && wait_time=__SIGINT_WAIT__
-        [ "$sig" = "SIGTERM" ] && wait_time=__SIGTERM_WAIT__
-        [ "$sig" = "SIGKILL" ] && wait_time=__SIGKILL_WAIT__
-        if [ "$wait_time" -gt 0 ]; then
-          wait_for_children_to_exit "$wait_time" && break
+      fi
+      
+      echo "Terminating container..."
+      if kill_container_directly TERM; then
+        if ! wait_for_container_death 8; then
+          kill_container_directly KILL
+          wait_for_container_death 2 || true
         fi
-        if ! child_processes_running; then
-          break
-        fi
-      done
+      fi
     }
     """).strip()
 
@@ -267,6 +330,10 @@ def create_terminator_launcher_script(launcher_paths: list[str], launch_args_cmd
         for i, (title, cmd) in enumerate(commands, 1)
     ]
 
+    pointcloud_container_pid_file = ''
+    if launch_pointcloud_container and command_scripts:
+        pointcloud_container_pid_file = command_scripts[0][1]
+
     script_paths = [path for path, _ in command_scripts]
     config_content = _generate_terminator_layout(commands, layout_name, script_paths)
 
@@ -302,7 +369,8 @@ def create_terminator_launcher_script(launcher_paths: list[str], launch_args_cmd
         "  exit 1",
         "fi", "",
         f"COMMAND_SCRIPTS=\"{' '.join(shlex.quote(p) for p, _ in command_scripts)}\"",
-        f"COMMAND_PID_FILES=\"{' '.join(shlex.quote(p) for _, p in command_scripts)}\"", "",
+        f"COMMAND_PID_FILES=\"{' '.join(shlex.quote(p) for _, p in command_scripts)}\"",
+        f"POINTCLOUD_CONTAINER_PID_FILE={shlex.quote(pointcloud_container_pid_file)}", "",
         "CLEANUP_IN_PROGRESS=false", "",
     ])
 
