@@ -30,6 +30,7 @@ components:
     entity: LidarCenterpoint.module
     namespace: perception/object_recognition/detection
     compute_unit: main_ecu
+    parameter_set: universe_perception_centerpoint_vanilla.parameter_set
   - component: object_recognition
     entity: ObjectRecognitionLidar.module
     namespace: perception

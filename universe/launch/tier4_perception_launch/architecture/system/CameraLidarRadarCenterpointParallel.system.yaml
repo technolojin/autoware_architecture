@@ -37,6 +37,7 @@ components:
     entity: LidarCenterpoint.module
     namespace: perception/object_recognition/detection
     compute_unit: main_ecu
+    parameter_set: universe_perception_centerpoint_vanilla.parameter_set
   - component: obstacle_segmentation
     entity: ObstacleSegmentation.module
     namespace: perception

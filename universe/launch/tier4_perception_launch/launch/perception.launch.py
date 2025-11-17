@@ -9,6 +9,7 @@ from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
 from launch.substitutions import LaunchConfiguration, EnvironmentVariable, PathJoinSubstitution
 from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
+from launch_ros.substitutions import FindPackageShare
 
 from ament_index_python.packages import get_package_share_directory, get_package_prefix
 
@@ -511,15 +512,11 @@ def generate_launch_description():
         launch_arguments.append(DeclareLaunchArgument(name, default_value=default_value, **kwargs))
         launch_argument_names.append(name)
 
-    # for perception ecu
-    add_launch_arg("camera_2d_detector/model_path", default_value="$(var data_path)/tensorrt_yolox/yolox-sPlus-opt-pseudoV2-T4-960x960-T4-seg16cls.onnx")
-    add_launch_arg("camera_2d_detector/label_path", default_value="$(var data_path)/tensorrt_yolox/label.txt")
-    add_launch_arg("camera_2d_detector/color_map_path", default_value="$(var data_path)/tensorrt_yolox/semseg_color_map.csv")
-
-    # deployment configuration
+    # deployment configuration (must be declared first so it can be referenced)
     add_launch_arg("data_path", default_value=[PathJoinSubstitution([EnvironmentVariable('HOME'), 'autoware_data'])]) # config
-    add_launch_arg("config_path", default_value="install/autoware_configs/share/autoware_configs/config/default") # config
-    add_launch_arg("vehicle_param_file", default_value="$(find-pkg-share $(var vehicle_model)_description)/config/vehicle_info.param.yaml") # config
+
+    # for perception ecu (now using LaunchConfiguration to reference data_path)
+    add_launch_arg("config_path", default_value=[PathJoinSubstitution([FindPackageShare('autoware_launch'), 'config'])]) # config
     
     add_launch_arg("pointcloud_container_name", default_value="pointcloud_container")
 

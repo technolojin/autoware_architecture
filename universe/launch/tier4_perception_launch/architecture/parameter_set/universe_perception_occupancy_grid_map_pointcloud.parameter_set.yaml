@@ -2,6 +2,6 @@ name: universe_perception_occupancy_grid_map_pointcloud.parameter_set
 parameters:
   - node: /perception/occupancy_grid_map/occupancy_grid_map_node
     parameter_files:
-      - param_file: $(var config_path)/perception/occupancy_grid_map/pointcloud/laserscan_based_occupancy_grid_map.param.yaml
-      - updater_param_file: $(var config_path)/perception/occupancy_grid_map/pointcloud/binary_bayes_filter_updater.param.yaml
+      - param_file: $(var config_path)/perception/occupancy_grid_map/pointcloud_based_occupancy_grid_map.param.yaml
+      - updater_param_file: $(var config_path)/perception/occupancy_grid_map/binary_bayes_filter_updater.param.yaml
     parameters: []

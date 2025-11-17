@@ -7,6 +7,7 @@ parameters:
   - node: /perception/occupancy_grid_map/common_ground_filter
     parameter_files:
       - ground_segmentation_param_file: $(var config_path)/perception/occupancy_grid_map/single_ground_segmentation/ground_segmentation.param.yaml
+      - vehicle_info_param_file: $(var config_path)/perception/obstacle_segmentation/common_ground_filter/vehicle_info_param_file.param.yaml
     parameters:
       - name: max_z
         value: 3.0

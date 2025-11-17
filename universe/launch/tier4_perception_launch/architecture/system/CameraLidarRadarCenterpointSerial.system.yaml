@@ -57,7 +57,7 @@ components:
     entity: TrafficLightRecognitionRefine2.module
     namespace: perception
     compute_unit: main_ecu
-    parameter_set: universe_perception_traffic_light_recognition.parameter_set
+    parameter_set: universe_perception_traffic_light_recognition_fine.parameter_set
 
   # planner
   - component: planner
