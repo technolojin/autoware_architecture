@@ -21,5 +21,5 @@ parameters:
         value: $(var data_path)/lidar_centerpoint/pts_backbone_neck_head_centerpoint.engine
   - node: /perception/object_recognition/detection/centerpoint/validation
     parameter_files:
-      - obstacle_pointcloud_based_validator_param_path: $(var config_path)/perception/object_recognition/detection/centerpoint/validation/obstacle_pointcloud_based_validator_param_path.param.yaml
+      - obstacle_pointcloud_based_validator_param_path: $(var config_path)/perception/object_recognition/detection/detected_object_validation/obstacle_pointcloud_based_validator.param.yaml
     parameters: []

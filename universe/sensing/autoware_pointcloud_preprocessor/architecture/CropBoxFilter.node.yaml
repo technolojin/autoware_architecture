@@ -19,7 +19,9 @@ outputs:
     message_type: sensor_msgs/msg/PointCloud2
 
 # parameters
-parameter_files: []
+parameter_files:
+  - name: crop_box_filter_param_file
+    default: config/crop_box_filter_node.param.yaml
 
 parameters: []
 
