@@ -29,9 +29,9 @@ components:
     compute_unit: dummy_ecu
 
   # perception
-  - component: camera_2d_detection
+  - component: detection
     entity: Camera2dDetection.module
-    namespace: perception/object_recognition/detection
+    namespace: perception/object_recognition
     compute_unit: perception_ecu_1
     parameter_set: TypeBeta2PerceptionCamera2dDetection.parameter_set
   - component: pointpainting
@@ -62,7 +62,7 @@ components:
 
 connections:
   - from: camera.output.camera*/image
-    to: camera_2d_detection.input.image_raw*
+    to: detection.input.image_raw*
 
   - from: lidar.output.concatenated/pointcloud
     to: obstacle_segmentation.input.concatenated_pointcloud
@@ -73,12 +73,12 @@ connections:
     to: pointpainting.input.obstacle_pointcloud
   - from: camera.output.camera*/camera_info
     to: pointpainting.input.camera_info*
-  - from: camera_2d_detection.output.rois*
+  - from: detection.output.rois*
     to: pointpainting.input.rois*
 
   - from: obstacle_segmentation.output.pointcloud
     to: object_recognition.input.obstacle_pointcloud
-  - from: camera_2d_detection.output.rois*
+  - from: detection.output.rois*
     to: object_recognition.input.rois*
   - from: camera.output.camera*/camera_info
     to: object_recognition.input.camera_info*
