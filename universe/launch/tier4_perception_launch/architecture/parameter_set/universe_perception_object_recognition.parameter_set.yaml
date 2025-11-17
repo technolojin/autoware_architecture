@@ -1,4 +1,4 @@
-name: TypeBeta2PerceptionModule.parameter_set
+name: universe_perception_object_recognition.parameter_set
 parameters:
   - node: /perception/object_recognition/detection/compare_map_filter
     parameter_files:
@@ -13,7 +13,6 @@ parameters:
       - config_file: $(var config_path)/perception/object_recognition/detection/clustering/shape_estimation/config_file.param.yaml
     parameters:
       - name: model_path
-        type: directory
         value: $(var data_path)/shape_estimation/pointnet.onnx
   - node: /perception/object_recognition/detection/clustering/camera_lidar_fusion/roi_cluster_fusion
     parameter_files:
@@ -29,47 +28,35 @@ parameters:
       - config_file: $(var config_path)/perception/object_recognition/detection/clustering/camera_lidar_fusion/shape_estimation/config_file.param.yaml
     parameters:
       - name: model_path
-        type: directory
         value: $(var data_path)/shape_estimation/pointnet.onnx
   - node: /perception/object_recognition/detection/clustering/camera_lidar_fusion/detected_object_feature_remover
     parameter_files:
       - parameters: $(var config_path)/perception/object_recognition/detection/clustering/camera_lidar_fusion/detected_object_feature_remover/parameters.param.yaml
     parameters: []
-  - node: /perception/object_recognition/detection/irregular_object/ground_filter
-    parameter_files:
-      - ground_segmentation_param_file: $(var config_path)/perception/object_recognition/detection/irregular_object/ground_filter/ground_segmentation_param_file.param.yaml
-    parameters: []
-  - node: /perception/object_recognition/detection/irregular_object/roi_pointcloud_fusion
-    parameter_files:
-      - sync_param_path: $(var config_path)/perception/object_recognition/detection/irregular_object/roi_pointcloud_fusion/sync_param_path.param.yaml
-      - param_path: $(var config_path)/perception/object_recognition/detection/irregular_object/roi_pointcloud_fusion/param_path.param.yaml
-    parameters: []
-  - node: /perception/object_recognition/detection/irregular_object/shape_estimation
-    parameter_files:
-      - config_file: $(var config_path)/perception/object_recognition/detection/irregular_object/shape_estimation/config_file.param.yaml
-    parameters:
-      - name: model_path
-        type: directory
-        value: $(var data_path)/shape_estimation/pointnet.onnx
-  - node: /perception/object_recognition/detection/irregular_object/detected_object_feature_remover
-    parameter_files:
-      - parameters: $(var config_path)/perception/object_recognition/detection/irregular_object/detected_object_feature_remover/parameters.param.yaml
-    parameters: []
   - node: /perception/object_recognition/detection/detection_by_tracker
     parameter_files:
       - detection_by_tracker_param_path: $(var config_path)/perception/object_recognition/detection/detection_by_tracker/detection_by_tracker_param_path.param.yaml
     parameters: []
+  - node: /perception/object_recognition/detection/roi_detected_object_fusion
+    parameter_files:
+      - sync_param_path: $(var config_path)/perception/object_recognition/detection/roi_detected_object_fusion/sync_param_path.param.yaml
+      - param_path: $(var config_path)/perception/object_recognition/detection/roi_detected_object_fusion/param_path.param.yaml
+    parameters: []
+  - node: /perception/object_recognition/detection/object_association_merger_alpha
+    parameter_files:
+      - data_association_matrix_path: $(var config_path)/perception/object_recognition/detection/object_association_merger_alpha/data_association_matrix_path.param.yaml
+      - distance_threshold_list_path: $(var config_path)/perception/object_recognition/detection/object_association_merger_alpha/distance_threshold_list_path.param.yaml
+      - object_association_merger_param_path: $(var config_path)/perception/object_recognition/detection/object_association_merger_alpha/object_association_merger_param_path.param.yaml
+    parameters: []
+  - node: /perception/object_recognition/detection/object_association_merger_beta
+    parameter_files:
+      - data_association_matrix_path: $(var config_path)/perception/object_recognition/detection/object_association_merger_beta/data_association_matrix_path.param.yaml
+      - distance_threshold_list_path: $(var config_path)/perception/object_recognition/detection/object_association_merger_beta/distance_threshold_list_path.param.yaml
+      - object_association_merger_param_path: $(var config_path)/perception/object_recognition/detection/object_association_merger_beta/object_association_merger_param_path.param.yaml
+    parameters: []
   - node: /perception/object_recognition/detection/object_lanelet_filter
     parameter_files:
       - filtering_range_param: $(var config_path)/perception/object_recognition/detection/object_lanelet_filter/filtering_range_param.param.yaml
-    parameters: []
-  - node: /perception/object_recognition/detection/radar/object_lanelet_filter
-    parameter_files:
-      - filtering_range_param: $(var config_path)/perception/object_recognition/detection/radar/object_lanelet_filter/filtering_range_param.param.yaml
-    parameters: []
-  - node: /perception/object_recognition/detection/radar/radar_object_filter
-    parameter_files:
-      - param_path: $(var config_path)/perception/object_recognition/detection/radar/radar_object_filter/param_path.param.yaml
     parameters: []
   - node: /perception/object_recognition/tracking/multi_object_tracker
     parameter_files:
@@ -78,41 +65,44 @@ parameters:
       - input_channels_path: $(var config_path)/perception/object_recognition/tracking/multi_object_tracker/input_channels_path.param.yaml
     parameters:
       - name: input/detection01/channel
-        type: string
         value: none
       - name: input/detection02/channel
-        type: string
         value: none
       - name: input/detection03/channel
-        type: string
         value: none
       - name: input/detection04/channel
-        type: string
         value: none
       - name: input/detection05/channel
-        type: string
         value: none
       - name: input/detection06/channel
-        type: string
         value: none
       - name: input/detection07/channel
-        type: string
         value: none
       - name: input/detection08/channel
-        type: string
         value: none
       - name: input/detection09/channel
-        type: string
         value: none
       - name: input/detection10/channel
-        type: string
         value: none
       - name: input/detection11/channel
-        type: string
         value: none
       - name: input/detection12/channel
-        type: string
         value: none
       - name: publish_merged_objects
-        type: boolean
         value: False
+  - node: /perception/object_recognition/tracking/radar_object_filter
+    parameter_files:
+      - param_path: $(var config_path)/perception/object_recognition/tracking/radar_object_filter/param_path.param.yaml
+    parameters: []
+  - node: /perception/object_recognition/tracking/radar_object_tracker
+    parameter_files:
+      - tracker_setting_path: $(var config_path)/perception/object_recognition/tracking/radar_object_tracker/tracker_setting_path.param.yaml
+      - data_association_matrix_path: $(var config_path)/perception/object_recognition/tracking/radar_object_tracker/data_association_matrix_path.param.yaml
+      - radar_object_tracker_param_path: $(var config_path)/perception/object_recognition/tracking/radar_object_tracker/radar_object_tracker_param_path.param.yaml
+    parameters: []
+  - node: /perception/object_recognition/tracking/decorative_tracker_merger
+    parameter_files:
+      - data_association_matrix_path: $(var config_path)/perception/object_recognition/tracking/decorative_tracker_merger/data_association_matrix_path.param.yaml
+      - merge_options_path: $(var config_path)/perception/object_recognition/tracking/decorative_tracker_merger/merge_options_path.param.yaml
+      - node_param_file_path: $(var config_path)/perception/object_recognition/tracking/decorative_tracker_merger/node_param_file_path.param.yaml
+    parameters: []

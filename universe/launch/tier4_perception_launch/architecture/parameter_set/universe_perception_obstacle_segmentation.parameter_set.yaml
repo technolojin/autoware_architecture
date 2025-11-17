@@ -1,0 +1,6 @@
+name: universe_perception_obstacle_segmentation.parameter_set
+parameters:
+  - node: /perception/obstacle_segmentation/common_ground_filter
+    parameter_files:
+      - ground_segmentation_param_file: $(var config_path)/perception/obstacle_segmentation/common_ground_filter/ground_segmentation_param_file.param.yaml
+    parameters: []

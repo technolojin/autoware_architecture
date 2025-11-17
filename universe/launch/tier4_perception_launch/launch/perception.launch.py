@@ -12,8 +12,6 @@ from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
 
 from ament_index_python.packages import get_package_share_directory, get_package_prefix
 
-from autoware_architect.deployment import Deployment
-from autoware_architect.config import SystemConfig
 import pprint
 
 from enum import Enum

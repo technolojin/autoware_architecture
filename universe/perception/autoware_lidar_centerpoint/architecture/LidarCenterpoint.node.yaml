@@ -49,6 +49,22 @@ parameters:
     type: str
     default: lidar_centerpoint
     description: The name of the logger for this node.
+  - name: encoder_onnx_path
+    type: str
+    default: $(var data_path)/centerpoint/pts_voxel_encoder_centerpoint.onnx
+    description: The path to the encoder ONNX model.
+  - name: encoder_engine_path
+    type: str
+    default: $(var data_path)/centerpoint/pts_voxel_encoder_centerpoint.engine
+    description: The path to the encoder engine file.
+  - name: head_onnx_path
+    type: str
+    default: $(var data_path)/centerpoint/pts_backbone_neck_head_centerpoint.onnx
+    description: The path to the head ONNX model.
+  - name: head_engine_path
+    type: str
+    default: $(var data_path)/centerpoint/pts_backbone_neck_head_centerpoint.engine
+    description: The path to the head engine file.
 
 # processes
 processes:
