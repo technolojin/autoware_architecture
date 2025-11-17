@@ -18,25 +18,31 @@ parameters:
     parameters: []
   - node: /perception/occupancy_grid_map/occupancy_grid_map_node_1
     parameter_files:
-      - param_file: $(var config_path)/perception/occupancy_grid_map/multi_lidar/pointcloud_based_occupancy_grid_map.param.yaml
+      - param_file: $(var config_path)/perception/occupancy_grid_map/multi_lidar/multi_lidar_pointcloud_based_occupancy_grid_map.param.yaml
       - updater_param_file: $(var config_path)/perception/occupancy_grid_map/multi_lidar/binary_bayes_filter_updater.param.yaml
     parameters:
       - name: updater_type
         value: binary_bayes_filter
+      - name: use_multithread
+        value: true
   - node: /perception/occupancy_grid_map/occupancy_grid_map_node_2
     parameter_files:
-      - param_file: $(var config_path)/perception/occupancy_grid_map/multi_lidar/pointcloud_based_occupancy_grid_map.param.yaml
+      - param_file: $(var config_path)/perception/occupancy_grid_map/multi_lidar/multi_lidar_pointcloud_based_occupancy_grid_map.param.yaml
       - updater_param_file: $(var config_path)/perception/occupancy_grid_map/multi_lidar/binary_bayes_filter_updater.param.yaml
     parameters:
       - name: updater_type
         value: binary_bayes_filter
+      - name: use_multithread
+        value: true
   - node: /perception/occupancy_grid_map/occupancy_grid_map_node_3
     parameter_files:
-      - param_file: $(var config_path)/perception/occupancy_grid_map/multi_lidar/pointcloud_based_occupancy_grid_map.param.yaml
+      - param_file: $(var config_path)/perception/occupancy_grid_map/multi_lidar/multi_lidar_pointcloud_based_occupancy_grid_map.param.yaml
       - updater_param_file: $(var config_path)/perception/occupancy_grid_map/multi_lidar/binary_bayes_filter_updater.param.yaml
     parameters:
       - name: updater_type
         value: binary_bayes_filter
+      - name: use_multithread
+        value: true
   - node: /perception/occupancy_grid_map/occupancy_grid_map_fusion_node
     parameter_files:
       - multi_lidar_fusion_config_file: $(var config_path)/perception/occupancy_grid_map/multi_lidar/multi_lidar_pointcloud_based_occupancy_grid_map.param.yaml
@@ -44,3 +50,5 @@ parameters:
     parameters:
       - name: updater_type
         value: binary_bayes_filter
+      - name: use_multithread
+        value: true

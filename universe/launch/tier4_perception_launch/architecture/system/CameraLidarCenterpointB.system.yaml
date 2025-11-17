@@ -44,10 +44,10 @@ components:
     compute_unit: main_ecu
     parameter_set: universe_perception_object_recognition.parameter_set
   - component: occupancy_grid_map
-    entity: OccupancyGridMapLaserscanBasedDownsampled.module
+    entity: OccupancyGridMapPointcloudBased.module
     namespace: perception
     compute_unit: main_ecu
-    parameter_set: universe_perception_occupancy_grid_map_laserscan.parameter_set
+    parameter_set: universe_perception_occupancy_grid_map_pointcloud.parameter_set
   - component: traffic_light_recognition
     entity: TrafficLightRecognitionRefine2.module
     namespace: perception

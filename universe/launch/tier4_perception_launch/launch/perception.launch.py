@@ -222,7 +222,9 @@ def determine_modes(context) -> tuple[bool, dict]:
     if config_to_str("occupancy_grid_map_method", context) == "pointcloud_based_occupancy_grid_map":
         modes["occupancy_grid_map"] = OccupancyGridMapType.PointcloudBased
     elif config_to_str("occupancy_grid_map_method", context) == "laserscan_based_occupancy_grid_map":
-        modes["occupancy_grid_map"] = OccupancyGridMapType.LaserscanBased
+        # not supported
+        is_supported = False
+        return is_supported, modes
     elif config_to_str("occupancy_grid_map_method", context) == "multi_lidar_pointcloud_based_occupancy_grid_map":
         modes["occupancy_grid_map"] = OccupancyGridMapType.MultiLidarPointcloudBased
     else:
