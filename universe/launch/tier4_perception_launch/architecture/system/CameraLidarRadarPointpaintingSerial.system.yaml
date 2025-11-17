@@ -41,7 +41,7 @@ components:
     entity: ObstacleSegmentation.module
     namespace: perception
     compute_unit: main_ecu
-    parameter_set: universe_perception_obstacle_segmentation.parameter_set
+    parameter_set: universe_perception_obstacle_segmentation_single.parameter_set
   - component: object_recognition
     entity: ObjectRecognitionCLRMerged.module
     namespace: perception
@@ -51,7 +51,7 @@ components:
     entity: OccupancyGridMapPointcloudBased.module
     namespace: perception
     compute_unit: main_ecu
-    parameter_set: universe_perception_occupancy_grid_map.parameter_set
+    parameter_set: universe_perception_occupancy_grid_map_pointcloud.parameter_set
 
   # planner
   - component: planner

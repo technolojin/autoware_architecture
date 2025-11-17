@@ -1,0 +1,14 @@
+name: universe_perception_obstacle_segmentation_single.parameter_set
+parameters:
+  - node: /perception/occupancy_grid_map/crop_box_filter
+    parameter_files:
+      - crop_box_filter_param_file: $(var config_path)/perception/occupancy_grid_map/single_ground_segmentation/crop_box_filter.param.yaml
+    parameters: []
+  - node: /perception/occupancy_grid_map/common_ground_filter
+    parameter_files:
+      - ground_segmentation_param_file: $(var config_path)/perception/occupancy_grid_map/single_ground_segmentation/ground_segmentation.param.yaml
+    parameters:
+      - name: max_z
+        value: 3.0
+      - name: min_z
+        value: -2.5

@@ -26,7 +26,7 @@ components:
     namespace: perception
     compute_unit: main_ecu
 
-  - component: occupancy_grid_map
+  - component: obstacle_segmentation
     entity: OccupancyGridMapMultiLidar.module
     namespace: perception
     compute_unit: main_ecu
