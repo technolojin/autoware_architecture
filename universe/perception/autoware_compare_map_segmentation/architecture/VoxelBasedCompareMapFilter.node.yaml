@@ -18,7 +18,10 @@ inputs:
     message_type: sensor_msgs/msg/PointCloud2
   - name: input_map
     message_type: sensor_msgs/msg/PointCloud2
-
+  - name: map_loader_service
+    message_type: autoware_map_msgs/srv/GetDifferentialPointCloudMap
+  - name: kinematic_state
+    message_type: nav_msgs/msg/Odometry
 outputs:
   - name: output
     message_type: sensor_msgs/msg/PointCloud2

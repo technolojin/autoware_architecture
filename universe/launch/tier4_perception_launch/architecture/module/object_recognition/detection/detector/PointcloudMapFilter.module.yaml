@@ -1,0 +1,30 @@
+name: PointcloudMapFilter.module
+
+instances:
+  - instance: voxel_grid_downsample_filter
+    entity: VoxelGridDownsampleFilter.node
+  - instance: voxel_based_compare_map_filter
+    entity: VoxelBasedCompareMapFilter.node
+
+external_interfaces:
+  input:
+    - name: pointcloud
+    - name: pointcloud_map
+    - name: map_loader_service
+    - name: kinematic_state
+  output:
+    - name: filtered_pointcloud
+
+connections:
+  - from: input.pointcloud
+    to: voxel_grid_downsample_filter.input.input
+  - from: voxel_grid_downsample_filter.output.output
+    to: voxel_based_compare_map_filter.input.input
+  - from: input.pointcloud_map
+    to: voxel_based_compare_map_filter.input.input_map
+  - from: input.map_loader_service
+    to: voxel_based_compare_map_filter.input.map_loader_service
+  - from: input.kinematic_state
+    to: voxel_based_compare_map_filter.input.kinematic_state
+  - from: voxel_based_compare_map_filter.output.output
+    to: output.filtered_pointcloud

@@ -91,6 +91,10 @@ connections:
     to: object_recognition.input.vector_map
   - from: map_loader.output.pointcloud_map
     to: object_recognition.input.pointcloud_map
+  - from: map_loader.output.map_loader_service
+    to: object_recognition.input.map_loader_service
+  - from: localizer.output.kinematic_state
+    to: object_recognition.input.kinematic_state
 
   - from: lidar.output.concatenated/pointcloud
     to: occupancy_grid_map.input.concatenated_pointcloud

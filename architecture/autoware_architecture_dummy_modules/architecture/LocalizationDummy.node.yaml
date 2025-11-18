@@ -18,6 +18,14 @@ outputs:
     global: /tf
   - name: pose_with_covariance
     message_type: geometry_msgs/msg/PoseWithCovarianceStamped
+    qos:
+      reliability: reliable
+      durability: transient_local
+  - name: kinematic_state
+    message_type: nav_msgs/msg/Odometry
+    qos:
+      reliability: reliable
+      durability: transient_local
 
 # parameters
 parameter_files: []

@@ -2,8 +2,8 @@ name: ObjectDetectionCLMerged.module
 
 instances:
   # compare map filter
-  - instance: compare_map_filter
-    entity: VoxelBasedCompareMapFilter.node
+  - instance: pointcloud_map_filter
+    entity: PointcloudMapFilter.module
   # detectors
   - instance: clustering
     entity: LidarClusteringCameraFusion.module
@@ -24,6 +24,8 @@ external_interfaces:
   input:
     - name: pointcloud_map
     - name: vector_map
+    - name: map_loader_service
+    - name: kinematic_state
     - name: obstacle_pointcloud
     - name: rois0
     - name: rois1
@@ -50,13 +52,17 @@ external_interfaces:
 connections:
   # compare map filter
   - from: input.obstacle_pointcloud
-    to: compare_map_filter.input.input
+    to: pointcloud_map_filter.input.pointcloud
   - from: input.pointcloud_map
-    to: compare_map_filter.input.input_map
-  - from: compare_map_filter.output.output
+    to: pointcloud_map_filter.input.pointcloud_map
+  - from: input.map_loader_service
+    to: pointcloud_map_filter.input.map_loader_service
+  - from: input.kinematic_state
+    to: pointcloud_map_filter.input.kinematic_state
+  - from: pointcloud_map_filter.output.filtered_pointcloud
     to: output.filtered_obstacle_pointcloud
   # clustering
-  - from: compare_map_filter.output.output
+  - from: pointcloud_map_filter.output.filtered_pointcloud
     to: clustering.input.pointcloud
   - from: input.pointcloud_map
     to: clustering.input.pointcloud_map
