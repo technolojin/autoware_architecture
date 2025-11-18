@@ -34,7 +34,7 @@ components:
     entity: ObjectRecognitionLidar.module
     namespace: perception
     compute_unit: main_ecu
-    parameter_set: universe_perception_object_recognition.parameter_set
+    parameter_set: universe_perception_object_recognition_serial.parameter_set
   - component: occupancy_grid_map
     entity: OccupancyGridMapPointcloudBased.module
     namespace: perception
