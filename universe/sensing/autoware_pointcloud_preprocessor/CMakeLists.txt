@@ -30,6 +30,14 @@ rclcpp_components_register_node(pickup_based_voxel_grid_downsample_filter_node_c
   EXECUTABLE pickup_based_voxel_grid_downsample_filter_node
 )
 
+ament_auto_add_library(voxel_grid_downsample_filter_node_cpp SHARED
+  src/voxel_grid_downsample_filter_node.cpp
+)
+rclcpp_components_register_node(voxel_grid_downsample_filter_node_cpp
+  PLUGIN "autoware::pointcloud_preprocessor::VoxelGridDownsampleFilterComponent"
+  EXECUTABLE voxel_grid_downsample_filter_node
+)
+
 ament_auto_package(
   INSTALL_TO_SHARE
   architecture
