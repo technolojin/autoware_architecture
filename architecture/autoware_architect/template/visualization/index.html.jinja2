@@ -281,14 +281,30 @@
                     nodeDimensionsIncludeLabels: true,
                     fit: true,
                     padding: 20,
+                    animate: false,
                     klay: {
+                        addUnnecessaryBendpoints: false,
+                        aspectRatio: 1.6,
+                        borderSpacing: 20,
+                        compactComponents: false,
+                        crossingMinimization: 'LAYER_SWEEP',
+                        cycleBreaking: 'GREEDY',
                         direction: 'RIGHT',
-                        spacing: 40,
-                        mergeEdges: false,
                         edgeRouting: 'ORTHOGONAL',
+                        edgeSpacingFactor: 0.5,
+                        feedbackEdges: true,
                         fixedAlignment: 'BALANCED',
+                        inLayerSpacingFactor: 1.0,
+                        layoutHierarchy: true,
+                        linearSegmentsDeflectionDampening: 0.3,
+                        mergeEdges: false,
+                        mergeHierarchyCrossingEdges: true,
                         nodeLayering: 'NETWORK_SIMPLEX',
                         nodePlacement: 'BRANDES_KOEPF',
+                        randomizationSeed: 1,
+                        routeSelfLoopInside: false,
+                        separateConnectedComponents: true,
+                        spacing: 40,
                         thoroughness: 7
                     }
                 };
@@ -296,6 +312,8 @@
                 cy = cytoscape({
                     container: document.getElementById('cy'),
                     elements: elements,
+                    boxSelectionEnabled: false,
+                    autoungrabify: true,
                     style: [
                         {
                             selector: 'node',
@@ -381,7 +399,8 @@
                                 'line-color': '#ccc',
                                 'target-arrow-color': '#ccc',
                                 'target-arrow-shape': 'triangle',
-                                'curve-style': 'bezier'
+                                'curve-style': 'taxi',
+                                'taxi-direction': 'horizontal'
                             }
                         },
                         {
