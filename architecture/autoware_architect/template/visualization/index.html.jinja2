@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <title>Autoware Architecture Visualization</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dagre/0.8.5/dagre.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.min.js"></script>
+    <script src="https://unpkg.com/klayjs@0.4.1/klay.js"></script>
+    <script src="https://unpkg.com/cytoscape-klay@3.1.4/cytoscape-klay.js"></script>
     <style>
         body { 
             font-family: Arial, sans-serif; 
@@ -86,23 +86,21 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize dagre layout extension if available
-            // cytoscape-dagre should automatically register itself if cytoscape is global
-            // but we can try to register it manually if needed
-            if (typeof cytoscape !== 'undefined' && typeof cytoscapeDagre !== 'undefined') {
+            // Initialize klay layout extension if available
+            if (typeof cytoscape !== 'undefined' && typeof cytoscapeKlay !== 'undefined') {
                 try {
-                    cytoscape.use(cytoscapeDagre);
-                    console.log("Registered dagre layout");
+                    cytoscape.use(cytoscapeKlay);
+                    console.log("Registered klay layout");
                 } catch(e) {
-                    console.warn("Could not register dagre layout via .use()", e);
+                    console.warn("Could not register klay layout via .use()", e);
                     try {
-                         cytoscape('layout', 'dagre', cytoscapeDagre);
+                         cytoscape('layout', 'klay', cytoscapeKlay);
                     } catch(e2) {
-                        console.warn("Could not register dagre layout via legacy method", e2);
+                        console.warn("Could not register klay layout via legacy method", e2);
                     }
                 }
             } else {
-                 console.warn("Cytoscape or cytoscape-dagre not found globally");
+                 console.warn("Cytoscape or cytoscape-klay not found globally");
             }
             
             const selector = document.getElementById('mode-selector');
@@ -172,12 +170,8 @@
                         classes: instance.entity_type || 'unknown'
                     });
 
-                    // Structural core node for layout (forces inputs left, outputs right)
-                    const coreId = nodeId + '_core';
-                    elements.push({
-                        data: { id: coreId, parent: nodeId },
-                        classes: 'structural-node'
-                    });
+                    // Structural core node removed - relying on port constraints
+                    // const coreId = nodeId + '_core';
 
                     // Ports as nodes
                     if (instance.in_ports && Array.isArray(instance.in_ports)) {
@@ -189,15 +183,15 @@
                                     label: getPortLabel(port), 
                                     type: 'port',
                                     side: 'in',
+                                    portConstraints: {
+                                        fixedSide: 'WEST'
+                                    },
                                     ...port 
                                 },
                                 classes: 'port in-port'
                             });
-                            // Connect to core to force layout
-                            elements.push({
-                                data: { source: port.unique_id, target: coreId },
-                                classes: 'structural-edge'
-                            });
+                            // Structural edge removed
+                            // elements.push({ ... });
                         });
                     }
                     
@@ -210,15 +204,15 @@
                                     label: getPortLabel(port), 
                                     type: 'port',
                                     side: 'out',
+                                    portConstraints: {
+                                        fixedSide: 'EAST'
+                                    },
                                     ...port 
                                 },
                                 classes: 'port out-port'
                             });
-                            // Connect from core to force layout
-                            elements.push({
-                                data: { source: coreId, target: port.unique_id },
-                                classes: 'structural-edge'
-                            });
+                            // Structural edge removed
+                            // elements.push({ ... });
                         });
                     }
 
@@ -288,21 +282,33 @@
             function initCytoscape(elements) {
                 if (cy) cy.destroy();
                 
-                // Default layout options (dagre)
+                // Default layout options (klay)
                 let layoutOptions = {
-                    name: 'dagre',
-                    rankDir: 'LR',
-                    nodeSep: 50,
-                    rankSep: 150,
-                    padding: 20
+                    name: 'klay',
+                    nodeDimensionsIncludeLabels: true,
+                    fit: true,
+                    padding: 20,
+                    klay: {
+                        direction: 'RIGHT',
+                        spacing: 40,
+                        mergeEdges: false,
+                        edgeRouting: 'ORTHOGONAL',
+                        fixedAlignment: 'BALANCED',
+                        nodeLayering: 'NETWORK_SIMPLEX',
+                        nodePlacement: 'BRANDES_KOEPF',
+                        thoroughness: 7,
+                        // Port constraints to force left-to-right flow
+                        borderSpacing: 20,
+                        layoutHierarchy: true,
+                        compactComponents: true
+                    }
                 };
                 
-                // Fallback if dagre is not available
+                // Fallback if klay is not available
                 try {
-                     // check if dagre layout is available in extensions
-                     // This check is loose; cytoscape throws on invalid layout
+                     // check if klay layout is available
                 } catch (e) {
-                    console.warn("Dagre layout check failed, using grid", e);
+                    console.warn("Klay layout check failed, using grid", e);
                     layoutOptions = { name: 'grid' };
                 }
 
@@ -417,15 +423,9 @@
                         layout: layoutOptions
                     });
                 } catch (e) {
-                    console.warn("Cytoscape init failed with dagre, falling back to grid", e);
-                    // Fallback
-                    cy = cytoscape({
-                        container: document.getElementById('cy'),
-                        elements: elements,
-                        style: [], // reuse styles
-                        layout: { name: 'grid' }
-                    });
-                    alert("Layout error: " + e.message + ". Falling back to grid layout.");
+                    console.warn("Cytoscape init failed with klay", e);
+                    alert("Layout error: " + e.message);
+                    // No fallback to grid layout
                 }
                 
                 // Event handling
