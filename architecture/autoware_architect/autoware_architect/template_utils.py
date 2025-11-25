@@ -47,7 +47,8 @@ def custom_serializer(obj):
             'namespace': getattr(obj, 'namespace', []),
             'topic': getattr(obj, 'topic', []),
             'is_global': getattr(obj, 'is_global', False),
-            'port_path': getattr(obj, 'port_path', None)
+            'port_path': getattr(obj, 'port_path', None),
+            'event': getattr(obj, 'event', None)
         }
     # Handle Link objects
     if hasattr(obj, 'from_port') and hasattr(obj, 'to_port') and hasattr(obj, 'connection_type'):
