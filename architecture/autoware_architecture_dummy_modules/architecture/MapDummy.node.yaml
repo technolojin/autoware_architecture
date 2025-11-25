@@ -19,6 +19,11 @@ outputs:
     qos:
       reliability: reliable
       durability: transient_local
+  - name: map_loader_service
+    message_type: autoware_map_msgs/srv/GetDifferentialPointCloudMap
+    qos:
+      reliability: reliable
+      durability: transient_local
 
 # parameters
 parameter_files: []

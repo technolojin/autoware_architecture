@@ -99,9 +99,11 @@ class ParameterManager:
         Returns:
             Resolved path with package prefix if applicable
         """
-        # If path already starts with $( or /, don't add prefix
-        print(path)
 
+        if path is None:
+            raise ValueError(f"path is None. package_name: {package_name}, node_namespace: {self.instance.namespace_str}, path: {path}")
+        
+        # If path already starts with $( or /, don't add prefix
         if path.startswith('$(') or path.startswith('/'):
             return path
         
@@ -245,6 +247,10 @@ class ParameterManager:
                 param_name = cfg_param.get("name")
                 param_value = cfg_param.get("value", cfg_param.get("default"))
                 param_schema = cfg_param.get("schema")
+
+                if param_name is None or param_value is None:
+                    raise ValueError(f"param_name or param_value is None. namespace: {self.instance.namespace_str}, parameter_files: {self.instance.configuration.parameter_files}")
+
                 self.parameter_files.set_parameter(
                     param_name, 
                     param_value,
@@ -261,6 +267,9 @@ class ParameterManager:
                 param_name = cfg_param.get("name")
                 param_value = cfg_param.get("value", cfg_param.get("default"))
                 param_type = cfg_param.get("type", "string")
+
+                if param_name is None or param_value is None:
+                    raise ValueError(f"param_name or param_value is None. namespace: {self.instance.namespace_str}, parameter_files: {self.instance.configuration.parameter_files}")
 
                 # Only set if a default value is provided
                 if param_value is not None:

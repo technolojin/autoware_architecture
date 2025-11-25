@@ -35,8 +35,15 @@ parameter_files:
     default: config/binary_bayes_filter_updater.param.yaml
     schema: schema/binary_bayes_filter_updater.schema.json
 
-parameters: []
-
+parameters:
+  - name: updater_type
+    type: string
+    default: binary_bayes_filter
+    description: The type of updater to use for the occupancy grid map.
+  - name: use_multithread
+    type: boolean
+    default: false
+    description: Whether to use multithreaded processing.
 # processes
 processes:
   - name: update

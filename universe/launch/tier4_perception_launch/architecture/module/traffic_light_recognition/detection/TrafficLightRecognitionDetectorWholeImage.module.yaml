@@ -24,8 +24,8 @@ external_interfaces:
     - name: camera_info
     - name: route
   output:
-    - name: traffic_signals
-    - name: rois
+    - name: classification/traffic_signals
+    - name: detection/rois
 
 connections:
   - from: input.vector_map
@@ -34,8 +34,6 @@ connections:
     to: map_based_detector.input.route
   - from: input.camera_info
     to: map_based_detector.input.camera_info
-  - from: input.route
-    to: map_based_detector.input.route
 
   - from: input.image
     to: detection.input.image
@@ -49,7 +47,7 @@ connections:
   - from: input.camera_info
     to: selector.input.camera_info
   - from: selector.output.traffic_rois
-    to: output.rois
+    to: output.detection/rois
 
   - from: input.image
     to: classifier_car.input.image
@@ -66,4 +64,4 @@ connections:
   - from: classifier_pedestrian.output.traffic_signals
     to: merger.input.pedestrian_signals
   - from: merger.output.traffic_signals
-    to: output.traffic_signals
+    to: output.classification/traffic_signals

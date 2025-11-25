@@ -1,4 +1,4 @@
-name: ObjectSegmentation.module
+name: ObstacleSegmentation.module
 
 instances:
   - instance: crop_box_filter

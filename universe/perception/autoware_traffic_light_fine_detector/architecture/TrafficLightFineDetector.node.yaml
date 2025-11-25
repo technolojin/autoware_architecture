@@ -26,12 +26,16 @@ outputs:
 parameter_files:
   - name: param_path
     default: config/traffic_light_fine_detector.param.yaml
-  - name: model_path
-    default: $(var data_path)/traffic_light_fine_detector/tlr_car_ped_yolox_s_batch_6.onnx
-  - name: label_path
-    default: $(var data_path)/traffic_light_fine_detector/tlr_labels.txt
 
 parameters:
+  - name: model_path
+    type: string
+    default: $(var data_path)/traffic_light_fine_detector/tlr_car_ped_yolox_s_batch_6.onnx
+    description: Path to the ONNX model file
+  - name: label_path
+    type: string
+    default: $(var data_path)/traffic_light_fine_detector/tlr_labels.txt
+    description: Path to the label file
   - name: build_only
     type: bool
     default: false

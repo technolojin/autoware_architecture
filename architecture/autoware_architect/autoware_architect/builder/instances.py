@@ -27,6 +27,105 @@ from .event_manager import EventManager
 
 logger = logging.getLogger(__name__)
 
+# Base color mapping for component types
+# All color variants (matte, medium, bright, text) are calculated from these base colors
+BASE_COLOR_MAP = {
+    "sensing": "#cc6666",      # red
+    "localization": "#cc8855", # orange
+    "map": "#6699aa",          # cyan/teal
+    "perception": "#ccaa55",   # yellow
+    "planning": "#6b9b6b",     # green
+    "control": "#6677bb",      # blue
+    "system": "#9966bb",       # purple
+}
+
+DEFAULT_BASE_COLOR = "#888888"  # gray
+
+def hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
+    """Convert hex color to RGB tuple.
+    
+    Args:
+        hex_color: Hex color string (e.g., "#cc6666")
+        
+    Returns:
+        Tuple of (r, g, b) values (0-255)
+    """
+    hex_color = hex_color.lstrip('#')
+    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+
+def rgb_to_hex(r: int, g: int, b: int) -> str:
+    """Convert RGB values to hex color string.
+    
+    Args:
+        r, g, b: RGB values (0-255)
+        
+    Returns:
+        Hex color string (e.g., "#cc6666")
+    """
+    return f"#{r:02x}{g:02x}{b:02x}"
+
+def calculate_color_variant(base_color: str, variant: str) -> str:
+    """Calculate a color variant from a base color.
+    
+    Args:
+        base_color: Base hex color string
+        variant: Variant type - "matte", "medium", "bright", or "text"
+        
+    Returns:
+        Calculated hex color string
+    """
+    r, g, b = hex_to_rgb(base_color)
+    
+    if variant == "matte":
+        # Matte: use base color as-is
+        return base_color
+    elif variant == "medium":
+        # Medium: blend 50% base + 50% white for lighter background
+        return rgb_to_hex(
+            int(r * 0.5 + 255 * 0.5),
+            int(g * 0.5 + 255 * 0.5),
+            int(b * 0.5 + 255 * 0.5)
+        )
+    elif variant == "bright":
+        # Bright: blend 20% base + 80% white for pastel background
+        return rgb_to_hex(
+            int(r * 0.2 + 255 * 0.8),
+            int(g * 0.2 + 255 * 0.8),
+            int(b * 0.2 + 255 * 0.8)
+        )
+    elif variant == "text":
+        # Text: darken by 30% for better contrast
+        return rgb_to_hex(
+            int(r * 0.3),
+            int(g * 0.3),
+            int(b * 0.3)
+        )
+    else:
+        return base_color
+
+def get_component_color(namespace: List[str], variant: str = "matte") -> str:
+    """Get color for a component based on its top-level namespace.
+    
+    All color variants are calculated dynamically from the base color map.
+    
+    Args:
+        namespace: List of namespace components
+        variant: Color variant - "matte" (default), "medium", "bright", or "text"
+        
+    Returns:
+        Calculated hex color string
+    """
+    # Get base color
+    if not namespace or len(namespace) == 0:
+        base_color = DEFAULT_BASE_COLOR
+    else:
+        # Get the top-level component (first in namespace)
+        top_level = namespace[0].lower()
+        base_color = BASE_COLOR_MAP.get(top_level, DEFAULT_BASE_COLOR)
+    
+    # Calculate and return the requested variant
+    return calculate_color_variant(base_color, variant)
+
 def normalize_mode_field(mode_field) -> List[str]:
     """Normalize mode field to list of mode names.
     
@@ -134,6 +233,26 @@ class Instance:
     @property
     def unique_id(self):
         return generate_unique_id(self.namespace, self.name)
+    
+    @property
+    def color(self) -> str:
+        """Get matte color for this instance based on top-level namespace."""
+        return get_component_color(self.namespace, variant="matte")
+    
+    @property
+    def medium_color(self) -> str:
+        """Get medium color for this instance (for node backgrounds)."""
+        return get_component_color(self.namespace, variant="medium")
+    
+    @property
+    def background_color(self) -> str:
+        """Get brightened background color for this instance (for module backgrounds)."""
+        return get_component_color(self.namespace, variant="bright")
+    
+    @property
+    def text_color(self) -> str:
+        """Get darker text color for this instance (for better readability)."""
+        return get_component_color(self.namespace, variant="text")
 
     def set_instances(self, entity_id: str, config_registry: ConfigRegistry):
 
@@ -366,6 +485,10 @@ class Instance:
             "entity_type": self.entity_type,
             "namespace": self.namespace,
             "compute_unit": self.compute_unit,
+            "color": self.color,
+            "medium_color": self.medium_color,
+            "background_color": self.background_color,
+            "text_color": self.text_color,
             "in_ports": self.link_manager.get_all_in_ports(),
             "out_ports": self.link_manager.get_all_out_ports(),
             "children": (

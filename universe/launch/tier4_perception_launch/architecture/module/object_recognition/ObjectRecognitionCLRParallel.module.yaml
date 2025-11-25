@@ -2,8 +2,8 @@ name: ObjectRecognitionCLRParallel.module
 
 instances:
 
-  - instance: detection/compare_map_filter
-    entity: VoxelBasedCompareMapFilter.node
+  - instance: detection/pointcloud_map_filter
+    entity: PointcloudMapFilter.module
 
   # detectors
   - instance: detection/clustering
@@ -29,6 +29,10 @@ external_interfaces:
     # map
     - name: pointcloud_map
     - name: vector_map
+    - name: map_loader_service
+    # localization
+    - name: kinematic_state
+    # traffic lights
     - name: traffic_lights
     # lidar
     - name: pointcloud
@@ -58,16 +62,20 @@ external_interfaces:
     - name: objects
 
 connections:
-  # detection/compare map filter
+  # detection/pointcloud map filter
   - from: input.obstacle_pointcloud
-    to: detection/compare_map_filter.input.input
+    to: detection/pointcloud_map_filter.input.pointcloud
   - from: input.pointcloud_map
-    to: detection/compare_map_filter.input.input_map
-  - from: detection/compare_map_filter.output.output
+    to: detection/pointcloud_map_filter.input.pointcloud_map
+  - from: input.map_loader_service
+    to: detection/pointcloud_map_filter.input.map_loader_service
+  - from: input.kinematic_state
+    to: detection/pointcloud_map_filter.input.kinematic_state
+  - from: detection/pointcloud_map_filter.output.filtered_pointcloud
     to: output.map_filtered_obstacle_pointcloud
 
   # detection/clustering
-  - from: detection/compare_map_filter.output.output
+  - from: detection/pointcloud_map_filter.output.filtered_pointcloud
     to: detection/clustering.input.pointcloud
   - from: input.pointcloud_map
     to: detection/clustering.input.pointcloud_map

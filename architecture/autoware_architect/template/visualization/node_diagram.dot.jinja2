@@ -14,6 +14,7 @@ digraph "{{ name }}" {
 	graph [
 		rankdir=LR;
 		fontsize=10;
+		fontname="Arial";
 		labelloc=t;
 		label=<<B>System Diagram {{ name }}</B>>;
 		splines=true;
@@ -22,12 +23,12 @@ digraph "{{ name }}" {
 		ranksep="0.6";
 	];
 	node [
-		fontname="Helvetica";
+		fontname="Arial";
 		fontsize=9;
 		shape=box;
 	];
 	edge [
-		fontname="Helvetica";
+		fontname="Arial";
 		fontsize=7;
 		color="#333355";
 		arrowsize=0.6;
@@ -36,10 +37,14 @@ digraph "{{ name }}" {
 	// Common shapes styling
 	// port nodes
 	subgraph cluster_legend { label="Legend"; fontsize=8; labelloc=b; style=dashed; color="#cccccc";
-		legend_in [label="in port", shape=ellipse, style=filled, fillcolor="#e0f7ff"];
-		legend_out [label="out port", shape=ellipse, style=filled, fillcolor="#fff4e0"];
-		legend_topic [label="global topic", shape=oval, style=filled, fillcolor="#dddddd"];
-		legend_in -> legend_out [label="flow"];
+		legend_module_in [label="module in port", shape=ellipse, style=filled, fillcolor="#e0f7ff"];
+		legend_module_out [label="module out port", shape=ellipse, style=filled, fillcolor="#fff4e0"];
+		legend_node_in [label="node in port", shape=box, style=filled, fillcolor="#e0f7ff"];
+		legend_node_out [label="node out port", shape=box, style=filled, fillcolor="#fff4e0"];
+		legend_global_topic [label="global topic", shape=oval, style=filled, fillcolor="#dddddd"];
+		legend_node_out -> legend_module_out [arrowhead=normal, style=solid];
+		legend_module_out -> legend_module_in [arrowhead=normal, style=solid];
+		legend_module_in -> legend_node_in [arrowhead=normal, style=solid];
 	}
 
 	{% macro node_in_port_label(port, direction) -%}
@@ -58,7 +63,7 @@ digraph "{{ name }}" {
 		{% if instance.entity_type == 'module' %}
 			subgraph cluster_{{ instance.unique_id }} {
 				label="MODULE: {{ instance.name }}";
-				style=rounded; color="#8888aa"; penwidth=1.2; fontsize=10;
+				style="rounded,filled"; color="{{ instance.color }}"; fillcolor="{{ instance.background_color }}"; fontcolor="{{ instance.text_color }}"; penwidth=1.2; fontsize=40;
 				// invisible core anchor node (still used for ordering)
 				{{ core_id }} [label="", shape=point, width=0.01, height=0.01, style=invis];
 				// left rank (inputs)
@@ -92,7 +97,7 @@ digraph "{{ name }}" {
 		{% elif instance.entity_type == 'node' %}
 			subgraph cluster_{{ instance.unique_id }} {
 				label="NODE: {{ instance.name }}";
-				style=rounded; color="#6699aa"; penwidth=1.0; fontsize=9; fillcolor="#f8f8f8"; bgcolor="#f8f8f8";
+				style="rounded,filled"; color="{{ instance.color }}"; fillcolor="{{ instance.medium_color }}"; fontcolor="{{ instance.text_color }}"; penwidth=1.5; fontsize=40;
 				// invisible core anchor node
 				{{ core_id }} [label="", shape=point, width=0.01, height=0.01, style=invis];
 				subgraph cluster_{{ instance.unique_id }}_in { label=""; color=none; rank=same;

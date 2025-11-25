@@ -36,7 +36,13 @@ parameter_files:
   - name: param_file
     default: config/concatenate_pointclouds.param.yaml
 
-parameters: []
+parameters:
+  - name: input_frame
+    type: string
+    default: base_link
+  - name: output_frame
+    type: string
+    default: base_link
 
 # processes
 processes:
