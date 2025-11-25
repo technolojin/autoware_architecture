@@ -39,7 +39,8 @@ processes:
       - or:
           - once: lanelet_map
           - on_input: pointcloud
-    outcomes: []
+    outcomes:
+      - to_trigger: slam
   - name: slam
     trigger_conditions:
       - periodic: 100 # Hz
