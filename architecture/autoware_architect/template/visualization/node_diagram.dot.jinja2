@@ -36,10 +36,14 @@ digraph "{{ name }}" {
 	// Common shapes styling
 	// port nodes
 	subgraph cluster_legend { label="Legend"; fontsize=8; labelloc=b; style=dashed; color="#cccccc";
-		legend_in [label="in port", shape=ellipse, style=filled, fillcolor="#e0f7ff"];
-		legend_out [label="out port", shape=ellipse, style=filled, fillcolor="#fff4e0"];
-		legend_topic [label="global topic", shape=oval, style=filled, fillcolor="#dddddd"];
-		legend_in -> legend_out [label="flow"];
+		legend_module_in [label="module in port", shape=ellipse, style=filled, fillcolor="#e0f7ff"];
+		legend_module_out [label="module out port", shape=ellipse, style=filled, fillcolor="#fff4e0"];
+		legend_node_in [label="node in port", shape=box, style=filled, fillcolor="#e0f7ff"];
+		legend_node_out [label="node out port", shape=box, style=filled, fillcolor="#fff4e0"];
+		legend_global_topic [label="global topic", shape=oval, style=filled, fillcolor="#dddddd"];
+		legend_node_out -> legend_module_out [arrowhead=normal, style=solid];
+		legend_module_out -> legend_module_in [arrowhead=normal, style=solid];
+		legend_module_in -> legend_node_in [arrowhead=normal, style=solid];
 	}
 
 	{% macro node_in_port_label(port, direction) -%}
