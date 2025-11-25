@@ -170,13 +170,6 @@
                         classes: instance.entity_type || 'unknown'
                     });
 
-                    // Structural core node for layout (forces inputs left, outputs right)
-                    const coreId = nodeId + '_core';
-                    elements.push({
-                        data: { id: coreId, parent: nodeId },
-                        classes: 'structural-node'
-                    });
-
                     // Ports as nodes
                     if (instance.in_ports && Array.isArray(instance.in_ports)) {
                         instance.in_ports.forEach(port => {
@@ -187,14 +180,12 @@
                                     label: getPortLabel(port), 
                                     type: 'port',
                                     side: 'in',
+                                    portConstraints: {
+                                        fixedSide: 'WEST'
+                                    },
                                     ...port 
                                 },
                                 classes: 'port in-port'
-                            });
-                            // Connect to core to force layout
-                            elements.push({
-                                data: { source: port.unique_id, target: coreId },
-                                classes: 'structural-edge'
                             });
                         });
                     }
@@ -208,14 +199,12 @@
                                     label: getPortLabel(port), 
                                     type: 'port',
                                     side: 'out',
+                                    portConstraints: {
+                                        fixedSide: 'EAST'
+                                    },
                                     ...port 
                                 },
                                 classes: 'port out-port'
-                            });
-                            // Connect from core to force layout
-                            elements.push({
-                                data: { source: coreId, target: port.unique_id },
-                                classes: 'structural-edge'
                             });
                         });
                     }
@@ -304,135 +293,115 @@
                     }
                 };
                 
-                // Fallback if klay is not available
-                try {
-                     // check if klay layout is available
-                } catch (e) {
-                    console.warn("Klay layout check failed, using grid", e);
-                    layoutOptions = { name: 'grid' };
-                }
-
-                try {
-                    cy = cytoscape({
-                        container: document.getElementById('cy'),
-                        elements: elements,
-                        style: [
-                            {
-                                selector: 'node',
-                                style: {
-                                    'label': 'data(label)',
-                                    'text-valign': 'center',
-                                    'text-halign': 'center',
-                                    'font-size': '10px',
-                                    'color': '#333',
-                                    'background-color': '#ddd',
-                                    'border-width': 1,
-                                    'border-color': '#999'
-                                }
-                            },
-                            {
-                                selector: '.module',
-                                style: {
-                                    'background-color': 'data(backgroundColor)',
-                                    'color': 'data(textColor)',
-                                    'border-width': 2,
-                                    'border-color': 'data(color)',
-                                    'text-valign': 'top',
-                                    'padding': '20px',
-                                    'font-size': '14px',
-                                    'font-weight': 'bold'
-                                }
-                            },
-                            {
-                                selector: '.node', // Entity type 'node'
-                                style: {
-                                    'background-color': 'data(medium_color)',
-                                    'shape': 'rectangle',
-                                    'width': 'label',
-                                    'height': 'label',
-                                    'padding': '10px'
-                                }
-                            },
-                            {
-                                selector: '.port',
-                                style: {
-                                    'width': 'label',
-                                    'height': 'label',
-                                    'shape': 'roundrectangle',
-                                    'background-color': '#888',
-                                    'label': 'data(label)',
-                                    'text-wrap': 'wrap',
-                                    'text-max-width': '200px',
-                                    'font-size': '8px',
-                                    'border-width': 1,
-                                    'border-color': '#555',
-                                    'padding': '5px'
-                                }
-                            },
-                            {
-                                selector: '.in-port',
-                                style: { 'background-color': '#e0f7ff' }
-                            },
-                            {
-                                selector: '.out-port',
-                                style: { 'background-color': '#fff4e0' }
-                            },
-                            {
-                                selector: '.structural-node',
-                                style: {
-                                    'width': 1,
-                                    'height': 1,
-                                    'visibility': 'hidden',
-                                    'opacity': 0
-                                }
-                            },
-                            {
-                                selector: '.structural-edge',
-                                style: {
-                                    'width': 0,
-                                    'visibility': 'hidden',
-                                    'opacity': 0
-                                }
-                            },
-                            {
-                                selector: 'edge',
-                                style: {
-                                    'width': 1,
-                                    'line-color': '#ccc',
-                                    'target-arrow-color': '#ccc',
-                                    'target-arrow-shape': 'triangle',
-                                    'curve-style': 'bezier'
-                                }
-                            },
-                            {
-                                selector: 'edge.highlighted',
-                                style: {
-                                    'line-color': '#007bff',
-                                    'target-arrow-color': '#007bff',
-                                    'width': 3
-                                }
-                            },
-                            {
-                                selector: 'node.highlighted',
-                                style: {
-                                    'border-color': '#007bff',
-                                    'border-width': 3
-                                }
+                cy = cytoscape({
+                    container: document.getElementById('cy'),
+                    elements: elements,
+                    style: [
+                        {
+                            selector: 'node',
+                            style: {
+                                'label': 'data(label)',
+                                'text-valign': 'center',
+                                'text-halign': 'center',
+                                'font-size': '10px',
+                                'color': '#333',
+                                'background-color': '#ddd',
+                                'border-width': 1,
+                                'border-color': '#999'
                             }
-                        ],
-                        layout: layoutOptions
-                    });
-                } catch (e) {
-                    console.warn("Cytoscape init failed with klay, falling back to grid", e);
-                    // Fallback
-                    cy = cytoscape({
-                        container: document.getElementById('cy'),
-                        elements: elements,
-                        style: [], // reuse styles
-                        layout: { name: 'grid' }
-                    });
-                    alert("Layout error: " + e.message + ". Falling back to grid layout.");
-                }
+                        },
+                        {
+                            selector: '.module',
+                            style: {
+                                'background-color': 'data(backgroundColor)',
+                                'color': 'data(textColor)',
+                                'border-width': 2,
+                                'border-color': 'data(color)',
+                                'text-valign': 'top',
+                                'padding': '20px',
+                                'font-size': '14px',
+                                'font-weight': 'bold'
+                            }
+                        },
+                        {
+                            selector: '.node', // Entity type 'node'
+                            style: {
+                                'background-color': 'data(medium_color)',
+                                'shape': 'rectangle',
+                                'width': 'label',
+                                'height': 'label',
+                                'padding': '10px'
+                            }
+                        },
+                        {
+                            selector: '.port',
+                            style: {
+                                'width': 'label',
+                                'height': 'label',
+                                'shape': 'roundrectangle',
+                                'background-color': '#888',
+                                'label': 'data(label)',
+                                'text-wrap': 'wrap',
+                                'text-max-width': '200px',
+                                'font-size': '8px',
+                                'border-width': 1,
+                                'border-color': '#555',
+                                'padding': '5px'
+                            }
+                        },
+                        {
+                            selector: '.in-port',
+                            style: { 'background-color': '#e0f7ff' }
+                        },
+                        {
+                            selector: '.out-port',
+                            style: { 'background-color': '#fff4e0' }
+                        },
+                        {
+                            selector: '.structural-node',
+                            style: {
+                                'width': 1,
+                                'height': 1,
+                                'visibility': 'hidden',
+                                'opacity': 0
+                            }
+                        },
+                        {
+                            selector: '.structural-edge',
+                            style: {
+                                'width': 0,
+                                'visibility': 'hidden',
+                                'opacity': 0
+                            }
+                        },
+                        {
+                            selector: 'edge',
+                            style: {
+                                'width': 1,
+                                'line-color': '#ccc',
+                                'target-arrow-color': '#ccc',
+                                'target-arrow-shape': 'triangle',
+                                'curve-style': 'bezier'
+                            }
+                        },
+                        {
+                            selector: 'edge.highlighted',
+                            style: {
+                                'line-color': '#007bff',
+                                'target-arrow-color': '#007bff',
+                                'width': 3
+                            }
+                        },
+                        {
+                            selector: 'node.highlighted',
+                            style: {
+                                'border-color': '#007bff',
+                                'border-width': 3
+                            }
+                        }
+                    ],
+                    layout: layoutOptions
+                });
                 
                 // Event handling
                 cy.on('tap', 'node', function(evt){
