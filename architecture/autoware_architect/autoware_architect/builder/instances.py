@@ -80,11 +80,11 @@ def calculate_color_variant(base_color: str, variant: str) -> str:
         # Matte: use base color as-is
         return base_color
     elif variant == "medium":
-        # Medium: blend 60% base + 40% white for lighter background
+        # Medium: blend 50% base + 50% white for lighter background
         return rgb_to_hex(
-            int(r * 0.6 + 255 * 0.4),
-            int(g * 0.6 + 255 * 0.4),
-            int(b * 0.6 + 255 * 0.4)
+            int(r * 0.5 + 255 * 0.5),
+            int(g * 0.5 + 255 * 0.5),
+            int(b * 0.5 + 255 * 0.5)
         )
     elif variant == "bright":
         # Bright: blend 20% base + 80% white for pastel background
@@ -94,11 +94,11 @@ def calculate_color_variant(base_color: str, variant: str) -> str:
             int(b * 0.2 + 255 * 0.8)
         )
     elif variant == "text":
-        # Text: darken by 40% for better contrast
+        # Text: darken by 30% for better contrast
         return rgb_to_hex(
-            int(r * 0.6),
-            int(g * 0.6),
-            int(b * 0.6)
+            int(r * 0.3),
+            int(g * 0.3),
+            int(b * 0.3)
         )
     else:
         return base_color
