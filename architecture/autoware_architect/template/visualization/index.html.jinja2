@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Autoware Architecture Visualization</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dagre/0.8.5/dagre.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.min.js"></script>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            display: flex; 
+            height: 100vh; 
+            overflow: hidden;
+        }
+        #sidebar {
+            width: 300px;
+            background: #f4f4f4;
+            border-right: 1px solid #ddd;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            z-index: 2;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+        #mode-selector {
+            padding: 10px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+        #info-panel {
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+        .info-card {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 10px;
+        }
+        .info-title { font-weight: bold; margin-bottom: 5px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 5px;}
+        .info-row { margin-bottom: 3px; font-size: 13px; }
+        .info-label { color: #666; font-size: 12px; }
+        .info-value { color: #000; font-family: monospace; }
+        
+        #cy {
+            flex-grow: 1;
+            background: white;
+            z-index: 1;
+        }
+        
+        /* Loading overlay */
+        #loading {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.8);
+            display: flex; justify-content: center; align-items: center;
+            font-size: 24px; color: #666;
+            z-index: 100;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">Loading...</div>
+    <div id="sidebar">
+        <h2>Architecture</h2>
+        <label for="mode-selector">Mode:</label>
+        <select id="mode-selector">
+            {% for mode in modes %}
+            <option value="{{ mode }}" {% if mode == default_mode %}selected{% endif %}>{{ mode }}</option>
+            {% endfor %}
+        </select>
+        
+        <div id="info-panel">
+            <div class="info-card">
+                <div class="info-row">Select a node or edge to see details.</div>
+            </div>
+        </div>
+    </div>
+    <div id="cy"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize dagre layout extension if available
+            // cytoscape-dagre should automatically register itself if cytoscape is global
+            // but we can try to register it manually if needed
+            if (typeof cytoscape !== 'undefined' && typeof cytoscapeDagre !== 'undefined') {
+                try {
+                    cytoscape.use(cytoscapeDagre);
+                    console.log("Registered dagre layout");
+                } catch(e) {
+                    console.warn("Could not register dagre layout via .use()", e);
+                    try {
+                         cytoscape('layout', 'dagre', cytoscapeDagre);
+                    } catch(e2) {
+                        console.warn("Could not register dagre layout via legacy method", e2);
+                    }
+                }
+            } else {
+                 console.warn("Cytoscape or cytoscape-dagre not found globally");
+            }
+            
+            const selector = document.getElementById('mode-selector');
+            const infoPanel = document.getElementById('info-panel');
+            const loading = document.getElementById('loading');
+            
+            let cy = null;
+
+            function showLoading(show) {
+                loading.style.display = show ? 'flex' : 'none';
+            }
+
+            function updateInfo(data, type) {
+                let html = `<div class="info-card"><div class="info-title">${type} Details</div>`;
+                
+                for (const [key, value] of Object.entries(data)) {
+                    if (['id', 'parent', 'source', 'target', 'color', 'backgroundColor'].includes(key)) continue;
+                    if (typeof value === 'object' && value !== null) continue; // Skip complex objects
+                    
+                    html += `<div class="info-row">
+                        <span class="info-label">${key}:</span> 
+                        <span class="info-value">${value}</span>
+                    </div>`;
+                }
+                html += '</div>';
+                infoPanel.innerHTML = html;
+            }
+
+            function transformDataToElements(root) {
+                const elements = [];
+                
+                function traverse(instance, parentId) {
+                    const nodeId = instance.unique_id;
+                    
+                    // Node for the instance
+                    elements.push({
+                        data: { 
+                            id: nodeId, 
+                            label: instance.name, 
+                            parent: parentId,
+                            type: instance.entity_type,
+                            color: instance.color,
+                            backgroundColor: instance.background_color,
+                            textColor: instance.text_color,
+                            ...instance
+                        },
+                        classes: instance.entity_type || 'unknown'
+                    });
+
+                    // Ports as nodes
+                    if (instance.in_ports && Array.isArray(instance.in_ports)) {
+                        instance.in_ports.forEach(port => {
+                            elements.push({
+                                data: { 
+                                    id: port.unique_id, 
+                                    parent: nodeId, 
+                                    label: port.name, 
+                                    type: 'port',
+                                    side: 'in',
+                                    ...port 
+                                },
+                                classes: 'port in-port'
+                            });
+                        });
+                    }
+                    
+                    if (instance.out_ports && Array.isArray(instance.out_ports)) {
+                        instance.out_ports.forEach(port => {
+                            elements.push({
+                                data: { 
+                                    id: port.unique_id, 
+                                    parent: nodeId, 
+                                    label: port.name, 
+                                    type: 'port',
+                                    side: 'out',
+                                    ...port 
+                                },
+                                classes: 'port out-port'
+                            });
+                        });
+                    }
+
+                    // Recursion
+                    if (instance.children && Array.isArray(instance.children)) {
+                        instance.children.forEach(child => traverse(child, nodeId));
+                    }
+                    
+                    // Links
+                    if (instance.links && Array.isArray(instance.links)) {
+                        instance.links.forEach(link => {
+                            elements.push({
+                                data: {
+                                    source: link.from_port.unique_id,
+                                    target: link.to_port.unique_id,
+                                    msg_type: link.msg_type,
+                                    ...link
+                                },
+                                classes: 'link'
+                            });
+                        });
+                    }
+                }
+                
+                traverse(root, null);
+                return elements;
+            }
+
+            function loadMode(mode) {
+                showLoading(true);
+                
+                // Function to initialize once data is available
+                const initData = () => {
+                    if (window.architectureData && window.architectureData[mode]) {
+                        try {
+                            const elements = transformDataToElements(window.architectureData[mode]);
+                            initCytoscape(elements);
+                        } catch(e) {
+                            console.error(e);
+                            alert("Error processing data: " + (e.message || e));
+                            console.error(e.stack);
+                        }
+                    } else {
+                        alert("Failed to load data for mode: " + mode);
+                    }
+                    showLoading(false);
+                };
+
+                // Check if already loaded
+                if (window.architectureData && window.architectureData[mode]) {
+                    initData();
+                    return;
+                }
+                
+                // Load script dynamically
+                const script = document.createElement('script');
+                script.src = `data/${mode}.js`;
+                script.onload = initData;
+                script.onerror = function(e) {
+                    showLoading(false);
+                    console.error(e);
+                    alert("Error loading script for mode: " + mode);
+                };
+                document.body.appendChild(script);
+            }
+
+            function initCytoscape(elements) {
+                if (cy) cy.destroy();
+                
+                // Default layout options (dagre)
+                let layoutOptions = {
+                    name: 'dagre',
+                    rankDir: 'LR',
+                    nodeSep: 20,
+                    rankSep: 80,
+                    padding: 20
+                };
+                
+                // Fallback if dagre is not available
+                try {
+                     // check if dagre layout is available in extensions
+                     // This check is loose; cytoscape throws on invalid layout
+                } catch (e) {
+                    console.warn("Dagre layout check failed, using grid", e);
+                    layoutOptions = { name: 'grid' };
+                }
+
+                try {
+                    cy = cytoscape({
+                        container: document.getElementById('cy'),
+                        elements: elements,
+                        style: [
+                            {
+                                selector: 'node',
+                                style: {
+                                    'label': 'data(label)',
+                                    'text-valign': 'center',
+                                    'text-halign': 'center',
+                                    'font-size': '10px',
+                                    'color': '#333',
+                                    'background-color': '#ddd',
+                                    'border-width': 1,
+                                    'border-color': '#999'
+                                }
+                            },
+                            {
+                                selector: '.module',
+                                style: {
+                                    'background-color': 'data(backgroundColor)',
+                                    'color': 'data(textColor)',
+                                    'border-width': 2,
+                                    'border-color': 'data(color)',
+                                    'text-valign': 'top',
+                                    'padding': '20px',
+                                    'font-size': '14px',
+                                    'font-weight': 'bold'
+                                }
+                            },
+                            {
+                                selector: '.node', // Entity type 'node'
+                                style: {
+                                    'background-color': 'data(medium_color)',
+                                    'shape': 'rectangle',
+                                    'width': 'label',
+                                    'height': 'label',
+                                    'padding': '10px'
+                                }
+                            },
+                            {
+                                selector: '.port',
+                                style: {
+                                    'width': 10,
+                                    'height': 10,
+                                    'shape': 'ellipse',
+                                    'background-color': '#888',
+                                    'label': '', // Hide label for ports to reduce clutter? Or show on hover
+                                    'border-width': 1,
+                                    'border-color': '#555'
+                                }
+                            },
+                            {
+                                selector: '.in-port',
+                                style: { 'background-color': '#e0f7ff' }
+                            },
+                            {
+                                selector: '.out-port',
+                                style: { 'background-color': '#fff4e0' }
+                            },
+                            {
+                                selector: 'edge',
+                                style: {
+                                    'width': 1,
+                                    'line-color': '#ccc',
+                                    'target-arrow-color': '#ccc',
+                                    'target-arrow-shape': 'triangle',
+                                    'curve-style': 'bezier'
+                                }
+                            },
+                            {
+                                selector: 'edge.highlighted',
+                                style: {
+                                    'line-color': '#007bff',
+                                    'target-arrow-color': '#007bff',
+                                    'width': 3
+                                }
+                            },
+                            {
+                                selector: 'node.highlighted',
+                                style: {
+                                    'border-color': '#007bff',
+                                    'border-width': 3
+                                }
+                            }
+                        ],
+                        layout: layoutOptions
+                    });
+                } catch (e) {
+                    console.warn("Cytoscape init failed with dagre, falling back to grid", e);
+                    // Fallback
+                    cy = cytoscape({
+                        container: document.getElementById('cy'),
+                        elements: elements,
+                        style: [], // reuse styles
+                        layout: { name: 'grid' }
+                    });
+                    alert("Layout error: " + e.message + ". Falling back to grid layout.");
+                }
+                
+                // Event handling
+                cy.on('tap', 'node', function(evt){
+                    const node = evt.target;
+                    updateInfo(node.data(), 'Node');
+                    
+                    // Highlight connected
+                    cy.elements().removeClass('highlighted');
+                    node.neighborhood().addClass('highlighted');
+                    node.addClass('highlighted');
+                });
+                
+                cy.on('tap', 'edge', function(evt){
+                    const edge = evt.target;
+                    updateInfo(edge.data(), 'Link');
+                    
+                    cy.elements().removeClass('highlighted');
+                    edge.addClass('highlighted');
+                    edge.source().addClass('highlighted');
+                    edge.target().addClass('highlighted');
+                });
+                
+                cy.on('tap', function(evt){
+                    if(evt.target === cy){
+                        cy.elements().removeClass('highlighted');
+                        infoPanel.innerHTML = '<div class="info-card"><div class="info-row">Select a node or edge to see details.</div></div>';
+                    }
+                });
+            }
+
+            // Initial load
+            loadMode(selector.value);
+            
+            selector.addEventListener('change', function(e) {
+                loadMode(e.target.value);
+            });
+        });
+    </script>
+</body>
+</html>
