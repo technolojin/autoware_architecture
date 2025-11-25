@@ -451,6 +451,33 @@
                         infoPanel.innerHTML = '<div class="info-card"><div class="info-row">Select a node or edge to see details.</div></div>';
                     }
                 });
+
+                // Manual panning implementation for ungrabbable nodes/edges
+                let dragStartPos = null;
+                let dragStartPan = null;
+
+                cy.on('tapstart', 'node, edge', function(evt) {
+                    dragStartPos = { ...evt.renderedPosition };
+                    dragStartPan = { ...cy.pan() };
+                });
+
+                cy.on('tapdrag', function(evt) {
+                    if (dragStartPos) {
+                        const currentPos = evt.renderedPosition;
+                        const dx = currentPos.x - dragStartPos.x;
+                        const dy = currentPos.y - dragStartPos.y;
+                        
+                        cy.pan({
+                            x: dragStartPan.x + dx,
+                            y: dragStartPan.y + dy
+                        });
+                    }
+                });
+
+                cy.on('tapend', function() {
+                    dragStartPos = null;
+                    dragStartPan = null;
+                });
             }
 
             // Initial load
