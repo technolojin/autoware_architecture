@@ -222,9 +222,7 @@ class Deployment:
             
             # Generate diagrams with mode suffix in filename
             filename_base = f"{self.name}_{mode_key}" if mode_key != "default" else self.name
-            # self.generate_by_template(data, node_template_path, mode_visualization_dir, filename_base + "_node_graph.puml")
             self.generate_by_template(data, node_dot_template_path, mode_visualization_dir, filename_base + "_node_graph.dot")
-            # self.generate_by_template(data, logic_template_path, mode_visualization_dir, filename_base + "_logic_graph.puml")
             self.generate_by_template(data, logit_dot_template_path, mode_visualization_dir, filename_base + "_logic_graph.dot")
             self.generate_by_template(data, sequence_template_path, mode_visualization_dir, filename_base + "_sequence_graph.puml")
             
