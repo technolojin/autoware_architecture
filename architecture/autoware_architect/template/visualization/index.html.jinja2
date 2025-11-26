@@ -3,73 +3,176 @@
 <head>
     <meta charset="UTF-8">
     <title>Autoware Architecture Visualization</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
-    <script src="https://unpkg.com/klayjs@0.4.1/klay.js"></script>
-    <script src="https://unpkg.com/cytoscape-klay@3.1.4/cytoscape-klay.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/elkjs@0.9.3/lib/elk.bundled.js"></script>
     <style>
         body { 
-            font-family: Arial, sans-serif; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
             margin: 0; 
             padding: 0; 
             display: flex; 
             height: 100vh; 
             overflow: hidden;
+            background-color: #f8f9fa;
         }
         #sidebar {
-            width: 300px;
-            background: #f4f4f4;
-            border-right: 1px solid #ddd;
+            width: 320px;
+            background: #ffffff;
+            border-right: 1px solid #e9ecef;
             padding: 20px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
             z-index: 2;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
         }
         #mode-selector {
             padding: 10px;
-            font-size: 16px;
+            font-size: 14px;
             margin-bottom: 20px;
             width: 100%;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
         }
         #info-panel {
             flex-grow: 1;
             overflow-y: auto;
         }
         .info-card {
-            background: white;
+            background: #f8f9fa;
             padding: 15px;
-            border-radius: 5px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
             margin-bottom: 10px;
         }
-        .info-title { font-weight: bold; margin-bottom: 5px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 5px;}
-        .info-row { margin-bottom: 3px; font-size: 13px; }
-        .info-label { color: #666; font-size: 12px; }
-        .info-value { color: #000; font-family: monospace; }
+        .info-title { 
+            font-weight: 600; 
+            margin-bottom: 8px; 
+            color: #212529; 
+            border-bottom: 2px solid #dee2e6; 
+            padding-bottom: 5px;
+            font-size: 14px;
+        }
+        .info-row { margin-bottom: 4px; font-size: 13px; display: flex; }
+        .info-label { color: #6c757d; font-weight: 500; width: 80px; flex-shrink: 0; }
+        .info-value { color: #212529; font-family: 'Consolas', monospace; word-break: break-all; }
         
-        #cy {
+        #canvas-container {
             flex-grow: 1;
-            background: white;
-            z-index: 1;
+            background: #ffffff;
+            position: relative;
+            overflow: hidden;
+            cursor: grab;
+        }
+        #canvas-container:active {
+            cursor: grabbing;
+        }
+        
+        /* SVG Styles */
+        svg {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .node-rect {
+            stroke-width: 1.5px;
+            transition: all 0.2s;
+        }
+        .node-label {
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 12px;
+            pointer-events: none;
+            text-anchor: middle;
+            dominant-baseline: middle;
+        }
+        
+        .port-rect {
+            stroke: #6c757d;
+            stroke-width: 1px;
+            fill: #e9ecef;
+            transition: all 0.1s;
+        }
+        .port-label {
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 9px;
+            pointer-events: none;
+            text-anchor: middle;
+            dominant-baseline: middle;
+        }
+        
+        .edge-path {
+            fill: none;
+            stroke: #adb5bd;
+            stroke-width: 1.5px;
+            transition: all 0.2s;
+        }
+        .edge-arrow {
+            fill: #adb5bd;
+        }
+        
+        /* Highlighting */
+        .highlighted .node-rect {
+            stroke: #0d6efd !important;
+            stroke-width: 2.5px;
+        }
+        .highlighted .edge-path {
+            stroke: #0d6efd !important;
+            stroke-width: 2.5px;
+        }
+        .highlighted .edge-arrow {
+            fill: #0d6efd !important;
         }
         
         /* Loading overlay */
         #loading {
             position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(255,255,255,0.8);
+            background: rgba(255,255,255,0.9);
             display: flex; justify-content: center; align-items: center;
-            font-size: 24px; color: #666;
+            flex-direction: column;
+            font-size: 18px; color: #495057;
             z-index: 100;
             display: none;
         }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #0d6efd;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Debug Console */
+        #debug-console {
+            position: absolute;
+            bottom: 0;
+            left: 320px; /* Sidebar width */
+            right: 0;
+            height: 150px;
+            background: rgba(0,0,0,0.8);
+            color: #0f0;
+            font-family: monospace;
+            font-size: 12px;
+            padding: 10px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none; /* Hidden by default, shown on error */
+        }
+        .log-error { color: #ff4444; }
+        .log-warn { color: #ffbb33; }
+        .log-info { color: #00ccff; }
     </style>
 </head>
 <body>
-    <div id="loading">Loading...</div>
+    <div id="loading">
+        <div class="spinner"></div>
+        <div id="loading-text">Layout calculation in progress...</div>
+    </div>
+    
     <div id="sidebar">
-        <h2>Architecture</h2>
-        <label for="mode-selector">Mode:</label>
+        <h2 style="margin-top: 0; color: #212529;">Architecture</h2>
+        <label for="mode-selector" style="color: #495057; font-weight: 500; margin-bottom: 5px; display: block;">View Mode:</label>
         <select id="mode-selector">
             {% for mode in modes %}
             <option value="{{ mode }}" {% if mode == default_mode %}selected{% endif %}>{{ mode }}</option>
@@ -78,432 +181,574 @@
         
         <div id="info-panel">
             <div class="info-card">
-                <div class="info-row">Select a node or edge to see details.</div>
+                <div class="info-row" style="color: #6c757d;">Select a node or edge to see details.</div>
             </div>
         </div>
+        
+        <div style="margin-top: 20px;">
+            <button onclick="document.getElementById('debug-console').style.display = 'block'" style="padding: 5px 10px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">Show Debug Log</button>
+        </div>
     </div>
-    <div id="cy"></div>
+    
+    <div id="canvas-container">
+        <svg id="main-svg">
+            <g id="zoom-layer"></g>
+        </svg>
+    </div>
+
+    <div id="debug-console"></div>
 
     <script>
+        // Custom Logger
+        const debugConsole = document.getElementById('debug-console');
+        function log(msg, type='info') {
+            console.log(msg);
+            const line = document.createElement('div');
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            line.className = `log-${type}`;
+            debugConsole.appendChild(line);
+            debugConsole.scrollTop = debugConsole.scrollHeight;
+            if (type === 'error') debugConsole.style.display = 'block';
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize klay layout extension if available
-            if (typeof cytoscape !== 'undefined' && typeof cytoscapeKlay !== 'undefined') {
-                try {
-                    cytoscape.use(cytoscapeKlay);
-                    console.log("Registered klay layout");
-                } catch(e) {
-                    console.warn("Could not register klay layout via .use()", e);
-                    try {
-                         cytoscape('layout', 'klay', cytoscapeKlay);
-                    } catch(e2) {
-                        console.warn("Could not register klay layout via legacy method", e2);
-                    }
-                }
-            } else {
-                 console.warn("Cytoscape or cytoscape-klay not found globally");
+            if (typeof ELK === 'undefined') {
+                log("CRITICAL: ELK.js library not loaded! Check internet connection or CDN URL.", 'error');
+                alert("ELK.js library failed to load. Please check your internet connection.");
+                return;
             }
-            
+
+            const elk = new ELK();
             const selector = document.getElementById('mode-selector');
             const infoPanel = document.getElementById('info-panel');
             const loading = document.getElementById('loading');
+            const svg = document.getElementById('main-svg');
+            const zoomLayer = document.getElementById('zoom-layer');
+            const container = document.getElementById('canvas-container');
             
-            let cy = null;
+            let currentGraph = null;
+            let transform = { x: 0, y: 0, k: 1 };
+            let isDragging = false;
+            let startPoint = { x: 0, y: 0 };
 
-            function showLoading(show) {
+            // --- UI Helpers ---
+            function showLoading(show, text) {
                 loading.style.display = show ? 'flex' : 'none';
+                if(text) document.getElementById('loading-text').innerText = text;
             }
 
             function updateInfo(data, type) {
                 let html = `<div class="info-card"><div class="info-title">${type} Details</div>`;
                 
-                for (const [key, value] of Object.entries(data)) {
-                    if (['id', 'parent', 'source', 'target', 'color', 'backgroundColor', 'label'].includes(key)) continue;
-                    if (typeof value === 'object' && value !== null) continue; // Skip complex objects
-                    
-                    html += `<div class="info-row">
-                        <span class="info-label">${key}:</span> 
-                        <span class="info-value">${value}</span>
-                    </div>`;
+                function displayProps(obj) {
+                    let str = '';
+                    for (const [key, value] of Object.entries(obj)) {
+                        if (['id', 'children', 'edges', 'ports', 'layoutOptions', 'width', 'height', 'x', 'y', 'source', 'target', 'sections'].includes(key)) continue;
+                        
+                        let displayValue = value;
+                        if (typeof value === 'object' && value !== null) {
+                            if (Array.isArray(value)) displayValue = '[' + value.length + ']';
+                            else displayValue = '{...}';
+                        }
+                        
+                        str += `<div class="info-row">
+                            <span class="info-label">${key}:</span> 
+                            <span class="info-value">${displayValue}</span>
+                        </div>`;
+                    }
+                    return str;
                 }
+                
+                html += displayProps(data);
                 html += '</div>';
                 infoPanel.innerHTML = html;
             }
 
-            function transformDataToElements(root) {
-                const elements = [];
+            // --- Data Transformation (App Data -> ELK JSON) ---
+            function transformDataToElk(root) {
+                log("Starting data transformation...");
                 
-                function getPortLabel(port) {
-                    let parts = [];
-                    if (port.name) parts.push(port.name);
-                    
-                    // Add topic if available
-                    if (port.topic) {
-                        const topics = Array.isArray(port.topic) ? port.topic.join(', ') : port.topic;
-                        if (topics) parts.push(topics);
+                function convertNode(instance) {
+                    if (!instance) {
+                        log("Warning: Encountered null instance", 'warn');
+                        return null;
                     }
-                    // Add type if available
-                    if (port.msg_type) {
-                        parts.push(port.msg_type);
-                    }
-                    // Add frequency if available
-                    if (port.event && port.event.frequency) {
-                        parts.push('@' + port.event.frequency + ' Hz');
-                    }
-                    return parts.join('\n');
-                }
 
-                function traverse(instance, parentId) {
-                    const nodeId = instance.unique_id;
-                    
-                    // Node for the instance
-                    elements.push({
-                        data: { 
-                            id: nodeId, 
-                            label: instance.name, 
-                            parent: parentId,
-                            type: instance.entity_type,
-                            color: instance.color,
-                            backgroundColor: instance.background_color,
-                            textColor: instance.text_color,
-                            ...instance
-                        },
-                        classes: instance.entity_type || 'unknown'
-                    });
+                    const node = {
+                        id: instance.unique_id,
+                        labels: [{ text: instance.name || instance.unique_id || "Unnamed" }],
+                        width: 200, 
+                        height: 100,
+                        children: [],
+                        ports: [],
+                        properties: {
+                            'org.eclipse.elk.portConstraints': 'FIXED_SIDE',
+                            'org.eclipse.elk.nodeLabels.placement': 'H_CENTER V_TOP',
+                            'userData': instance
+                        }
+                    };
 
-                    // Structural node for alignment (invisible)
-                    const structuralNodeId = nodeId + '_struct';
-                    elements.push({
-                        data: {
-                            id: structuralNodeId,
-                            parent: nodeId
-                        },
-                        classes: 'structural-node'
-                    });
-
-                    // Ports as nodes
-                    if (instance.in_ports && Array.isArray(instance.in_ports)) {
+                    // Ports
+                    if (instance.in_ports) {
                         instance.in_ports.forEach(port => {
-                            elements.push({
-                                data: { 
-                                    id: port.unique_id, 
-                                    parent: nodeId, 
-                                    label: getPortLabel(port), 
-                                    type: 'port',
-                                    side: 'in',
-                                    ...port 
+                            // Create a lightweight copy of userData
+                            const portData = { ...port };
+
+                            node.ports.push({
+                                id: port.unique_id,
+                                width: 10,
+                                height: 10,
+                                properties: {
+                                    'org.eclipse.elk.port.side': 'WEST',
+                                    'userData': portData
                                 },
-                                classes: 'port in-port'
-                            });
-                            
-                            // Structural edge from in-port to structural node
-                            elements.push({
-                                data: {
-                                    source: port.unique_id,
-                                    target: structuralNodeId
-                                },
-                                classes: 'structural-edge'
+                                labels: [{ text: port.name || "Port" }] 
                             });
                         });
                     }
-                    
-                    if (instance.out_ports && Array.isArray(instance.out_ports)) {
+                    if (instance.out_ports) {
                         instance.out_ports.forEach(port => {
-                            elements.push({
-                                data: { 
-                                    id: port.unique_id, 
-                                    parent: nodeId, 
-                                    label: getPortLabel(port), 
-                                    type: 'port',
-                                    side: 'out',
-                                    ...port 
-                                },
-                                classes: 'port out-port'
-                            });
+                            // Create a lightweight copy of userData
+                            const portData = { ...port };
 
-                            // Structural edge from structural node to out-port
-                            elements.push({
-                                data: {
-                                    source: structuralNodeId,
-                                    target: port.unique_id
+                            node.ports.push({
+                                id: port.unique_id,
+                                width: 10,
+                                height: 10,
+                                properties: {
+                                    'org.eclipse.elk.port.side': 'EAST',
+                                    'userData': portData
                                 },
-                                classes: 'structural-edge'
+                                labels: [{ text: port.name }]
                             });
                         });
                     }
 
-                    // Recursion
-                    if (instance.children && Array.isArray(instance.children)) {
-                        instance.children.forEach(child => traverse(child, nodeId));
+                    // Children
+                    if (instance.children && instance.children.length > 0) {
+                        instance.children.forEach(child => {
+                            const childNode = convertNode(child);
+                            if (childNode) node.children.push(childNode);
+                        });
+                        
+                        // Only remove dimensions if we actually added children
+                        if (node.children.length > 0) {
+                            delete node.width;
+                            delete node.height;
+                        }
                     }
-                    
+
                     // Links
-                    if (instance.links && Array.isArray(instance.links)) {
-                        instance.links.forEach(link => {
-                            elements.push({
-                                data: {
-                                    source: link.from_port.unique_id,
-                                    target: link.to_port.unique_id,
-                                    msg_type: link.msg_type,
-                                    ...link
-                                },
-                                classes: 'link'
+                    if (instance.links) {
+                        node.edges = [];
+                        instance.links.forEach((link, index) => {
+                            if (!link.from_port || !link.to_port) {
+                                log(`Warning: Skipping invalid link in ${instance.name}`, 'warn');
+                                return;
+                            }
+                            // Lightweight user data
+                            const linkData = { ...link };
+                            
+                            node.edges.push({
+                                id: `edge_${link.from_port.unique_id}_${link.to_port.unique_id}_${index}`,
+                                sources: [link.from_port.unique_id],
+                                targets: [link.to_port.unique_id],
+                                properties: {
+                                    'userData': linkData
+                                }
                             });
                         });
                     }
+
+                    return node;
                 }
+
+                const rootNode = convertNode(root);
                 
-                traverse(root, null);
-                return elements;
+                // Ensure Root Node is treated as a compound node (no dimensions, correct algorithm)
+                if (rootNode) {
+                    delete rootNode.width;
+                    delete rootNode.height;
+                }
+
+                log(`Transformation complete. Nodes: ${rootNode?.children?.length || 0}`);
+                console.log("ELK Graph JSON:", JSON.stringify(rootNode, null, 2));
+                return rootNode;
             }
 
-            function loadMode(mode) {
-                showLoading(true);
+            // --- Validation ---
+            function validateGraph(rootNode) {
+                log("Validating graph structure...");
+                const allIds = new Map();
+                const portIds = new Set();
+                let errors = 0;
+
+                function traverse(node) {
+                    if (!node.id) {
+                        log("Error: Node missing ID", 'error');
+                        errors++;
+                    }
+                    
+                    // Check dimensions for leaf nodes (crucial for ELK)
+                    if ((!node.children || node.children.length === 0) && (node.width === undefined || node.height === undefined)) {
+                        log(`Error: Node ${node.id || 'unknown'} has no dimensions and no children.`, 'error');
+                        errors++;
+                    }
+
+                    if (node.id) {
+                        if (allIds.has(node.id)) {
+                            const existing = allIds.get(node.id);
+                            log(`Error: Duplicate Node ID: ${node.id}`, 'error');
+                            log(`  Existing: ${existing.type} '${existing.name}'`, 'error');
+                            log(`  New: Node '${node.labels[0].text}'`, 'error');
+                            errors++;
+                        }
+                        allIds.set(node.id, { type: 'Node', name: node.labels[0].text });
+                    }
+
+                    if (node.ports) {
+                        node.ports.forEach(port => {
+                            if (!port.id) {
+                                log("Error: Port missing ID", 'error');
+                                errors++;
+                            } else {
+                                if (allIds.has(port.id)) {
+                                    const existing = allIds.get(port.id);
+                                    log(`Error: Duplicate Port ID: ${port.id}`, 'error');
+                                    log(`  Existing: ${existing.type} '${existing.name}'`, 'error');
+                                    log(`  New: Port '${port.labels[0].text}'`, 'error');
+                                    errors++;
+                                }
+                                allIds.set(port.id, { type: 'Port', name: port.labels[0].text });
+                                portIds.add(port.id);
+                            }
+                        });
+                    }
+
+                    if (node.children) {
+                        node.children.forEach(traverse);
+                    }
+                }
+
+                traverse(rootNode);
+
+                function validateEdges(node) {
+                    if (node.edges) {
+                        node.edges.forEach(edge => {
+                            if (!edge.id) {
+                                log("Error: Edge missing ID", 'error');
+                                errors++;
+                            } else {
+                                if (allIds.has(edge.id)) {
+                                    log(`Error: Duplicate Edge ID: ${edge.id}`, 'error');
+                                    errors++;
+                                }
+                                allIds.set(edge.id, { type: 'Edge', name: edge.id });
+                            }
+                            
+                            if (edge.sources) {
+                                edge.sources.forEach(src => {
+                                    if (!portIds.has(src)) {
+                                        log(`Error: Edge ${edge.id} references non-existent source port: ${src}`, 'error');
+                                        errors++;
+                                    }
+                                });
+                            } else {
+                                log(`Error: Edge ${edge.id} missing sources`, 'error');
+                                errors++;
+                            }
+
+                            if (edge.targets) {
+                                edge.targets.forEach(tgt => {
+                                    if (!portIds.has(tgt)) {
+                                        log(`Error: Edge ${edge.id} references non-existent target port: ${tgt}`, 'error');
+                                        errors++;
+                                    }
+                                });
+                            } else {
+                                log(`Error: Edge ${edge.id} missing targets`, 'error');
+                                errors++;
+                            }
+                        });
+                    }
+                    
+                    if (node.children) {
+                        node.children.forEach(validateEdges);
+                    }
+                }
                 
-                // Function to initialize once data is available
+                validateEdges(rootNode);
+
+                if (errors > 0) {
+                    log(`Validation failed with ${errors} errors. See log above.`, 'error');
+                    return false;
+                }
+                log("Validation passed.");
+                return true;
+            }
+
+            // --- Layout & Rendering ---
+            function layoutAndRender(graphData) {
+                if (!validateGraph(graphData)) {
+                    alert("Graph validation failed. Check debug log.");
+                    showLoading(false);
+                    return;
+                }
+
+                showLoading(true, "Calculating Layout...");
+                log("Starting ELK layout...");
+                
+                const elkOptions = {
+                    'algorithm': 'layered',
+                    'org.eclipse.elk.direction': 'RIGHT',
+                    'org.eclipse.elk.spacing.nodeNode': '60',
+                    'org.eclipse.elk.spacing.edgeNode': '30',
+                    'org.eclipse.elk.edgeRouting': 'ORTHOGONAL',
+                    'org.eclipse.elk.layered.spacing.edgeNodeBetweenLayers': '30',
+                    'org.eclipse.elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
+                    'org.eclipse.elk.padding': '[top=50,left=50,bottom=50,right=50]'
+                };
+
+                elk.layout(graphData, { layoutOptions: elkOptions })
+                    .then(graph => {
+                        log("Layout successful!");
+                        currentGraph = graph;
+                        renderGraph(graph);
+                        showLoading(false);
+                        fitToScreen();
+                    })
+                    .catch(err => {
+                        log("Layout Error: " + err.message, 'error');
+                        console.error(err);
+                        showLoading(false);
+                        alert("Layout Error: " + err.message);
+                    });
+            }
+
+            function renderGraph(graph) {
+                log("Rendering graph...");
+                zoomLayer.innerHTML = '';
+                
+                const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+                defs.innerHTML = `
+                    <marker id="arrowhead" markerWidth="10" markerHeight="7" 
+                    refX="10" refY="3.5" orient="auto">
+                      <polygon points="0 0, 10 3.5, 0 7" fill="#adb5bd" />
+                    </marker>
+                    <marker id="arrowhead-active" markerWidth="10" markerHeight="7" 
+                    refX="10" refY="3.5" orient="auto">
+                      <polygon points="0 0, 10 3.5, 0 7" fill="#0d6efd" />
+                    </marker>
+                `;
+                zoomLayer.appendChild(defs);
+
+                let nodeCount = 0;
+                let edgeCount = 0;
+
+                function renderNode(node, parentGroup) {
+                    nodeCount++;
+                    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                    g.setAttribute("transform", `translate(${node.x},${node.y})`);
+                    g.classList.add("node-group");
+                    
+                    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                    rect.setAttribute("width", node.width);
+                    rect.setAttribute("height", node.height);
+                    rect.setAttribute("rx", 4);
+                    rect.classList.add("node-rect");
+                    
+                    const userData = node.properties?.userData || {};
+                    rect.setAttribute("fill", userData.background_color || "#ffffff");
+                    rect.setAttribute("stroke", userData.color || "#333");
+                    
+                    rect.onclick = (e) => {
+                        e.stopPropagation();
+                        updateInfo(userData, 'Node');
+                        highlight(g);
+                    };
+                    
+                    g.appendChild(rect);
+
+                    if (node.labels && node.labels.length > 0) {
+                        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                        text.setAttribute("x", node.width / 2);
+                        text.setAttribute("y", 15);
+                        text.textContent = node.labels[0].text;
+                        text.classList.add("node-label");
+                        g.appendChild(text);
+                    }
+
+                    if (node.ports) {
+                        node.ports.forEach(port => {
+                            const pg = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                            pg.setAttribute("transform", `translate(${port.x},${port.y})`);
+                            
+                            const prect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                            prect.setAttribute("width", port.width);
+                            prect.setAttribute("height", port.height);
+                            prect.classList.add("port-rect");
+                            
+                            const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
+                            title.textContent = port.properties?.userData?.name || "Port";
+                            prect.appendChild(title);
+
+                            pg.appendChild(prect);
+                            g.appendChild(pg);
+                        });
+                    }
+
+                    if (node.children) {
+                        node.children.forEach(child => renderNode(child, g));
+                    }
+
+                    if (node.edges) {
+                        node.edges.forEach(edge => {
+                            edgeCount++;
+                            if (!edge.sections) return;
+                            
+                            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                            let d = "";
+                            edge.sections.forEach(section => {
+                                d += `M ${section.startPoint.x} ${section.startPoint.y} `;
+                                if (section.bendPoints) {
+                                    section.bendPoints.forEach(bp => {
+                                        d += `L ${bp.x} ${bp.y} `;
+                                    });
+                                }
+                                d += `L ${section.endPoint.x} ${section.endPoint.y} `;
+                            });
+                            
+                            path.setAttribute("d", d);
+                            path.classList.add("edge-path");
+                            path.setAttribute("marker-end", "url(#arrowhead)");
+                            
+                            const userData = edge.properties?.userData || {};
+                            path.onclick = (e) => {
+                                e.stopPropagation();
+                                updateInfo(userData, 'Link');
+                                document.querySelectorAll('.highlighted').forEach(el => el.classList.remove('highlighted'));
+                                path.classList.add('highlighted');
+                                path.setAttribute("marker-end", "url(#arrowhead-active)");
+                            };
+
+                            g.appendChild(path);
+                        });
+                    }
+
+                    parentGroup.appendChild(g);
+                }
+
+                renderNode(graph, zoomLayer);
+                log(`Rendered ${nodeCount} nodes and ${edgeCount} edges.`);
+            }
+
+            function highlight(element) {
+                document.querySelectorAll('.highlighted').forEach(el => el.classList.remove('highlighted'));
+                document.querySelectorAll('.edge-path').forEach(el => el.setAttribute("marker-end", "url(#arrowhead)"));
+                element.classList.add('highlighted');
+            }
+
+            // --- Zoom/Pan ---
+            function updateTransform() {
+                zoomLayer.setAttribute("transform", `translate(${transform.x},${transform.y}) scale(${transform.k})`);
+            }
+
+            function fitToScreen() {
+                if (!currentGraph) return;
+                const bounds = zoomLayer.getBBox();
+                const containerWidth = container.clientWidth;
+                const containerHeight = container.clientHeight;
+                
+                if (bounds.width === 0 || bounds.height === 0) {
+                    log("Warning: Graph bounds are zero.", 'warn');
+                    return;
+                }
+
+                const scale = Math.min(
+                    (containerWidth - 40) / bounds.width,
+                    (containerHeight - 40) / bounds.height
+                );
+                
+                transform.k = Math.min(scale, 1);
+                transform.x = (containerWidth - bounds.width * transform.k) / 2 - bounds.x * transform.k;
+                transform.y = (containerHeight - bounds.height * transform.k) / 2 - bounds.y * transform.k;
+                
+                updateTransform();
+            }
+
+            container.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const zoomIntensity = 0.1;
+                const delta = e.deltaY > 0 ? -zoomIntensity : zoomIntensity;
+                const newScale = transform.k * (1 + delta);
+                
+                const rect = container.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+                
+                transform.x -= (mouseX - transform.x) * delta;
+                transform.y -= (mouseY - transform.y) * delta;
+                transform.k = newScale;
+                
+                updateTransform();
+            });
+
+            container.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startPoint = { x: e.clientX - transform.x, y: e.clientY - transform.y };
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                e.preventDefault();
+                transform.x = e.clientX - startPoint.x;
+                transform.y = e.clientY - startPoint.y;
+                updateTransform();
+            });
+
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+
+            // --- Initialization ---
+            function loadMode(mode) {
+                showLoading(true, "Loading Data...");
+                log(`Loading mode: ${mode}`);
+                
                 const initData = () => {
                     if (window.architectureData && window.architectureData[mode]) {
                         try {
-                            const elements = transformDataToElements(window.architectureData[mode]);
-                            initCytoscape(elements);
+                            const elkGraph = transformDataToElk(window.architectureData[mode]);
+                            layoutAndRender(elkGraph);
                         } catch(e) {
+                            log("Error processing data: " + e.message, 'error');
                             console.error(e);
-                            alert("Error processing data: " + (e.message || e));
-                            console.error(e.stack);
+                            alert("Error processing data: " + e.message);
+                            showLoading(false);
                         }
                     } else {
+                        log("Failed to load data for mode: " + mode, 'error');
                         alert("Failed to load data for mode: " + mode);
+                        showLoading(false);
                     }
-                    showLoading(false);
                 };
 
-                // Check if already loaded
                 if (window.architectureData && window.architectureData[mode]) {
                     initData();
                     return;
                 }
                 
-                // Load script dynamically
                 const script = document.createElement('script');
                 script.src = `data/${mode}.js`;
                 script.onload = initData;
                 script.onerror = function(e) {
+                    log("Error loading script for mode: " + mode, 'error');
                     showLoading(false);
-                    console.error(e);
                     alert("Error loading script for mode: " + mode);
                 };
                 document.body.appendChild(script);
             }
 
-            function initCytoscape(elements) {
-                if (cy) cy.destroy();
-                
-                // Default layout options (klay)
-                let layoutOptions = {
-                    name: 'klay',
-                    nodeDimensionsIncludeLabels: true,
-                    fit: true,
-                    padding: 20,
-                    animate: false,
-                    klay: {
-                        addUnnecessaryBendpoints: false,
-                        aspectRatio: 1.6,
-                        borderSpacing: 20,
-                        compactComponents: false,
-                        crossingMinimization: 'LAYER_SWEEP',
-                        cycleBreaking: 'GREEDY',
-                        direction: 'RIGHT',
-                        edgeRouting: 'ORTHOGONAL',
-                        edgeSpacingFactor: 0.5,
-                        feedbackEdges: true,
-                        fixedAlignment: 'BALANCED',
-                        inLayerSpacingFactor: 1.0,
-                        layoutHierarchy: true,
-                        linearSegmentsDeflectionDampening: 0.3,
-                        mergeEdges: false,
-                        mergeHierarchyCrossingEdges: true,
-                        nodeLayering: 'NETWORK_SIMPLEX',
-                        nodePlacement: 'BRANDES_KOEPF',
-                        randomizationSeed: 1,
-                        routeSelfLoopInside: false,
-                        separateConnectedComponents: true,
-                        spacing: 40,
-                        thoroughness: 7
-                    }
-                };
-                
-                cy = cytoscape({
-                    container: document.getElementById('cy'),
-                    elements: elements,
-                    boxSelectionEnabled: false,
-                    autoungrabify: true,
-                    wheelSensitivity: 0.2,
-                    style: [
-                        {
-                            selector: 'node',
-                            style: {
-                                'label': 'data(label)',
-                                'text-valign': 'center',
-                                'text-halign': 'center',
-                                'font-size': '10px',
-                                'color': '#333',
-                                'background-color': '#ddd',
-                                'border-width': 1,
-                                'border-color': '#999'
-                            }
-                        },
-                        {
-                            selector: '.module',
-                            style: {
-                                'background-color': 'data(backgroundColor)',
-                                'color': 'data(textColor)',
-                                'border-width': 2,
-                                'border-color': 'data(color)',
-                                'text-valign': 'top',
-                                'padding': '20px',
-                                'font-size': '14px',
-                                'font-weight': 'bold'
-                            }
-                        },
-                        {
-                            selector: '.node', // Entity type 'node'
-                            style: {
-                                'background-color': 'data(medium_color)',
-                                'shape': 'rectangle',
-                                'width': 'label',
-                                'height': 'label',
-                                'padding': '10px'
-                            }
-                        },
-                        {
-                            selector: '.port',
-                            style: {
-                                'width': 'label',
-                                'height': 'label',
-                                'shape': 'roundrectangle',
-                                'background-color': '#888',
-                                'label': 'data(label)',
-                                'text-wrap': 'wrap',
-                                'text-max-width': '200px',
-                                'font-size': '8px',
-                                'border-width': 1,
-                                'border-color': '#555',
-                                'padding': '5px'
-                            }
-                        },
-                        {
-                            selector: '.in-port',
-                            style: { 'background-color': '#e0f7ff' }
-                        },
-                        {
-                            selector: '.out-port',
-                            style: { 'background-color': '#fff4e0' }
-                        },
-                        {
-                            selector: '.structural-node',
-                            style: {
-                                'width': 1,
-                                'height': 1,
-                                'visibility': 'hidden',
-                                'opacity': 0
-                            }
-                        },
-                        {
-                            selector: '.structural-edge',
-                            style: {
-                                'width': 0,
-                                'visibility': 'hidden',
-                                'opacity': 0
-                            }
-                        },
-                        {
-                            selector: 'edge',
-                            style: {
-                                'width': 1,
-                                'line-color': '#ccc',
-                                'target-arrow-color': '#ccc',
-                                'target-arrow-shape': 'triangle',
-                                'curve-style': 'taxi',
-                                'taxi-direction': 'horizontal'
-                            }
-                        },
-                        {
-                            selector: 'edge.highlighted',
-                            style: {
-                                'line-color': '#007bff',
-                                'target-arrow-color': '#007bff',
-                                'width': 3
-                            }
-                        },
-                        {
-                            selector: 'node.highlighted',
-                            style: {
-                                'border-color': '#007bff',
-                                'border-width': 3
-                            }
-                        }
-                    ],
-                    layout: layoutOptions
-                });
-                
-                // Event handling
-                cy.on('tap', 'node', function(evt){
-                    const node = evt.target;
-                    if (node.hasClass('structural-node')) return;
-                    updateInfo(node.data(), 'Node');
-                    
-                    // Highlight connected
-                    cy.elements().removeClass('highlighted');
-                    node.neighborhood().addClass('highlighted');
-                    node.addClass('highlighted');
-                });
-                
-                cy.on('tap', 'edge', function(evt){
-                    const edge = evt.target;
-                    if (edge.hasClass('structural-edge')) return;
-                    updateInfo(edge.data(), 'Link');
-                    
-                    cy.elements().removeClass('highlighted');
-                    edge.addClass('highlighted');
-                    edge.source().addClass('highlighted');
-                    edge.target().addClass('highlighted');
-                });
-                
-                cy.on('tap', function(evt){
-                    if(evt.target === cy){
-                        cy.elements().removeClass('highlighted');
-                        infoPanel.innerHTML = '<div class="info-card"><div class="info-row">Select a node or edge to see details.</div></div>';
-                    }
-                });
-
-                // Manual panning implementation for ungrabbable nodes/edges
-                let dragStartPos = null;
-                let dragStartPan = null;
-
-                cy.on('tapstart', 'node, edge', function(evt) {
-                    dragStartPos = { ...evt.renderedPosition };
-                    dragStartPan = { ...cy.pan() };
-                });
-
-                cy.on('tapdrag', function(evt) {
-                    if (dragStartPos) {
-                        const currentPos = evt.renderedPosition;
-                        const dx = currentPos.x - dragStartPos.x;
-                        const dy = currentPos.y - dragStartPos.y;
-                        
-                        cy.pan({
-                            x: dragStartPan.x + dx,
-                            y: dragStartPan.y + dy
-                        });
-                    }
-                });
-
-                cy.on('tapend', function() {
-                    dragStartPos = null;
-                    dragStartPan = null;
-                });
-            }
-
-            // Initial load
             loadMode(selector.value);
             
             selector.addEventListener('change', function(e) {

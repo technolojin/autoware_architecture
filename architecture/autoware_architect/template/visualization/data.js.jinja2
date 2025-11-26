@@ -1,5 +1,9 @@
 (function() {
+  // Initialize architecture data namespace
   if (!window.architectureData) window.architectureData = {};
+  
+  // Store data for the specific mode
+  // This data structure is consumed by ELK.js visualization (index.html)
   window.architectureData["{{ mode if mode else 'default' }}"] = {
     "name": {{ name | tojson }},
     "unique_id": {{ unique_id | tojson }},
@@ -21,9 +25,3 @@
     {% endif %}
   };
 })();
-
-
-
-
-
-
