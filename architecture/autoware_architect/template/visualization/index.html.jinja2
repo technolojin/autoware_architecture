@@ -123,6 +123,12 @@
             stroke-width: 2.5px;
         }
         
+        .port-highlighted {
+            stroke: #0d6efd !important;
+            stroke-width: 2px;
+            fill: #cfe2ff;
+        }
+        
         /* Loading overlay */
         #loading {
             position: absolute; top: 0; left: 0; right: 0; bottom: 0;
@@ -580,6 +586,40 @@
                 let nodeCount = 0;
                 let edgeCount = 0;
 
+                const edgeIdToElement = new Map();
+                const portToEdges = new Map();
+
+                function registerEdge(edgeId, sources, targets, element) {
+                    edgeIdToElement.set(edgeId, element);
+                    if (sources) {
+                        sources.forEach(src => {
+                            if (!portToEdges.has(src)) portToEdges.set(src, []);
+                            portToEdges.get(src).push(edgeId);
+                        });
+                    }
+                    if (targets) {
+                        targets.forEach(tgt => {
+                            if (!portToEdges.has(tgt)) portToEdges.set(tgt, []);
+                            portToEdges.get(tgt).push(edgeId);
+                        });
+                    }
+                }
+
+                function highlightConnected(portId) {
+                    document.querySelectorAll('.highlighted').forEach(el => el.classList.remove('highlighted'));
+                    document.querySelectorAll('.port-highlighted').forEach(el => el.classList.remove('port-highlighted'));
+                    document.querySelectorAll('.edge-path').forEach(el => el.setAttribute("marker-end", "url(#arrowhead)"));
+                    
+                    const edgeIds = portToEdges.get(portId) || [];
+                    edgeIds.forEach(id => {
+                        const el = edgeIdToElement.get(id);
+                        if (el) {
+                            el.classList.add('highlighted');
+                            el.setAttribute("marker-end", "url(#arrowhead-active)");
+                        }
+                    });
+                }
+
                 function renderNode(node, parentGroup) {
                     nodeCount++;
                     const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -628,6 +668,14 @@
                             title.textContent = portData.name || "Port";
                             prect.appendChild(title);
 
+                            pg.onclick = (e) => {
+                                e.stopPropagation();
+                                updateInfo(portData, 'Port');
+                                highlightConnected(port.id);
+                                prect.classList.add('port-highlighted');
+                            };
+                            pg.style.cursor = 'pointer';
+
                             pg.appendChild(prect);
 
                             if (port.labels) {
@@ -675,9 +723,12 @@
                                 e.stopPropagation();
                                 updateInfo(userData, 'Link');
                                 document.querySelectorAll('.highlighted').forEach(el => el.classList.remove('highlighted'));
+                                document.querySelectorAll('.port-highlighted').forEach(el => el.classList.remove('port-highlighted'));
                                 path.classList.add('highlighted');
                                 path.setAttribute("marker-end", "url(#arrowhead-active)");
                             };
+                            
+                            registerEdge(edge.id, edge.sources, edge.targets, path);
 
                             g.appendChild(path);
                         });
