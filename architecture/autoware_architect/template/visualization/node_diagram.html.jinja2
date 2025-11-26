@@ -302,7 +302,10 @@
 
                     const node = {
                         id: nodeId,
-                        labels: [{ text: instance.name || nodeId || "Unnamed" }],
+                        labels: [
+                            { text: (instance.namespace && instance.namespace.join('/')) || "" },
+                            { text: instance.name || nodeId || "Unnamed" }
+                        ],
                         width: 300, 
                         height: nodeHeight,
                         children: [],
@@ -655,14 +658,74 @@
 
                     if (node.labels && node.labels.length > 0) {
                         const fontSize = Math.max(12, 36 - (depth * 4));
-                        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                        text.setAttribute("x", node.width / 2);
-                        text.setAttribute("y", 10 + fontSize / 2);
-                        text.textContent = node.labels[0].text;
-                        text.classList.add("node-label");
-                        text.style.fontSize = `${fontSize}px`;
-                        if (depth <= 1) text.style.fontWeight = "bold";
-                        g.appendChild(text);
+                        
+                        let nsLineCount = 0;
+                        // Namespace Label (smaller, above)
+                        if (node.labels.length > 1 && node.labels[0].text) {
+                            const fullText = "/" + node.labels[0].text + "/";
+                            const maxWidth = node.width - 20; // Padding
+                            const charWidth = 6; // Approximate width per char at 10px size
+                            const maxCharsPerLine = Math.floor(maxWidth / charWidth);
+                            
+                            const parts = fullText.split('/');
+                            let lines = [];
+                            let currentLine = "";
+                            
+                            // Reconstruct path with wrapping
+                            for(let i=0; i<parts.length; i++) {
+                                const part = parts[i];
+                                if(!part && i > 0 && i < parts.length-1) continue; // Skip empty mid-splits but keep rendering logic
+                                
+                                const prefix = (currentLine && !currentLine.endsWith('/')) ? "/" : "";
+                                const suffix = (i < parts.length - 1) ? "" : ""; // Don't force suffix yet
+                                
+                                const testLine = currentLine + prefix + part;
+                                
+                                if (testLine.length > maxCharsPerLine && currentLine.length > 0) {
+                                    lines.push(currentLine + "/");
+                                    currentLine = part;
+                                } else {
+                                    currentLine = testLine;
+                                }
+                            }
+                            if (currentLine) lines.push(currentLine);
+                            
+                            // Force break if single line is still too long (e.g. long name without slashes)
+                            if (lines.length === 1 && lines[0].length > maxCharsPerLine) {
+                                const longLine = lines[0];
+                                lines = [];
+                                for (let i = 0; i < longLine.length; i += maxCharsPerLine) {
+                                    lines.push(longLine.substring(i, i + maxCharsPerLine));
+                                }
+                            } else if (lines.length === 0) {
+                                lines.push(fullText); // Fallback
+                            }
+
+                            nsLineCount = lines.length;
+                            lines.forEach((line, index) => {
+                                const nsText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                                nsText.setAttribute("x", node.width / 2);
+                                nsText.setAttribute("y", 15 + (index * 12)); // 12px line height
+                                nsText.textContent = line;
+                                nsText.classList.add("node-label");
+                                nsText.style.fontSize = "10px";
+                                nsText.style.fill = "#6c757d";
+                                g.appendChild(nsText);
+                            });
+                        }
+
+                        // Name Label
+                        const nameText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                        nameText.setAttribute("x", node.width / 2);
+                        // Push down based on namespace lines. Base offset 15, +12 per line. Extra padding 5.
+                        const nsOffset = nsLineCount > 0 ? (15 + (nsLineCount * 12) + 5) : (10 + fontSize / 2);
+                        
+                        nameText.setAttribute("y", nsOffset);
+                        nameText.textContent = node.labels[node.labels.length - 1].text;
+                        nameText.classList.add("node-label");
+                        nameText.style.fontSize = `${fontSize}px`;
+                        if (depth <= 1) nameText.style.fontWeight = "bold";
+                        g.appendChild(nameText);
                     }
 
                     if (node.ports) {
