@@ -295,11 +295,16 @@
                     const nodeId = String(instance.unique_id);
                     elementData.set(nodeId, instance);
 
+                    const inPortsCount = (instance.in_ports || []).length;
+                    const outPortsCount = (instance.out_ports || []).length;
+                    const maxPorts = Math.max(inPortsCount, outPortsCount);
+                    const nodeHeight = Math.max(100, 40 + maxPorts * 25);
+
                     const node = {
                         id: nodeId,
                         labels: [{ text: instance.name || nodeId || "Unnamed" }],
                         width: 200, 
-                        height: 100,
+                        height: nodeHeight,
                         children: [],
                         ports: [],
                         properties: {
