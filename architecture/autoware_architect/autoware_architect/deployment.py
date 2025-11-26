@@ -202,11 +202,13 @@ class Deployment:
         # 4. visualize the deployment diagram via plantuml
         # load the template file
         template_dir = os.path.join(os.path.dirname(__file__), "../template")
-        # node_template_path = os.path.join(template_dir, "node_diagram.puml.jinja2")
         node_dot_template_path = os.path.join(template_dir, "node_diagram.dot.jinja2")
-        # logic_template_path = os.path.join(template_dir, "logic_diagram.puml.jinja2")
         logit_dot_template_path = os.path.join(template_dir, "logic_diagram.dot.jinja2")
         sequence_template_path = os.path.join(template_dir, "sequence_diagram.puml.jinja2")
+        
+        # Web visualization templates
+        web_data_template_path = os.path.join(template_dir, "visualization", "data.js.jinja2")
+        web_index_template_path = os.path.join(template_dir, "visualization", "node_diagram.html.jinja2")
 
         # Generate visualization for each mode
         for mode_key, deploy_instance in self.deploy_instances.items():
@@ -218,13 +220,28 @@ class Deployment:
             
             # Generate diagrams with mode suffix in filename
             filename_base = f"{self.name}_{mode_key}" if mode_key != "default" else self.name
-            # self.generate_by_template(data, node_template_path, mode_visualization_dir, filename_base + "_node_graph.puml")
             self.generate_by_template(data, node_dot_template_path, mode_visualization_dir, filename_base + "_node_graph.dot")
-            # self.generate_by_template(data, logic_template_path, mode_visualization_dir, filename_base + "_logic_graph.puml")
             self.generate_by_template(data, logit_dot_template_path, mode_visualization_dir, filename_base + "_logic_graph.dot")
             self.generate_by_template(data, sequence_template_path, mode_visualization_dir, filename_base + "_sequence_graph.puml")
             
+            # Generate JS data for web visualization
+            web_data_dir = os.path.join(self.visualization_dir, "web", "data")
+            self.generate_by_template(data, web_data_template_path, web_data_dir, f"{mode_key}.js")
+            
             logger.info(f"Generated visualization for mode: {mode_key}")
+
+        # Generate node_diagram.html for web visualization (once)
+        if self.deploy_instances:
+            web_dir = os.path.join(self.visualization_dir, "web")
+            modes = list(self.deploy_instances.keys())
+            default_mode = "default" if "default" in modes else modes[0]
+            
+            index_data = {
+                "modes": modes,
+                "default_mode": default_mode
+            }
+            self.generate_by_template(index_data, web_index_template_path, web_dir, "node_diagram.html")
+            logger.info("Generated web visualization node_diagram.html")
 
     def generate_system_monitor(self):
         # load the template file
