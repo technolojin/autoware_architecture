@@ -81,7 +81,7 @@ connections:
     to: object_recognition.input.rois*
   - from: camera.output.camera*/camera_info
     to: object_recognition.input.camera_info*
-  - from: radar.output.detected_objects
+  - from: radar.output.tracked_objects
     to: object_recognition.input.radar_objects
   - from: pointpainting.output.detected_objects
     to: object_recognition.input.lidar_ml_objects
