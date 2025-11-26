@@ -298,7 +298,8 @@
                         ports: [],
                         properties: {
                             'org.eclipse.elk.portConstraints': 'FIXED_SIDE',
-                            'org.eclipse.elk.nodeLabels.placement': 'H_CENTER V_TOP'
+                            'org.eclipse.elk.nodeLabels.placement': 'H_CENTER V_TOP',
+                            'org.eclipse.elk.portLabels.placement': 'INSIDE'
                         }
                     };
 
@@ -321,7 +322,11 @@
                                 properties: {
                                     'org.eclipse.elk.port.side': 'WEST'
                                 },
-                                labels: [{ text: port.name || "Port" }] 
+                                labels: [{ 
+                                    text: port.name || "Port",
+                                    width: ((port.name && port.name.length) || 4) * 6,
+                                    height: 10
+                                }]
                             });
                         });
                     }
@@ -343,7 +348,11 @@
                                 properties: {
                                     'org.eclipse.elk.port.side': 'EAST'
                                 },
-                                labels: [{ text: port.name }]
+                                labels: [{ 
+                                    text: port.name,
+                                    width: ((port.name && port.name.length) || 4) * 6,
+                                    height: 10
+                                }]
                             });
                         });
                     }
@@ -620,6 +629,18 @@
                             prect.appendChild(title);
 
                             pg.appendChild(prect);
+
+                            if (port.labels) {
+                                port.labels.forEach(label => {
+                                    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                                    text.setAttribute("x", (label.x || 0) + (label.width || 0) / 2);
+                                    text.setAttribute("y", (label.y || 0) + (label.height || 0) / 2);
+                                    text.textContent = label.text;
+                                    text.classList.add("port-label");
+                                    pg.appendChild(text);
+                                });
+                            }
+
                             g.appendChild(pg);
                         });
                     }
