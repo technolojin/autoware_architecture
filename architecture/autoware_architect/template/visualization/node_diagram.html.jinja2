@@ -303,7 +303,7 @@
                     const node = {
                         id: nodeId,
                         labels: [{ text: instance.name || nodeId || "Unnamed" }],
-                        width: 200, 
+                        width: 300, 
                         height: nodeHeight,
                         children: [],
                         ports: [],
@@ -625,7 +625,7 @@
                     });
                 }
 
-                function renderNode(node, parentGroup) {
+                function renderNode(node, parentGroup, depth = 0) {
                     nodeCount++;
                     const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
                     g.setAttribute("transform", `translate(${node.x},${node.y})`);
@@ -638,7 +638,11 @@
                     rect.classList.add("node-rect");
                     
                     const userData = elementData.get(node.id) || {};
-                    rect.setAttribute("fill", userData.background_color || "#ffffff");
+                    let fillColor = userData.background_color || "#ffffff";
+                    if (userData.entity_type === "node") {
+                        fillColor = userData.medium_color || fillColor;
+                    }
+                    rect.setAttribute("fill", fillColor);
                     rect.setAttribute("stroke", userData.color || "#333");
                     
                     rect.onclick = (e) => {
@@ -650,11 +654,14 @@
                     g.appendChild(rect);
 
                     if (node.labels && node.labels.length > 0) {
+                        const fontSize = Math.max(12, 36 - (depth * 4));
                         const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
                         text.setAttribute("x", node.width / 2);
-                        text.setAttribute("y", 15);
+                        text.setAttribute("y", 10 + fontSize / 2);
                         text.textContent = node.labels[0].text;
                         text.classList.add("node-label");
+                        text.style.fontSize = `${fontSize}px`;
+                        if (depth <= 1) text.style.fontWeight = "bold";
                         g.appendChild(text);
                     }
 
@@ -699,7 +706,7 @@
                     }
 
                     if (node.children) {
-                        node.children.forEach(child => renderNode(child, g));
+                        node.children.forEach(child => renderNode(child, g, depth + 1));
                     }
 
                     if (node.edges) {
