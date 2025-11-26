@@ -40,7 +40,7 @@ class Port:
 
     @property
     def unique_id(self):
-        return generate_unique_id(self.namespace, self.msg_type, self.name)
+        return generate_unique_id(self.namespace, self.name)
     
     @property
     def port_path(self):
@@ -81,7 +81,7 @@ class InPort(Port):
 
     @property
     def unique_id(self):
-        return generate_unique_id(self.namespace, self.msg_type, "input", self.name)
+        return generate_unique_id(self.namespace, "input_" + self.name)
     
     @property
     def port_path(self):
@@ -115,7 +115,7 @@ class OutPort(Port):
 
     @property
     def unique_id(self):
-        return generate_unique_id(self.namespace, self.msg_type, "output", self.name)
+        return generate_unique_id(self.namespace, "output_" + self.name)
 
     @property
     def port_path(self):
