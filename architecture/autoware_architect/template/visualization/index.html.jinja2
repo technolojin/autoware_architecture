@@ -170,6 +170,16 @@
                         classes: instance.entity_type || 'unknown'
                     });
 
+                    // Structural node for alignment (invisible)
+                    const structuralNodeId = nodeId + '_struct';
+                    elements.push({
+                        data: {
+                            id: structuralNodeId,
+                            parent: nodeId
+                        },
+                        classes: 'structural-node'
+                    });
+
                     // Ports as nodes
                     if (instance.in_ports && Array.isArray(instance.in_ports)) {
                         instance.in_ports.forEach(port => {
@@ -180,12 +190,18 @@
                                     label: getPortLabel(port), 
                                     type: 'port',
                                     side: 'in',
-                                    portConstraints: {
-                                        fixedSide: 'WEST'
-                                    },
                                     ...port 
                                 },
                                 classes: 'port in-port'
+                            });
+                            
+                            // Structural edge from in-port to structural node
+                            elements.push({
+                                data: {
+                                    source: port.unique_id,
+                                    target: structuralNodeId
+                                },
+                                classes: 'structural-edge'
                             });
                         });
                     }
@@ -199,12 +215,18 @@
                                     label: getPortLabel(port), 
                                     type: 'port',
                                     side: 'out',
-                                    portConstraints: {
-                                        fixedSide: 'EAST'
-                                    },
                                     ...port 
                                 },
                                 classes: 'port out-port'
+                            });
+
+                            // Structural edge from structural node to out-port
+                            elements.push({
+                                data: {
+                                    source: structuralNodeId,
+                                    target: port.unique_id
+                                },
+                                classes: 'structural-edge'
                             });
                         });
                     }
