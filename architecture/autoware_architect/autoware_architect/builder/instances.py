@@ -232,7 +232,7 @@ class Instance:
 
     @property
     def unique_id(self):
-        return generate_unique_id(self.namespace, self.name)
+        return generate_unique_id(self.namespace, self.compute_unit, self.layer, self.name)
     
     @property
     def color(self) -> str:

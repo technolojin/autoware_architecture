@@ -15,6 +15,7 @@
 import sys
 from autoware_architect.deployment import Deployment
 from autoware_architect.config import SystemConfig
+from autoware_architect.utils.visualization_index import update_index
 
 # build the deployment
 # search and connect the connections between the nodes
@@ -55,6 +56,10 @@ def build(deployment_file: str, manifest_dir: str, output_root_dir: str, domains
     # generate the system monitor configuration
     logger.info("autoware architect: Generating system monitor configuration...")
     deployment.generate_system_monitor()
+
+    # update the visualization index
+    logger.info("autoware architect: Updating visualization index...")
+    update_index(output_root_dir)
 
     logger.info("autoware architect: Done!")
 

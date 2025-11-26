@@ -67,6 +67,6 @@ def generate_unique_id(namespace: list[str], *components: str) -> str:
         parts.extend(namespace)
     for comp in components:
         if comp:
-            parts.append(comp)
+            parts.append(str(comp))
     raw = "__".join(parts)
     return raw.replace("/", "__")
