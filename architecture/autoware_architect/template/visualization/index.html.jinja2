@@ -120,6 +120,7 @@
         }
         .highlighted .edge-arrow {
             fill: #0d6efd !important;
+            stroke-width: 2.5px;
         }
         
         /* Loading overlay */
@@ -230,6 +231,9 @@
             let transform = { x: 0, y: 0, k: 1 };
             let isDragging = false;
             let startPoint = { x: 0, y: 0 };
+            
+            // Data store for interactions (decoupled from ELK graph)
+            let elementData = new Map();
 
             // --- UI Helpers ---
             function showLoading(show, text) {
@@ -267,40 +271,55 @@
             // --- Data Transformation (App Data -> ELK JSON) ---
             function transformDataToElk(root) {
                 log("Starting data transformation...");
+                elementData.clear();
                 
                 function convertNode(instance) {
                     if (!instance) {
                         log("Warning: Encountered null instance", 'warn');
                         return null;
                     }
+                    
+                    // Ensure unique_id exists
+                    if (instance.unique_id === undefined || instance.unique_id === null) {
+                        log("Error: Instance missing unique_id", 'error');
+                        console.error("Instance missing unique_id:", instance);
+                        return null;
+                    }
+
+                    const nodeId = String(instance.unique_id);
+                    elementData.set(nodeId, instance);
 
                     const node = {
-                        id: instance.unique_id,
-                        labels: [{ text: instance.name || instance.unique_id || "Unnamed" }],
+                        id: nodeId,
+                        labels: [{ text: instance.name || nodeId || "Unnamed" }],
                         width: 200, 
                         height: 100,
                         children: [],
                         ports: [],
                         properties: {
                             'org.eclipse.elk.portConstraints': 'FIXED_SIDE',
-                            'org.eclipse.elk.nodeLabels.placement': 'H_CENTER V_TOP',
-                            'userData': instance
+                            'org.eclipse.elk.nodeLabels.placement': 'H_CENTER V_TOP'
                         }
                     };
 
                     // Ports
                     if (instance.in_ports) {
                         instance.in_ports.forEach(port => {
+                            if (!port.unique_id) {
+                                log(`Warning: Port missing ID in node ${instance.unique_id}`, 'warn');
+                                return;
+                            }
                             // Create a lightweight copy of userData
                             const portData = { ...port };
+                            const portId = String(port.unique_id);
+                            elementData.set(portId, portData);
 
                             node.ports.push({
-                                id: port.unique_id,
+                                id: portId,
                                 width: 10,
                                 height: 10,
                                 properties: {
-                                    'org.eclipse.elk.port.side': 'WEST',
-                                    'userData': portData
+                                    'org.eclipse.elk.port.side': 'WEST'
                                 },
                                 labels: [{ text: port.name || "Port" }] 
                             });
@@ -308,16 +327,21 @@
                     }
                     if (instance.out_ports) {
                         instance.out_ports.forEach(port => {
+                            if (!port.unique_id) {
+                                log(`Warning: Port missing ID in node ${instance.unique_id}`, 'warn');
+                                return;
+                            }
                             // Create a lightweight copy of userData
                             const portData = { ...port };
+                            const portId = String(port.unique_id);
+                            elementData.set(portId, portData);
 
                             node.ports.push({
-                                id: port.unique_id,
+                                id: portId,
                                 width: 10,
                                 height: 10,
                                 properties: {
-                                    'org.eclipse.elk.port.side': 'EAST',
-                                    'userData': portData
+                                    'org.eclipse.elk.port.side': 'EAST'
                                 },
                                 labels: [{ text: port.name }]
                             });
@@ -348,14 +372,14 @@
                             }
                             // Lightweight user data
                             const linkData = { ...link };
+                            const edgeId = `edge_${link.from_port.unique_id}_${link.to_port.unique_id}_${index}`;
+                            elementData.set(edgeId, linkData);
                             
                             node.edges.push({
-                                id: `edge_${link.from_port.unique_id}_${link.to_port.unique_id}_${index}`,
-                                sources: [link.from_port.unique_id],
-                                targets: [link.to_port.unique_id],
-                                properties: {
-                                    'userData': linkData
-                                }
+                                id: edgeId,
+                                sources: [String(link.from_port.unique_id)],
+                                targets: [String(link.to_port.unique_id)],
+                                properties: {}
                             });
                         });
                     }
@@ -369,6 +393,8 @@
                 if (rootNode) {
                     delete rootNode.width;
                     delete rootNode.height;
+                    // Ensure root has ID
+                    if (!rootNode.id) rootNode.id = 'root';
                 }
 
                 log(`Transformation complete. Nodes: ${rootNode?.children?.length || 0}`);
@@ -557,7 +583,7 @@
                     rect.setAttribute("rx", 4);
                     rect.classList.add("node-rect");
                     
-                    const userData = node.properties?.userData || {};
+                    const userData = elementData.get(node.id) || {};
                     rect.setAttribute("fill", userData.background_color || "#ffffff");
                     rect.setAttribute("stroke", userData.color || "#333");
                     
@@ -589,7 +615,8 @@
                             prect.classList.add("port-rect");
                             
                             const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
-                            title.textContent = port.properties?.userData?.name || "Port";
+                            const portData = elementData.get(port.id) || {};
+                            title.textContent = portData.name || "Port";
                             prect.appendChild(title);
 
                             pg.appendChild(prect);
@@ -622,7 +649,7 @@
                             path.classList.add("edge-path");
                             path.setAttribute("marker-end", "url(#arrowhead)");
                             
-                            const userData = edge.properties?.userData || {};
+                            const userData = elementData.get(edge.id) || {};
                             path.onclick = (e) => {
                                 e.stopPropagation();
                                 updateInfo(userData, 'Link');
