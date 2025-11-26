@@ -3,7 +3,7 @@
   if (!window.architectureData) window.architectureData = {};
   
   // Store data for the specific mode
-  // This data structure is consumed by ELK.js visualization (index.html)
+  // This data structure is consumed by ELK.js visualization (node_diagram.html)
   window.architectureData["{{ mode if mode else 'default' }}"] = {
     "name": {{ name | tojson }},
     "unique_id": {{ unique_id | tojson }},

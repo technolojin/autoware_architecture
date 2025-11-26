@@ -75,10 +75,10 @@ def _generate_index_file(install_root: Path, output_file: Path):
     
     # Walk through the install directory to find deployments
     # We scan specifically for our known structure to avoid false positives
-    for path in install_root.rglob("index.html"):
+    for path in install_root.rglob("node_diagram.html"):
         try:
             # Expected path structure:
-            # .../exports/<system_name>/visualization/web/index.html
+            # .../exports/<system_name>/visualization/web/node_diagram.html
             
             if len(path.parts) < 6:
                 continue
