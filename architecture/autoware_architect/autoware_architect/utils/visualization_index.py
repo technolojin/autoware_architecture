@@ -208,3 +208,8 @@ def _generate_index_file(install_root: Path, output_file: Path):
     with open(output_file, 'w') as f:
         f.write(html_content)
 
+
+
+
+
+

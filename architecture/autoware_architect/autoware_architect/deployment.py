@@ -211,6 +211,7 @@ class Deployment:
         # Web visualization templates
         web_data_template_path = os.path.join(template_dir, "visualization", "data.js.jinja2")
         web_index_template_path = os.path.join(template_dir, "visualization", "index.html.jinja2")
+        web_custom_index_template_path = os.path.join(template_dir, "visualization", "custom_index.html.jinja2")
 
         # Generate visualization for each mode
         for mode_key, deploy_instance in self.deploy_instances.items():
@@ -243,6 +244,7 @@ class Deployment:
                 "default_mode": default_mode
             }
             self.generate_by_template(index_data, web_index_template_path, web_dir, "index.html")
+            self.generate_by_template(index_data, web_custom_index_template_path, web_dir, "custom_index.html")
             logger.info("Generated web visualization index.html")
 
     def generate_system_monitor(self):

@@ -50,7 +50,7 @@ class Event:
 
     @property
     def unique_id(self):
-        return generate_unique_id(self.namespace, self.name)
+        return generate_unique_id(self.namespace, "event", self.name)
 
     def set_type(self, type_str):
         if type_str not in self.type_list:
@@ -278,7 +278,10 @@ class Process:
         self.namespace = namespace
         self.config_yaml = config_yaml
         self.event: EventChain = EventChain(name, namespace)
-        self.unique_id = generate_unique_id(namespace, "process", name)
+
+    @property
+    def unique_id(self):
+        return generate_unique_id(self.namespace, "process", self.name)
 
     def set_condition(self, process_list, on_input_list):
         trigger_condition_config = self.config_yaml.get("trigger_conditions")
