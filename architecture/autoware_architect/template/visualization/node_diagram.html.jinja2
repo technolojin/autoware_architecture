@@ -298,7 +298,7 @@
                     const inPortsCount = (instance.in_ports || []).length;
                     const outPortsCount = (instance.out_ports || []).length;
                     const maxPorts = Math.max(inPortsCount, outPortsCount);
-                    const nodeHeight = Math.max(100, 40 + maxPorts * 25);
+                    const nodeHeight = Math.max(100, 80 + maxPorts * 25);
 
                     const node = {
                         id: nodeId,
@@ -313,7 +313,9 @@
                         properties: {
                             'org.eclipse.elk.portConstraints': 'FIXED_SIDE',
                             'org.eclipse.elk.nodeLabels.placement': 'H_CENTER V_TOP',
-                            'org.eclipse.elk.portLabels.placement': 'INSIDE'
+                            'org.eclipse.elk.portLabels.placement': 'INSIDE',
+                            'org.eclipse.elk.portAlignment.default': 'CENTER',
+                            'org.eclipse.elk.spacing.portPort': '15'
                         }
                     };
 
@@ -657,7 +659,7 @@
                     g.appendChild(rect);
 
                     if (node.labels && node.labels.length > 0) {
-                        const fontSize = Math.max(12, 36 - (depth * 4));
+                        const fontSize = Math.max(12, 36 - (depth * 5));
                         
                         let nsLineCount = 0;
                         // Namespace Label (smaller, above)
@@ -705,10 +707,10 @@
                             lines.forEach((line, index) => {
                                 const nsText = document.createElementNS("http://www.w3.org/2000/svg", "text");
                                 nsText.setAttribute("x", node.width / 2);
-                                nsText.setAttribute("y", 15 + (index * 12)); // 12px line height
+                                nsText.setAttribute("y", 10 + (index * 6)); // 6px line height
                                 nsText.textContent = line;
                                 nsText.classList.add("node-label");
-                                nsText.style.fontSize = "10px";
+                                nsText.style.fontSize = "5px";
                                 nsText.style.fill = "#6c757d";
                                 g.appendChild(nsText);
                             });
@@ -717,8 +719,8 @@
                         // Name Label
                         const nameText = document.createElementNS("http://www.w3.org/2000/svg", "text");
                         nameText.setAttribute("x", node.width / 2);
-                        // Push down based on namespace lines. Base offset 15, +12 per line. Extra padding 5.
-                        const nsOffset = nsLineCount > 0 ? (15 + (nsLineCount * 12) + 5) : (10 + fontSize / 2);
+                        // Push down based on namespace lines. Base offset 15, +6 per line. Extra padding 5.
+                        const nsOffset = nsLineCount > 0 ? (10 + (nsLineCount * 6) + fontSize / 2) : (10 + fontSize / 2);
                         
                         nameText.setAttribute("y", nsOffset);
                         nameText.textContent = node.labels[node.labels.length - 1].text;
