@@ -138,24 +138,14 @@ class Instance:
         return generate_unique_id(self.namespace, self.compute_unit, self.layer, self.name)
     
     @property
-    def color(self) -> str:
-        """Get matte color for this instance based on top-level namespace."""
-        return get_component_color(self.namespace, variant="matte")
-    
-    @property
-    def medium_color(self) -> str:
-        """Get medium color for this instance (for node backgrounds)."""
-        return get_component_color(self.namespace, variant="medium")
-    
-    @property
-    def background_color(self) -> str:
-        """Get brightened background color for this instance (for module backgrounds)."""
-        return get_component_color(self.namespace, variant="bright")
-    
-    @property
-    def text_color(self) -> str:
-        """Get darker text color for this instance (for better readability)."""
-        return get_component_color(self.namespace, variant="text")
+    def vis_guide(self) -> dict:
+        """Get visualization guide including colors."""
+        return {
+            "color": get_component_color(self.namespace, variant="matte"),
+            "medium_color": get_component_color(self.namespace, variant="medium"),
+            "background_color": get_component_color(self.namespace, variant="bright"),
+            "text_color": get_component_color(self.namespace, variant="text"),
+        }
 
     def set_instances(self, entity_id: str, config_registry: ConfigRegistry):
 
@@ -388,10 +378,7 @@ class Instance:
             "entity_type": self.entity_type,
             "namespace": self.namespace,
             "compute_unit": self.compute_unit,
-            "color": self.color,
-            "medium_color": self.medium_color,
-            "background_color": self.background_color,
-            "text_color": self.text_color,
+            "vis_guide": self.vis_guide,
             "in_ports": self.link_manager.get_all_in_ports(),
             "out_ports": self.link_manager.get_all_out_ports(),
             "children": (

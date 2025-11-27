@@ -63,7 +63,7 @@ digraph "{{ name }}" {
 		{% if instance.entity_type == 'module' %}
 			subgraph cluster_{{ instance.unique_id }} {
 				label="MODULE: {{ instance.name }}";
-				style="rounded,filled"; color="{{ instance.color }}"; fillcolor="{{ instance.background_color }}"; fontcolor="{{ instance.text_color }}"; penwidth=1.2; fontsize=40;
+				style="rounded,filled"; color="{{ instance.vis_guide.color }}"; fillcolor="{{ instance.vis_guide.background_color }}"; fontcolor="{{ instance.vis_guide.text_color }}"; penwidth=1.2; fontsize=40;
 				// invisible core anchor node (still used for ordering)
 				{{ core_id }} [label="", shape=point, width=0.01, height=0.01, style=invis];
 				// left rank (inputs)
@@ -97,7 +97,7 @@ digraph "{{ name }}" {
 		{% elif instance.entity_type == 'node' %}
 			subgraph cluster_{{ instance.unique_id }} {
 				label="NODE: {{ instance.name }}";
-				style="rounded,filled"; color="{{ instance.color }}"; fillcolor="{{ instance.medium_color }}"; fontcolor="{{ instance.text_color }}"; penwidth=1.5; fontsize=40;
+				style="rounded,filled"; color="{{ instance.vis_guide.color }}"; fillcolor="{{ instance.vis_guide.medium_color }}"; fontcolor="{{ instance.vis_guide.text_color }}"; penwidth=1.5; fontsize=40;
 				// invisible core anchor node
 				{{ core_id }} [label="", shape=point, width=0.01, height=0.01, style=invis];
 				subgraph cluster_{{ instance.unique_id }}_in { label=""; color=none; rank=same;

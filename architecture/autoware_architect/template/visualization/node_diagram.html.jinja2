@@ -643,12 +643,13 @@
                     rect.classList.add("node-rect");
                     
                     const userData = elementData.get(node.id) || {};
-                    let fillColor = userData.background_color || "#ffffff";
+                    const visGuide = userData.vis_guide || {};
+                    let fillColor = visGuide.background_color || "#ffffff";
                     if (userData.entity_type === "node") {
-                        fillColor = userData.medium_color || fillColor;
+                        fillColor = visGuide.medium_color || fillColor;
                     }
                     rect.setAttribute("fill", fillColor);
-                    rect.setAttribute("stroke", userData.color || "#333");
+                    rect.setAttribute("stroke", visGuide.color || "#333");
                     
                     rect.onclick = (e) => {
                         e.stopPropagation();

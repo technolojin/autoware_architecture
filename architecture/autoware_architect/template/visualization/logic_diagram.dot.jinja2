@@ -13,7 +13,7 @@
 	{% if instance.entity_type == "node" %}
 		subgraph cluster_{{ instance.unique_id }} {
 			label="{{ instance.name }}";
-			style="rounded,filled"; color="{{ instance.color }}"; fillcolor="{{ instance.background_color }}"; fontcolor="{{ instance.text_color }}";
+			style="rounded,filled"; color="{{ instance.vis_guide.color }}"; fillcolor="{{ instance.vis_guide.background_color }}"; fontcolor="{{ instance.vis_guide.text_color }}";
 			node [style=filled, fillcolor=white];
 			// Ports
 			{% for in_port in instance.in_ports %}
@@ -25,9 +25,9 @@
 			// Events (logic elements inside node cluster)
 			{% for event in instance.events %}
 				{% if event.type == "periodic" %}
-					{{ event.unique_id }} [label="{{event.name}}\n#{{event.type}}\n@{{event.frequency}}", shape=diamond, fillcolor="{{ instance.medium_color }}"];
+					{{ event.unique_id }} [label="{{event.name}}\n#{{event.type}}\n@{{event.frequency}}", shape=diamond, fillcolor="{{ instance.vis_guide.medium_color }}"];
 				{% else %}
-					{{ event.unique_id }} [label="{{event.name}}\n#{{event.type}}\n@{{event.frequency}}", shape=box, fillcolor="{{ instance.medium_color }}"];
+					{{ event.unique_id }} [label="{{event.name}}\n#{{event.type}}\n@{{event.frequency}}", shape=box, fillcolor="{{ instance.vis_guide.medium_color }}"];
 				{% endif %}
 			{% endfor %}
 		}
