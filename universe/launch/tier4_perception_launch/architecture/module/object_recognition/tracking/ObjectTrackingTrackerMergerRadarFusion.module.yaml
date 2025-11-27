@@ -4,9 +4,9 @@ instances:
   - instance: multi_object_tracker
     entity: MultiObjectTracker.node
   - instance: radar_object_filter
-    entity: DetectedObjectSorter.node
-  - instance: radar_object_tracker
-    entity: RadarObjectTracker.node
+    entity: TrackedObjectSorter.node
+  - instance: tracked_object_lanelet_filter
+    entity: TrackedObjectLaneletFilter.node
   - instance: decorative_tracker_merger
     entity: DecorativeTrackerMerger.node
 
@@ -17,7 +17,6 @@ external_interfaces:
     - name: radar_objects
   output:
     - name: objects
-  parameter: []
 
 connections:
   - from: input.detected_objects
@@ -25,12 +24,12 @@ connections:
   - from: input.radar_objects
     to: radar_object_filter.input.objects
   - from: radar_object_filter.output.objects
-    to: radar_object_tracker.input.input
+    to: tracked_object_lanelet_filter.input.object
   - from: input.vector_map
-    to: radar_object_tracker.input.vector_map
+    to: tracked_object_lanelet_filter.input.vector_map
+  - from: tracked_object_lanelet_filter.output.object
+    to: decorative_tracker_merger.input.sub_object
   - from: multi_object_tracker.output.objects
     to: decorative_tracker_merger.input.main_object
-  - from: radar_object_tracker.output.output
-    to: decorative_tracker_merger.input.sub_object
   - from: decorative_tracker_merger.output.merged_object
     to: output.objects

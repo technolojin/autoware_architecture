@@ -20,12 +20,14 @@ from ..parsers.data_parser import entity_name_decode
 from ..config import config
 from ..exceptions import ValidationError
 from ..utils.naming import generate_unique_id
+from ..utils.visualization_guide import get_component_color, get_component_position
 from .config_registry import ConfigRegistry
 from .parameter_manager import ParameterManager
 from .link_manager import LinkManager
 from .event_manager import EventManager
 
 logger = logging.getLogger(__name__)
+
 
 def normalize_mode_field(mode_field) -> List[str]:
     """Normalize mode field to list of mode names.
@@ -133,7 +135,18 @@ class Instance:
 
     @property
     def unique_id(self):
-        return generate_unique_id(self.namespace, self.name)
+        return generate_unique_id(self.namespace, self.compute_unit, self.layer, self.name)
+    
+    @property
+    def vis_guide(self) -> dict:
+        """Get visualization guide including colors."""
+        return {
+            "color": get_component_color(self.namespace, variant="matte"),
+            "medium_color": get_component_color(self.namespace, variant="medium"),
+            "background_color": get_component_color(self.namespace, variant="bright"),
+            "text_color": get_component_color(self.namespace, variant="text"),
+            "position": get_component_position(self.namespace),
+        }
 
     def set_instances(self, entity_id: str, config_registry: ConfigRegistry):
 
@@ -366,6 +379,7 @@ class Instance:
             "entity_type": self.entity_type,
             "namespace": self.namespace,
             "compute_unit": self.compute_unit,
+            "vis_guide": self.vis_guide,
             "in_ports": self.link_manager.get_all_in_ports(),
             "out_ports": self.link_manager.get_all_out_ports(),
             "children": (

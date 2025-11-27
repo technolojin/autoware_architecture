@@ -19,9 +19,17 @@ outputs:
     message_type: sensor_msgs/msg/PointCloud2
 
 # parameters
-parameter_files: []
+parameter_files:
+  - name: pickup_based_voxel_grid_downsample_filter_param_file
+    default: config/pickup_based_voxel_grid_downsample_filter_node.param.yaml
 
-parameters: []
+parameters:
+  - name: input_frame
+    type: string
+    default: base_link
+  - name: output_frame
+    type: string
+    default: base_link
 
 # processes
 processes:

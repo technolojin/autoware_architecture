@@ -5,16 +5,11 @@
   <!-- Compute Unit: {{ compute_unit }} -->
   <!-- This launcher starts all nodes in component: {{ namespace }} -->
 
-{# Macro to recursively render namespace tree #}
-{% macro render_namespace_tree(tree, current_path=[]) %}
-{% for ns_name, ns_data in tree.items() %}
-{% if ns_name == '__root__' %}
-{# Nodes at root level (no namespace grouping) #}
-{% for node in ns_data.nodes %}
-  <!-- Node: /{{ node.name }} -->
+{% for node in nodes %}
+  <!-- Node: {{ node.full_namespace }}/{{ node.name }} -->
 {% if node.use_container %}
   <load_composable_node target="{{ node.container }}">
-    <composable_node pkg="{{ node.package }}" plugin="{{ node.plugin }}" name="{{ node.name }}">
+    <composable_node pkg="{{ node.package }}" plugin="{{ node.plugin }}" name="{{ node.name }}" namespace="{{ node.full_namespace }}">
       <!-- Remap input and output topics -->
 {% for port in node.ports %}
       <remap from="~/{{ port.direction }}/{{ port.name }}" to="{{ port.topic }}"/>
@@ -28,13 +23,13 @@
 {% endif %}
 
       <!-- Parameters -->
-{% for param in node.parameter_files %}
+{% for param in node.parameters %}
       <param name="{{ param.name }}" value="{{ param.value }}"/>
 {% endfor %}
     </composable_node>
   </load_composable_node>
 {% else %}
-  <node pkg="{{ node.package }}" exec="{{ node.executable }}" name="{{ node.name }}" output="{{ node.node_output }}">
+  <node pkg="{{ node.package }}" exec="{{ node.executable }}" name="{{ node.name }}" namespace="{{ node.full_namespace }}" output="{{ node.node_output }}">
     <!-- Remap input and output topics -->
 {% for port in node.ports %}
     <remap from="~/{{ port.direction }}/{{ port.name }}" to="{{ port.topic }}"/>
@@ -55,63 +50,4 @@
 {% endif %}
 
 {% endfor %}
-{% else %}
-  <group>
-    <push-ros-namespace namespace="{{ ns_name }}"/>
-{# Render nodes at this namespace level #}
-{% for node in ns_data.nodes %}
-    <!-- Node: {{ (current_path + [ns_name]) | join('/') }}/{{ node.name }} -->
-{% if node.use_container %}
-    <load_composable_node target="{{ node.container }}">
-      <composable_node pkg="{{ node.package }}" plugin="{{ node.plugin }}" name="{{ node.name }}">
-        <!-- Remap input and output topics -->
-{% for port in node.ports %}
-        <remap from="~/{{ port.direction }}/{{ port.name }}" to="{{ port.topic }}"/>
-{% endfor %}
-
-{% if node.parameter_files %}
-        <!-- Parameter files (defaults and overrides in order) -->
-{% for param_file in node.parameter_files %}
-        <param from="{{ param_file.path }}"/>
-{% endfor %}
-{% endif %}
-
-        <!-- Parameters -->
-{% for param in node.parameters %}
-        <param name="{{ param.name }}" value="{{ param.value }}"/>
-{% endfor %}
-      </composable_node>
-    </load_composable_node>
-{% else %}
-    <node pkg="{{ node.package }}" exec="{{ node.executable }}" name="{{ node.name }}" output="{{ node.node_output }}">
-      <!-- Remap input and output topics -->
-{% for port in node.ports %}
-      <remap from="~/{{ port.direction }}/{{ port.name }}" to="{{ port.topic }}"/>
-{% endfor %}
-
-{% if node.parameter_files %}
-      <!-- Parameter files (defaults and overrides in order) -->
-{% for param_file in node.parameter_files %}
-      <param from="{{ param_file.path }}"/>
-{% endfor %}
-{% endif %}
-        <!-- Parameters -->
-{% for param in node.parameters %}
-      <param name="{{ param.name }}" value="{{ param.value }}"/>
-{% endfor %}
-    </node>
-{% endif %}
-
-{% endfor %}
-{# Recursively render child namespaces #}
-{% if ns_data.children %}
-{{ render_namespace_tree(ns_data.children, current_path + [ns_name]) }}
-{% endif %}
-  </group>
-{% endif %}
-{% endfor %}
-{% endmacro %}
-
-{# Start rendering from the root of the tree #}
-{{ render_namespace_tree(namespace_tree) }}
 </launch>

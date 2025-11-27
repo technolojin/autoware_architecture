@@ -146,20 +146,14 @@ def _generate_compute_unit_launcher(compute_unit: str, components: list, output_
     
     logger.debug(f"Creating compute unit launcher: {launcher_file}")
     
-    # Group components by namespace to determine which namespace launchers to include
-    namespace_groups = {}
-    for component in components:
-        namespace = component.namespace[0]
-        if namespace not in namespace_groups:
-            namespace_groups[namespace] = []
-        namespace_groups[namespace].append(component)
-    
-    # Prepare template data
+    # Previously components were grouped by the first namespace segment (component.namespace[0]).
+    # Requirement change: treat each direct child instance (component) independently so that
+    # compute unit launchers reference each component launcher one-to-one.
     namespaces_data = []
-    for namespace, comps in sorted(namespace_groups.items()):
+    for component in sorted(components, key=lambda c: c.name):
         namespace_info = {
-            "namespace": namespace,
-            "component_count": len(comps),
+            "namespace": component.name,  # use component (instance) name directly
+            "component_count": 1,
             "args": []
         }
         namespaces_data.append(namespace_info)
@@ -172,52 +166,16 @@ def _generate_compute_unit_launcher(compute_unit: str, components: list, output_
     _render_template_to_file('compute_unit_launcher.xml.jinja2', launcher_file, template_data)
 
 
-def _build_namespace_tree(nodes: List[Dict[str, Any]], base_namespace: List[str]) -> Dict:
-    """Build a tree structure from nodes based on their namespace paths.
-    
-    Args:
-        nodes: List of node data dictionaries
-        base_namespace: Base namespace from the component (e.g., ['perception', 'object_recognition'])
-    
-    Returns:
-        A nested dictionary representing the namespace tree structure
-    """
-    tree = {}
-    
-    for node in nodes:
-        # Combine base namespace with node's namespace groups
-        full_namespace = base_namespace + node['namespace_groups']
-        
-        # Add node to the leaf node
-        if not full_namespace:
-            # Node at root level
-            if '__root__' not in tree:
-                tree['__root__'] = {'nodes': [], 'children': {}}
-            tree['__root__']['nodes'].append(node)
-        else:
-            # Navigate/create the tree structure and add node at the end
-            # Start with the root tree, then navigate through children
-            current = tree
-            for i, ns in enumerate(full_namespace):
-                if ns not in current:
-                    current[ns] = {'nodes': [], 'children': {}}
-                
-                # If this is the last namespace in the path, add the node here
-                if i == len(full_namespace) - 1:
-                    current[ns]['nodes'].append(node)
-                else:
-                    # Otherwise, continue navigating down into children
-                    current = current[ns]['children']
-    
-    return tree
-
-
 def _generate_component_launcher(compute_unit: str, namespace: str, components: list, output_dir: str):
     """Generate component launcher file that directly launches all nodes in the component."""
     component_dir = os.path.join(output_dir, compute_unit, namespace)
     _ensure_directory(component_dir)
     
-    launcher_file = os.path.join(component_dir, f"{namespace}.launch.xml")
+    # Sanitize namespace for filename: replace slashes with double underscores
+    # This prevents creating nested directories in the filename while preserving the full name
+    filename = namespace.replace('/', '__')
+    
+    launcher_file = os.path.join(component_dir, f"{filename}.launch.xml")
     
     logger.debug(f"Creating component launcher: {launcher_file}")
     
@@ -231,15 +189,21 @@ def _generate_component_launcher(compute_unit: str, namespace: str, components: 
         if not component_full_namespace and hasattr(component, 'namespace'):
             component_full_namespace = component.namespace.copy()
     
-    # Build namespace tree
-    namespace_tree = _build_namespace_tree(all_nodes, component_full_namespace)
-    
+    # Enrich nodes with full absolute namespace
+    for node in all_nodes:
+        # Combine component base namespace with node's internal namespace structure
+        full_ns_list = component_full_namespace + node['namespace_groups']
+        # Create namespace string (e.g., "perception/object_recognition/detection")
+        # We use relative path here, assuming the launcher will be included in a root context
+        # or the user wants these paths to be relative to wherever this launch file is included.
+        node['full_namespace'] = "/".join(full_ns_list)
+
     # Prepare template data
     template_data = {
         "compute_unit": compute_unit,
         "namespace": namespace,
         "component_full_namespace": component_full_namespace,
-        "namespace_tree": namespace_tree
+        "nodes": all_nodes
     }
     
     _render_template_to_file('component_launcher.xml.jinja2', launcher_file, template_data)
@@ -257,19 +221,17 @@ def generate_module_launch_file(instance: Instance, output_dir: str):
                 compute_unit_map[child.compute_unit] = []
             compute_unit_map[child.compute_unit].append(child)
         
-        # Group components by compute unit and namespace
+        # Group components by compute unit and child instance (no longer by first namespace element)
         namespace_map = {}
         for child in instance.children.values():
-            key = (child.compute_unit, child.namespace[0])
-            if key not in namespace_map:
-                namespace_map[key] = []
-            namespace_map[key].append(child)
+            key = (child.compute_unit, child.name)
+            namespace_map[key] = [child]
 
         # Generate compute unit launchers
         for compute_unit, components in compute_unit_map.items():
             _generate_compute_unit_launcher(compute_unit, components, output_dir)
 
-        # Generate component launchers (flattened, no module launchers)
+        # Generate component launchers (one per direct child instance)
         for (compute_unit, namespace), components in namespace_map.items():
             _generate_component_launcher(compute_unit, namespace, components, output_dir)
     

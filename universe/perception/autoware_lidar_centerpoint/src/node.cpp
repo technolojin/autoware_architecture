@@ -1,5 +1,6 @@
 #include <rclcpp/rclcpp.hpp>
 #include <chrono>
+#include <string>
 
 namespace autoware::lidar_centerpoint
 {
@@ -9,12 +10,22 @@ public:
   explicit LidarCenterPointNode(const rclcpp::NodeOptions & options)
   : Node("autoware_lidar_centerpoint_node", options)
   {
+    // Declare parameters
+    this->declare_parameter<bool>("build_only", false);
+    this->declare_parameter<std::string>("logger_name", "lidar_centerpoint");
+    
+    // Get parameters
+    bool build_only = this->get_parameter("build_only").as_bool();
+    std::string logger_name = this->get_parameter("logger_name").as_string();
+    
+    RCLCPP_INFO(this->get_logger(), "LidarCenterPointNode started");
+    RCLCPP_INFO(this->get_logger(), "Build only: %s", build_only ? "true" : "false");
+    RCLCPP_INFO(this->get_logger(), "Logger name: %s", logger_name.c_str());
+    
     // Create a timer that calls the callback every 2 seconds (1/2 Hz)
     timer_ = this->create_wall_timer(
       std::chrono::seconds(2),
       std::bind(&LidarCenterPointNode::timer_callback, this));
-    
-    RCLCPP_INFO(this->get_logger(), "LidarCenterPointNode started");
   }
 
 private:

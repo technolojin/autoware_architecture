@@ -13,6 +13,10 @@ external_interfaces:
     # map
     - name: pointcloud_map
     - name: vector_map
+    - name: map_loader_service
+    # localization
+    - name: kinematic_state
+    # traffic lights
     - name: traffic_lights
     # lidar
     - name: obstacle_pointcloud
@@ -20,7 +24,6 @@ external_interfaces:
   output:
     - name: objects
     - name: map_filtered_obstacle_pointcloud
-  parameter: []
 
 connections:
   # detection
@@ -28,10 +31,12 @@ connections:
     to: detection.input.pointcloud_map
   - from: input.vector_map
     to: detection.input.vector_map
+  - from: input.map_loader_service
+    to: detection.input.map_loader_service
+  - from: input.kinematic_state
+    to: detection.input.kinematic_state
   - from: input.obstacle_pointcloud
     to: detection.input.obstacle_pointcloud
-  - from: input.pointcloud_map
-    to: detection.input.pointcloud_map
   - from: input.lidar_ml_objects
     to: detection.input.lidar_ml_objects
   - from: detection.output.filtered_obstacle_pointcloud

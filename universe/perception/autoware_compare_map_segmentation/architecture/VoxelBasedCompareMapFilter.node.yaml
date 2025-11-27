@@ -18,7 +18,10 @@ inputs:
     message_type: sensor_msgs/msg/PointCloud2
   - name: input_map
     message_type: sensor_msgs/msg/PointCloud2
-
+  - name: map_loader_service
+    message_type: autoware_map_msgs/srv/GetDifferentialPointCloudMap
+  - name: kinematic_state
+    message_type: nav_msgs/msg/Odometry
 outputs:
   - name: output
     message_type: sensor_msgs/msg/PointCloud2
@@ -32,7 +35,13 @@ parameter_files:
     default: config/voxel_based_compare_map_filter.param.yaml
     schema: schema/voxel_based_compare_map_filter.schema.json
 
-parameters: []
+parameters:
+  - name: input_frame
+    type: string
+    default: map
+  - name: output_frame
+    type: string
+    default: map
 
 # processes
 processes:

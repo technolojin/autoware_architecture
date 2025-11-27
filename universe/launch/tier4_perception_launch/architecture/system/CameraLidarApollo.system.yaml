@@ -1,0 +1,102 @@
+name: CameraLidarApollo.system
+
+modes:
+  - name: Runtime
+    description: on-vehicle runtime mode
+  - name: LoggingSimulation
+    description: Logged data replay simulation mode
+
+components:
+  - component: lidar
+    entity: LidarDummy.module
+    namespace: sensing
+    compute_unit: perception_ecu_1
+  - component: camera
+    entity: CameraDummy.module
+    namespace: sensing
+    compute_unit: perception_ecu_1
+  - component: map_loader
+    entity: MapDummy.node
+    namespace: map
+    compute_unit: dummy_ecu
+  - component: localizer
+    entity: LocalizationDummy.node
+    namespace: localization
+    compute_unit: dummy_ecu
+
+  # perception
+  - component: detection
+    entity: Camera2dDetection.module
+    namespace: perception/object_recognition
+    compute_unit: perception_ecu_1
+  - component: apollo
+    entity: LidarApollo.module
+    namespace: perception/object_recognition/detection
+    compute_unit: main_ecu
+  - component: obstacle_segmentation
+    entity: ObstacleSegmentation.module
+    namespace: perception
+    compute_unit: main_ecu
+    parameter_set: universe_perception_obstacle_segmentation_single.parameter_set
+  - component: object_recognition
+    entity: ObjectRecognitionCLMerged.module
+    namespace: perception
+    compute_unit: main_ecu
+    parameter_set: universe_perception_object_recognition_serial.parameter_set
+  - component: occupancy_grid_map
+    entity: OccupancyGridMapPointcloudBased.module
+    namespace: perception
+    compute_unit: main_ecu
+    parameter_set: universe_perception_occupancy_grid_map_pointcloud.parameter_set
+
+  # planner
+  - component: planner
+    entity: PlanningDummy.node
+    namespace: planning
+    compute_unit: dummy_ecu
+
+connections:
+  - from: camera.output.camera*/image
+    to: detection.input.image_raw*
+
+  - from: lidar.output.concatenated/pointcloud
+    to: obstacle_segmentation.input.concatenated_pointcloud
+
+  - from: lidar.output.concatenated/pointcloud
+    to: apollo.input.pointcloud
+  - from: object_recognition.output.map_filtered_obstacle_pointcloud
+    to: apollo.input.obstacle_pointcloud
+
+  - from: obstacle_segmentation.output.pointcloud
+    to: object_recognition.input.obstacle_pointcloud
+  - from: detection.output.rois*
+    to: object_recognition.input.rois*
+  - from: camera.output.camera*/camera_info
+    to: object_recognition.input.camera_info*
+  - from: apollo.output.detected_objects
+    to: object_recognition.input.lidar_ml_objects
+  - from: map_loader.output.vector_map
+    to: object_recognition.input.vector_map
+  - from: map_loader.output.pointcloud_map
+    to: object_recognition.input.pointcloud_map
+  - from: map_loader.output.map_loader_service
+    to: object_recognition.input.map_loader_service
+  - from: localizer.output.kinematic_state
+    to: object_recognition.input.kinematic_state
+
+  - from: lidar.output.concatenated/pointcloud
+    to: occupancy_grid_map.input.concatenated_pointcloud
+  - from: obstacle_segmentation.output.pointcloud
+    to: occupancy_grid_map.input.obstacle_pointcloud
+
+  - from: map_loader.output.vector_map
+    to: localizer.input.lanelet_map
+  - from: lidar.output.top/pointcloud
+    to: localizer.input.pointcloud
+
+  - from: occupancy_grid_map.output.map
+    to: planner.input.occupancy_grid_map
+  - from: map_loader.output.vector_map
+    to: planner.input.lanelet_map
+  - from: object_recognition.output.objects
+    to: planner.input.predicted_objects

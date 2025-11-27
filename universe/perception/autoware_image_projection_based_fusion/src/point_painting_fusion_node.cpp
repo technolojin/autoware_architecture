@@ -1,5 +1,6 @@
 #include <rclcpp/rclcpp.hpp>
 #include <chrono>
+#include <string>
 
 namespace autoware::image_projection_based_fusion
 {
@@ -10,12 +11,19 @@ public:
   explicit PointPaintingFusionNode(const rclcpp::NodeOptions & options)
   : Node("point_painting_fusion", options)
   {
+    // Declare parameters
+    this->declare_parameter<bool>("build_only", false);
+    
+    // Get parameters
+    bool build_only = this->get_parameter("build_only").as_bool();
+    
+    RCLCPP_INFO(this->get_logger(), "PointPaintingFusionNode started");
+    RCLCPP_INFO(this->get_logger(), "Build only: %s", build_only ? "true" : "false");
+    
     // Create a timer that calls the callback every 2 seconds (1/2 Hz)
     timer_ = this->create_wall_timer(
       std::chrono::seconds(2),
       std::bind(&PointPaintingFusionNode::timer_callback, this));
-    
-    RCLCPP_INFO(this->get_logger(), "PointPaintingFusionNode started");
   }
 
 private:

@@ -25,7 +25,6 @@ external_interfaces:
     - name: camera_info3
   output:
     - name: objects
-  parameter: []
 
 connections:
   - from: input.pointcloud
