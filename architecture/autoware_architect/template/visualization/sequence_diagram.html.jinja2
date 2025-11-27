@@ -72,6 +72,30 @@
             margin-bottom: 15px;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Interaction styles */
+        /* High specificity to override default and hover styles */
+        .mermaid .active-connection, .mermaid .active-connection:hover {
+            stroke-width: 7px !important;
+            stroke: #dc3545 !important; /* Red/Pink highlight */
+            filter: drop-shadow(0 0 2px rgba(0,0,0,0.3));
+            stroke-dasharray: none !important;
+        }
+        /* Pointer cursor for interactive elements */
+        g [class^="messageLine"], g [class^="messageText"] {
+            cursor: pointer !important;
+            pointer-events: all; /* Ensure clicks are captured */
+        }
+        /* Thicker lines for better visibility/clicking, but lighter color */
+        g [class^="messageLine"] {
+            stroke-width: 6px !important;
+            stroke: #888 !important;
+        }
+        /* Hover hint */
+        g [class^="messageLine"]:hover {
+            stroke: #555 !important;
+            stroke-width: 7px !important; 
+        }
     </style>
 </head>
 <body>
@@ -121,7 +145,7 @@
                         {{ event_connection(root_name, event_origin, connection_name, trigger) -}}
                     {% endfor -%}
                 {% else -%}
-                    {{ event_target.unique_id }}-->>{{ event_origin.unique_id }}: {{event_target.namespace[-1]}} to {{root_name}}_{{connection_name}}
+                    {{ event_target.unique_id }}->>{{ event_origin.unique_id }}: {{event_target.namespace[-1]}} to {{root_name}}_{{connection_name}}
                 {% endif -%}
             {% endmacro -%}
 
@@ -170,7 +194,7 @@
                 securityLevel: 'loose',
                 sequence: {
                     useMaxWidth: false,
-                    mirrorActors: false,
+                    mirrorActors: true,
                     bottomMarginAdj: 10,
                     messageAlign: 'center'
                 }
@@ -186,14 +210,70 @@
                     svgElement.style.height = '100%';
                     svgElement.style.width = '100%';
                     
+                    // Add interaction: Highlight connection on click
+                    svgElement.addEventListener('click', (e) => {
+                        let target = e.target;
+                        let lineElement = null;
+
+                        // Helper to check if element is a visible message line
+                        const isLine = (el) => {
+                            if (!el || !el.getAttribute) return false;
+                            const cls = el.getAttribute('class') || '';
+                            return cls.includes('messageLine');
+                        };
+
+                        // 1. Check if clicked element is the line itself
+                        if (target.tagName === 'path' || target.tagName === 'line') {
+                            if (isLine(target)) {
+                                lineElement = target;
+                            }
+                        } 
+                        // 2. Check if clicked element is text
+                        else if (target.tagName === 'text' || target.tagName === 'tspan') {
+                            // If text is clicked, find the associated message line.
+                            const textEl = target.closest('text');
+                            if (textEl && (textEl.getAttribute('class') || '').includes('messageText')) {
+                                let next = textEl.nextElementSibling;
+                                while (next) {
+                                    // If we find a line, that's our target
+                                    if (isLine(next)) {
+                                        lineElement = next;
+                                        break;
+                                    }
+                                    // If we hit another text, we've likely gone too far
+                                    if (next.tagName === 'text' && (next.getAttribute('class') || '').includes('messageText')) {
+                                        break; 
+                                    }
+                                    next = next.nextElementSibling;
+                                }
+                            }
+                        }
+
+                        if (lineElement) {
+                            // Remove existing highlights
+                            svgElement.querySelectorAll('.active-connection').forEach(el => {
+                                if (el !== lineElement) el.classList.remove('active-connection');
+                            });
+                            // Toggle highlight
+                            lineElement.classList.toggle('active-connection');
+                            e.stopPropagation(); // Prevent other handlers
+                        } else {
+                            // Clicked background, clear highlights
+                            svgElement.querySelectorAll('.active-connection').forEach(el => {
+                                el.classList.remove('active-connection');
+                            });
+                        }
+                    });
+
                     // Initialize Pan Zoom
                     panZoomInstance = svgPanZoom(svgElement, {
                         zoomEnabled: true,
                         controlIconsEnabled: false,
                         fit: true,
                         center: true,
-                        minZoom: 0.1,
-                        maxZoom: 10,
+                        minZoom: 0.5,
+                        maxZoom: 50,
+                        zoomScaleSensitivity: 0.4,
                         dblClickZoomEnabled: false // Conflicts with some user interactions
                     });
                     
