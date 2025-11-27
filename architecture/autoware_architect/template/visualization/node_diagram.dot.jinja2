@@ -139,6 +139,33 @@ digraph "{{ name }}" {
 		{{ build_instance_graph(child) }}
 	{% endfor %}
 
+	// Rank constraints for top-level clusters using vis_guide position
+	{% for child in children %}
+		{% if child.vis_guide and child.vis_guide.position %}
+			// Position: {{ child.vis_guide.position }}
+			{ rank=same; "{{ child.unique_id }}_core"; rank_group_{{ child.vis_guide.position[0] }} [shape=point, style=invis]; }
+		{% endif %}
+	{% endfor %}
+
+	// Invisible rank ordering chain
+	// Find max rank
+	{% set max_rank = 0 %}
+	{% for child in children %}
+		{% if child.vis_guide and child.vis_guide.position %}
+			{% if child.vis_guide.position[0] > max_rank %}
+				{% set max_rank = child.vis_guide.position[0] %}
+			{% endif %}
+		{% endif %}
+	{% endfor %}
+
+	// Create chain
+	{% for i in range(max_rank + 1) %}
+		rank_group_{{ i }} [shape=point, style=invis];
+		{% if i > 0 %}
+			rank_group_{{ i - 1 }} -> rank_group_{{ i }} [style=invis, weight=100];
+		{% endif %}
+	{% endfor %}
+
 	// Cross-instance links (already included in module internal links, but top-level may add more)
 	{% for link in links %}
 		{{ link.from_port.unique_id }} -> {{ link.to_port.unique_id }};
