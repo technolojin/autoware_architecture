@@ -94,10 +94,33 @@ def _generate_index_file(install_root: Path, output_file: Path):
                     except ValueError:
                         continue
                         
+                    # Find associated sequence diagrams
+                    sequence_diagrams = []
+                    # Looking in .../visualization/ (parent of web)
+                    visualization_root = path.parents[1]
+                    if visualization_root.exists():
+                        # Look recursively for _sequence_graph.html files
+                        for seq_path in visualization_root.rglob("*_sequence_graph.html"):
+                             try:
+                                 seq_rel_path = seq_path.relative_to(install_root)
+                                 # Extract mode from filename if possible, or directory
+                                 # Structure: visualization/<mode>/<name>_sequence_graph.html
+                                 # Filename: <name>_<mode>_sequence_graph.html or <name>_sequence_graph.html
+                                 mode_name = seq_path.parent.name
+                                 sequence_diagrams.append({
+                                     'name': mode_name,
+                                     'path': seq_rel_path
+                                 })
+                             except ValueError:
+                                 continue
+                    
+                    sequence_diagrams.sort(key=lambda x: x['name'])
+
                     deployments.append({
                         'name': deployment_dir_name,
                         'package': package_name,
-                        'path': rel_path
+                        'path': rel_path,
+                        'sequence_diagrams': sequence_diagrams
                     })
         except IndexError:
             continue
@@ -148,6 +171,8 @@ def _generate_index_file(install_root: Path, output_file: Path):
             border: 1px solid #e0e0e0; 
             border-radius: 6px; 
             transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
         }
         .deployment-item:hover { 
             transform: translateY(-2px);
@@ -159,8 +184,7 @@ def _generate_index_file(install_root: Path, output_file: Path):
             color: inherit; 
             display: block;
             padding: 20px;
-            height: 100%;
-            box-sizing: border-box;
+            flex-grow: 1;
         }
         .deployment-name {
             font-weight: bold;
@@ -172,6 +196,7 @@ def _generate_index_file(install_root: Path, output_file: Path):
         .deployment-meta { 
             color: #666; 
             font-size: 0.9em; 
+            margin-bottom: 10px;
         }
         .deployment-package {
             display: inline-block;
@@ -179,6 +204,26 @@ def _generate_index_file(install_root: Path, output_file: Path):
             padding: 2px 6px;
             border-radius: 4px;
             font-family: monospace;
+        }
+        .sequence-links {
+            padding: 0 20px 20px 20px;
+            border-top: 1px solid #eee;
+            font-size: 0.9em;
+        }
+        .sequence-title {
+            margin: 10px 0 5px 0;
+            font-weight: 600;
+            color: #555;
+        }
+        .sequence-link-item {
+            margin-bottom: 4px;
+        }
+        .sequence-link-item a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+        .sequence-link-item a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -195,7 +240,22 @@ def _generate_index_file(install_root: Path, output_file: Path):
                 <a class="deployment-link" href="{dep['path']}">
                     <div class="deployment-name">{dep['name']}</div>
                     <div class="deployment-meta">Package: <span class="deployment-package">{dep['package']}</span></div>
-                </a>
+                    <div class="deployment-meta" style="font-size: 0.8em; color: #888;">Node Diagram (Main)</div>
+                </a>"""
+        
+        if dep['sequence_diagrams']:
+            html_content += """
+                <div class="sequence-links">
+                    <div class="sequence-title">Sequence Diagrams:</div>"""
+            for seq in dep['sequence_diagrams']:
+                html_content += f"""
+                    <div class="sequence-link-item">
+                        <a href="{seq['path']}">{seq['name']}</a>
+                    </div>"""
+            html_content += """
+                </div>"""
+                
+        html_content += """
             </li>"""
         
     html_content += """
@@ -207,9 +267,3 @@ def _generate_index_file(install_root: Path, output_file: Path):
 
     with open(output_file, 'w') as f:
         f.write(html_content)
-
-
-
-
-
-
