@@ -76,6 +76,8 @@ connections:
 
   - from: map_loader.output.vector_map
     to: localizer.input.lanelet_map
+  - from: lidar.output.top/pointcloud
+    to: localizer.input.pointcloud
 
   - from: occupancy_grid_map.output.map
     to: planner.input.occupancy_grid_map
