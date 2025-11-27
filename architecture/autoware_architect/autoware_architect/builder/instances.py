@@ -20,7 +20,7 @@ from ..parsers.data_parser import entity_name_decode
 from ..config import config
 from ..exceptions import ValidationError
 from ..utils.naming import generate_unique_id
-from ..utils.visualization_guide import get_component_color
+from ..utils.visualization_guide import get_component_color, get_component_position
 from .config_registry import ConfigRegistry
 from .parameter_manager import ParameterManager
 from .link_manager import LinkManager
@@ -145,6 +145,7 @@ class Instance:
             "medium_color": get_component_color(self.namespace, variant="medium"),
             "background_color": get_component_color(self.namespace, variant="bright"),
             "text_color": get_component_color(self.namespace, variant="text"),
+            "position": get_component_position(self.namespace),
         }
 
     def set_instances(self, entity_id: str, config_registry: ConfigRegistry):

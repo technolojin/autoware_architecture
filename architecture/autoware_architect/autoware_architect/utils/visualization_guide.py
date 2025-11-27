@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Optional, Tuple
 
 # Base color mapping for component types
 # All color variants (matte, medium, bright, text) are calculated from these base colors
@@ -106,17 +106,54 @@ POSITION_MAP = {
   "map": [0, 0],
   "sensing": {
     "lidar": [0, 1],
-    "camera": [0, 2]
+    "camera": [0, 2],
+    "radar": [0, 3],
   },
   "localization": [1, 0],
   "perception": 
   {
-    "obstacle_segmentation": [1, 1],
-    "occupancy_grid_map": [2, 1],
-    "object_recognition": [2, 2],
-    "traffic_light_recognition": [1, 3],
+    "obstacle_segmentation": [2, 1],
+    "occupancy_grid_map": [3, 1],
+    "object_recognition": [4, 2],
+    "traffic_light_recognition": [3, 1],
   },
-  "planning": [3, 2],
-  "control": [4, 2],
-  "system": [2, 5]
+  "planning": [5, 2],
+  "control": [6, 2],
+  "system": [7, 5]
 }
+
+def get_component_position(namespace: List[str]) -> Optional[List[int]]:
+    """Get position [x, y] for a component based on its namespace.
+    
+    Traverses the POSITION_MAP using the namespace components.
+    Returns the most specific position found.
+    
+    Args:
+        namespace: List of namespace components
+        
+    Returns:
+        List [x, y] or None if no position found
+    """
+    if not namespace:
+        return None
+    
+    current_level = POSITION_MAP
+    last_found_pos = None
+    
+    for part in namespace:
+        key = part.lower()
+        if isinstance(current_level, dict) and key in current_level:
+            val = current_level[key]
+            if isinstance(val, (list, tuple)) and len(val) == 2:
+                last_found_pos = list(val)
+                # If we hit a coordinate, we stop traversing because 
+                # in the current map structure, coordinates are leaf values.
+                return last_found_pos
+            elif isinstance(val, dict):
+                current_level = val
+            else:
+                break
+        else:
+            break
+            
+    return last_found_pos
