@@ -286,16 +286,6 @@ class ParameterManager:
 
                 if param_name is None or param_value is None:
                     raise ValueError(f"param_name or param_value is None. namespace: {self.instance.namespace_str}, parameter_files: {self.instance.configuration.parameter_files}")
-
-                self.parameter_files.set_parameter(
-                    param_name, 
-                    param_value,
-                    param_type=ParameterType.PARAMETER_FILE,
-                    data_type="string",
-                    schema_path=param_schema,
-                    allow_substs=cfg_param.get("allow_substs", True),
-                    is_default=True  # These are default parameter files
-                )
                 
                 # Load individual parameters from this file
                 self._load_parameters_from_file(

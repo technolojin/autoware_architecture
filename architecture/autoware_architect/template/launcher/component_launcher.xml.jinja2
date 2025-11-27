@@ -16,7 +16,7 @@
 {% endfor %}
 
 {% if node.parameter_files %}
-      <!-- Parameter files (defaults and overrides in order) -->
+      <!-- Parameter files -->
 {% for param_file in node.parameter_files %}
       <param from="{{ param_file.path }}"/>
 {% endfor %}
@@ -36,7 +36,7 @@
 {% endfor %}
 
 {% if node.parameter_files %}
-    <!-- Parameter files (defaults and overrides in order) -->
+    <!-- Parameter files -->
 {% for param_file in node.parameter_files %}
     <param from="{{ param_file.path }}"/>
 {% endfor %}
