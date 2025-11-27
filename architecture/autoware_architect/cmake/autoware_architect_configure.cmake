@@ -52,8 +52,10 @@ macro(autoware_architect_configure)
       set(file_type "node")
     elseif(YAML_FILE MATCHES ".*\\.module\\.yaml$")
       set(file_type "module")
-    elseif(YAML_FILE MATCHES ".*architecture\\.yaml$")
-      set(file_type "architecture")
+    elseif(YAML_FILE MATCHES ".*system\\.yaml$")
+      set(file_type "system")
+    elseif(YAML_FILE MATCHES ".*parameter_set\\.yaml$")
+      set(file_type "parameter_set")
     endif()
 
     # Append entry to manifest
