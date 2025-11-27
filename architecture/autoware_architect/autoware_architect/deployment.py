@@ -15,7 +15,7 @@
 
 import os
 import logging
-from typing import Dict
+from typing import Dict, Tuple, List
 from .config import SystemConfig
 from .models.config import Config
 from .builder.config_registry import ConfigRegistry
@@ -33,8 +33,8 @@ debug_mode = True
 class Deployment:
     def __init__(self, system_config: SystemConfig ):
         # entity collection
-        system_yaml_list = self._get_system_list(system_config)
-        self.config_registry = ConfigRegistry(system_yaml_list)
+        system_yaml_list, package_paths = self._get_system_list(system_config)
+        self.config_registry = ConfigRegistry(system_yaml_list, package_paths)
 
         # detect mode of input file (deployment vs system only)
         # if deployment_file ends with .system, it's a system-only file
@@ -80,8 +80,9 @@ class Deployment:
         #   sensor calibration, vehicle parameters, map, etc.
 
 
-    def _get_system_list(self, system_config: SystemConfig) -> list[str]:
+    def _get_system_list(self, system_config: SystemConfig) -> Tuple[List[str], Dict[str, str]]:
         system_list: list[str] = []
+        package_paths: Dict[str, str] = {}
         manifest_dir = system_config.manifest_dir
         if not os.path.isdir(manifest_dir):
             raise ValidationError(f"Architecture manifest directory not found or not a directory: {manifest_dir}")
@@ -100,6 +101,12 @@ class Deployment:
                 if manifest_domain not in domains_filter:
                     logger.debug(f"Skipping manifest '{entry}' (domain='{manifest_domain}' not in filter)")
                     continue
+                
+                # Get package path if available
+                package_name = os.path.splitext(entry)[0]
+                if 'package_path' in manifest_yaml:
+                    package_paths[package_name] = manifest_yaml['package_path']
+
                 files = manifest_yaml.get('system_config_files')
                 # Allow the field to be empty or null without raising an error
                 if files in (None, []):
@@ -120,7 +127,7 @@ class Deployment:
                 logger.warning(f"Failed to load manifest {manifest_file}: {e}")
         if not system_list:
             raise ValidationError(f"No architecture configuration files collected (domains={sorted(domains_filter)}).")
-        return system_list
+        return system_list, package_paths
 
     def _check_config(self) -> bool:
         """Validate & normalize deployment configuration.

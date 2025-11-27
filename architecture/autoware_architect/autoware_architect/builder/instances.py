@@ -243,7 +243,7 @@ class Instance:
         self.entity_type = "node"
 
         # run the node configuration
-        self._run_node_configuration()
+        self._run_node_configuration(config_registry)
 
         # recursive call is finished
         self.is_initialized = True
@@ -300,7 +300,7 @@ class Instance:
                         
                         # Apply parameters directly to the target node
                         instance.parameter_manager.apply_node_parameters(
-                            node_namespace, parameter_files, parameters
+                            node_namespace, parameter_files, parameters, config_registry
                         )
                         logger.debug(f"Applied parameters to node '{node_namespace}' from set '{param_set_name}' files={len(parameter_files)} configs={len(parameters)}")
             except Exception as e:
@@ -342,7 +342,7 @@ class Instance:
         # log module configuration
         self.link_manager.log_module_configuration()
 
-    def _run_node_configuration(self):
+    def _run_node_configuration(self, config_registry: ConfigRegistry):
         if self.entity_type != "node":
             raise ValidationError(f"run_node_configuration is only supported for node, at {self.configuration.file_path}")
 
@@ -350,7 +350,7 @@ class Instance:
         self.link_manager.initialize_node_ports()
 
         # set parameters
-        self.parameter_manager.initialize_node_parameters()
+        self.parameter_manager.initialize_node_parameters(config_registry)
 
         # initialize processes and events
         self.event_manager.initialize_node_processes()
@@ -446,4 +446,3 @@ class DeploymentInstance(Instance):
         logger.info(f"Instance '{self.name}': building logical topology")
         # self.build_logical_topology()
         self.set_event_tree()
-

@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 class ConfigRegistry:
     """Collection for managing multiple entity data structures with efficient lookup methods."""
     
-    def __init__(self, config_yaml_file_paths: List[str]):
+    def __init__(self, config_yaml_file_paths: List[str], package_paths: Dict[str, str] = None):
         # Replace list with dict as primary storage
         self.entities: Dict[str, Config] = {}  # full_name → Config
         self._type_map: Dict[str, Dict[str, Config]] = {
@@ -33,6 +33,7 @@ class ConfigRegistry:
             ConfigType.PARAMETER_SET: {},
             ConfigType.SYSTEM: {}
         }
+        self.package_paths = package_paths or {}
         
         self.parser = ConfigParser()
         self._load_entities(config_yaml_file_paths)
@@ -112,3 +113,6 @@ class ConfigRegistry:
         else:
             raise ValidationError(f"Unknown entity type: {entity_type}")
 
+    def get_package_path(self, package_name: str) -> Optional[str]:
+        """Get package path by package name."""
+        return self.package_paths.get(package_name)

@@ -29,7 +29,10 @@ outputs:
       durability: transient_local
 
 # parameters
-parameter_files: []
+parameter_files:
+  - name: param_pathparam_path
+    default: config/map_based_prediction.param.yaml
+    schema: schema/map_based_prediction.schema.json
 
 parameters: []
 
