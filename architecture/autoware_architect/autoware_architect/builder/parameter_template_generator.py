@@ -149,28 +149,27 @@ class ParameterTemplateGenerator:
         parameter_files = {}
         parameters = []
         
-        # Get all parameters from the parameter manager
+        # Get parameter files from the parameter manager
+        all_parameter_files = node_instance.parameter_manager.get_all_parameter_files()
+        # Get parameters from the parameter manager
         all_parameters = node_instance.parameter_manager.get_all_parameters()
-        
+
         # Use the instance's namespace_str directly for parameter file paths
         base_path = node_instance.namespace_str
-        
+
+        for param_file in all_parameter_files:
+            param_name = param_file.name
+            # Generate template path based on namespace and parameter name
+            template_path = f"{base_path}/{param_name}.param.yaml"
+            parameter_files[param_name] = template_path
+
         for param in all_parameters:
-            param_name = param.name
-            param_type = param.param_type
-            
-            if param_type.value == "parameter_file":  # ParameterType.PARAMETER_FILE
-                # Generate template path based on namespace and parameter name
-                template_path = f"{base_path}/{param_name}.param.yaml"
-                parameter_files[param_name] = template_path
-            
-            elif param_type.value == "parameter":  # ParameterType.PARAMETER
-                configuration = {
-                    "name": param_name,
-                    "type": param.data_type,
-                    "value": param.value
-                }
-                parameters.append(configuration)
+            configuration = {
+                "name": param.name,
+                "type": param.data_type,
+                "value": param.value
+            }
+            parameters.append(configuration)
         
         return parameter_files, parameters
     

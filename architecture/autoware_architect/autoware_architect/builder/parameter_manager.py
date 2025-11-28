@@ -18,7 +18,7 @@ import os
 import shutil
 import re
 
-from ..models.parameters import ParameterList, ParameterType, Parameter
+from ..models.parameters import ParameterList, ParameterFileList, Parameter, ParameterFile
 from ..parsers.yaml_parser import yaml_parser
 
 if TYPE_CHECKING:
@@ -41,6 +41,7 @@ class ParameterManager:
     def __init__(self, instance: 'Instance'):
         self.instance = instance
         self.parameters: ParameterList = ParameterList()
+        self.parameter_files: ParameterFileList = ParameterFileList()
 
     # =========================================================================
     # Public API Methods
@@ -49,54 +50,41 @@ class ParameterManager:
     def get_all_parameters(self):
         """Get all parameters."""
         return self.parameters.list
+
+    def get_all_parameter_files(self):
+        """Get all parameter files."""
+        return self.parameter_files.list
     
-    def get_all_parameters_for_launch(self) -> List[Dict[str, Any]]:
-        """Get all parameters in the specified order for launcher generation.
+    def get_parameters_for_launch(self) -> List[Dict[str, Any]]:
+        """Get all parameters for launcher generation.
 
-        Order:
-        1. Default parameters (is_default=True)
-        2. Parameter files (<param from=""/>)
-        3. Non-default parameters (is_default=False)
-
-        Returns list of dicts with different structures based on parameter type:
-        - Parameter files: {"type": "param_file", "path": "..."}
-        - Parameters: {"type": "param", "name": "...", "value": "...", "is_default": bool}
+        Returns list of parameter dicts:
+        - {"type": "param", "name": "...", "value": "...", "is_default": bool}
         """
         result = []
-
-        # Get all parameters from the parameter list
-        all_params = self.parameters.list
-
-        # Separate into categories
-        default_params = []
-        param_files = []
-        override_params = []
-
-        for param in all_params:
-            if param.param_type == ParameterType.PARAMETER_FILE:
-                resolved_path = self._resolve_parameter_file_path(param.value, self._get_package_name(), param.is_default)
-                param_files.append({
-                    "type": "param_file",
-                    "path": resolved_path
+        for param in self.parameters.list:
+            if param.value is not None:
+                result.append({
+                    "type": "param",
+                    "name": param.name,
+                    "value": param.value,
+                    "is_default": param.is_default
                 })
-            elif param.param_type == ParameterType.PARAMETER:
-                if param.value is not None:
-                    param_dict = {
-                        "type": "param",
-                        "name": param.name,
-                        "value": param.value,
-                        "is_default": param.is_default
-                    }
-                    if param.is_default:
-                        default_params.append(param_dict)
-                    else:
-                        override_params.append(param_dict)
+        return result
 
-        # Combine in specified order: defaults, param_files, overrides
-        result.extend(default_params)
-        result.extend(param_files)
-        result.extend(override_params)
+    def get_parameter_files_for_launch(self) -> List[Dict[str, Any]]:
+        """Get all parameter files for launcher generation.
 
+        Returns list of parameter file dicts:
+        - {"type": "param_file", "path": "..."}
+        """
+        result = []
+        for param_file in self.parameter_files.list:
+            resolved_path = self._resolve_parameter_file_path(param_file.path, self._get_package_name(), param_file.is_default)
+            result.append({
+                "type": "param_file",
+                "path": resolved_path
+            })
         return result
 
     def _get_package_name(self) -> Optional[str]:
@@ -178,11 +166,9 @@ class ParameterManager:
         if parameter_files:
             for param_file_mapping in parameter_files:
                 for param_name, param_path in param_file_mapping.items():
-                    target_instance.parameter_manager.parameters.set_parameter(
+                    target_instance.parameter_manager.parameter_files.add_parameter_file(
                         param_name,
                         param_path,
-                        param_type=ParameterType.PARAMETER_FILE,
-                        data_type="path",
                         allow_substs=True,
                         is_default=False  # Parameter set overrides are not defaults
                     )
@@ -197,7 +183,6 @@ class ParameterManager:
                 target_instance.parameter_manager.parameters.set_parameter(
                     param_name,
                     param_value,
-                    param_type=ParameterType.PARAMETER,
                     data_type=param_type,
                     allow_substs=True,
                     is_default=False  # Parameter set are not defaults
@@ -309,7 +294,6 @@ class ParameterManager:
                     self.parameters.set_parameter(
                         param_name,
                         param_value,
-                        param_type=ParameterType.PARAMETER,
                         data_type=param_type,
                         allow_substs=True,
                         is_default=True  # These are default parameters
@@ -400,7 +384,6 @@ class ParameterManager:
                             self.parameters.set_parameter(
                                 p_name,
                                 p_value,
-                                param_type=ParameterType.PARAMETER,
                                 data_type=p_type,
                                 is_default=is_default
                             )

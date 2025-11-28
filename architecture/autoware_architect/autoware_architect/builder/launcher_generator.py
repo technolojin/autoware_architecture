@@ -117,8 +117,9 @@ def _extract_node_data(node_instance: Instance, module_path: List[str]) -> Dict[
             "topic": topic
         })
     
-    # Get all parameters in the specified order from parameter_manager
-    all_parameters = node_instance.parameter_manager.get_all_parameters_for_launch()
+    # Get parameters and parameter files from parameter_manager
+    all_parameters = node_instance.parameter_manager.get_parameters_for_launch()
+    all_parameter_files = node_instance.parameter_manager.get_parameter_files_for_launch()
 
     return {
         "name": node_instance.name,
@@ -131,7 +132,8 @@ def _extract_node_data(node_instance: Instance, module_path: List[str]) -> Dict[
         "namespace_groups": namespace_groups,
         "full_namespace_path": full_namespace_path,
         "ports": ports,
-        "all_parameters": all_parameters
+        "parameters": all_parameters,
+        "parameter_files": all_parameter_files
     }
 
 

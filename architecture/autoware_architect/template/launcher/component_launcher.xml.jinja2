@@ -16,22 +16,20 @@
 {% endfor %}
 
       <!-- Parameters - Default -->
-{% for param in node.all_parameters %}
-{% if param.type == "param" and param.is_default %}
+{% for param in node.parameters %}
+{% if param.is_default %}
       <param name="{{ param.name }}" value="{{ param.value }}"/>
 {% endif %}
 {% endfor %}
 
       <!-- Parameters - Parameter files -->
-{% for param in node.all_parameters %}
-{% if param.type == "param_file" %}
-      <param from="{{ param.path }}"/>
-{% endif %}
+{% for param_file in node.parameter_files %}
+      <param from="{{ param_file.path }}"/>
 {% endfor %}
 
       <!-- Parameters - Overrides -->
-{% for param in node.all_parameters %}
-{% if param.type == "param" and not param.is_default %}
+{% for param in node.parameters %}
+{% if not param.is_default %}
       <param name="{{ param.name }}" value="{{ param.value }}"/>
 {% endif %}
 {% endfor %}
@@ -45,22 +43,20 @@
 {% endfor %}
 
     <!-- Parameters - Default -->
-{% for param in node.all_parameters %}
-{% if param.type == "param" and param.is_default %}
+{% for param in node.parameters %}
+{% if param.is_default %}
     <param name="{{ param.name }}" value="{{ param.value }}"/>
 {% endif %}
 {% endfor %}
 
     <!-- Parameters - Parameter files -->
-{% for param in node.all_parameters %}
-{% if param.type == "param_file" %}
-    <param from="{{ param.path }}"/>
-{% endif %}
+{% for param_file in node.parameter_files %}
+    <param from="{{ param_file.path }}"/>
 {% endfor %}
 
     <!-- Parameters - Parameter overrides -->
-{% for param in node.all_parameters %}
-{% if param.type == "param" and not param.is_default %}
+{% for param in node.parameters %}
+{% if not param.is_default %}
     <param name="{{ param.name }}" value="{{ param.value }}"/>
 {% endif %}
 {% endfor %}
