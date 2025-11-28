@@ -150,7 +150,7 @@ class ParameterTemplateGenerator:
         parameters = []
         
         # Get all parameters from the parameter manager
-        all_parameters = node_instance.parameter_manager.get_all_parameter_files()
+        all_parameters = node_instance.parameter_manager.get_all_parameters()
         
         # Use the instance's namespace_str directly for parameter file paths
         base_path = node_instance.namespace_str

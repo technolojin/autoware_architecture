@@ -400,7 +400,7 @@ class Instance:
                 else []
             ),
             "events": self.event_manager.get_all_events(),
-            "parameters": self.parameter_manager.get_all_parameter_files(),
+            "parameters": self.parameter_manager.get_all_parameters(),
         }
         
         # Add mode information if this is a deployment instance

@@ -40,15 +40,15 @@ class ParameterManager:
     
     def __init__(self, instance: 'Instance'):
         self.instance = instance
-        self.parameter_files: ParameterList = ParameterList()
+        self.parameters: ParameterList = ParameterList()
 
     # =========================================================================
     # Public API Methods
     # =========================================================================
 
-    def get_all_parameter_files(self):
-        """Get all parameter_files."""
-        return self.parameter_files.list
+    def get_all_parameters(self):
+        """Get all parameters."""
+        return self.parameters.list
     
     def get_all_parameters_for_launch(self) -> List[Dict[str, Any]]:
         """Get all parameters in the specified order for launcher generation.
@@ -65,7 +65,7 @@ class ParameterManager:
         result = []
 
         # Get all parameters from the parameter list
-        all_params = self.parameter_files.list
+        all_params = self.parameters.list
 
         # Separate into categories
         default_params = []
@@ -74,15 +74,13 @@ class ParameterManager:
 
         for param in all_params:
             if param.param_type == ParameterType.PARAMETER_FILE:
-                # Parameter files go in the middle
                 resolved_path = self._resolve_parameter_file_path(param.value, self._get_package_name(), param.is_default)
                 param_files.append({
                     "type": "param_file",
                     "path": resolved_path
                 })
             elif param.param_type == ParameterType.PARAMETER:
-                # Only include if value is not None and not "none"
-                if param.value is not None and param.value != "none":
+                if param.value is not None:
                     param_dict = {
                         "type": "param",
                         "name": param.name,
@@ -180,7 +178,7 @@ class ParameterManager:
         if parameter_files:
             for param_file_mapping in parameter_files:
                 for param_name, param_path in param_file_mapping.items():
-                    target_instance.parameter_manager.parameter_files.set_parameter(
+                    target_instance.parameter_manager.parameters.set_parameter(
                         param_name,
                         param_path,
                         param_type=ParameterType.PARAMETER_FILE,
@@ -196,7 +194,7 @@ class ParameterManager:
                 param_type = param.get("type", "string")
                 param_value = param.get("value")
 
-                target_instance.parameter_manager.parameter_files.set_parameter(
+                target_instance.parameter_manager.parameters.set_parameter(
                     param_name,
                     param_value,
                     param_type=ParameterType.PARAMETER,
@@ -308,7 +306,7 @@ class ParameterManager:
 
                 # Only set if a default value is provided
                 if param_value is not None:
-                    self.parameter_files.set_parameter(
+                    self.parameters.set_parameter(
                         param_name,
                         param_value,
                         param_type=ParameterType.PARAMETER,
@@ -399,7 +397,7 @@ class ParameterManager:
                                     elif isinstance(p_value[0], str): p_type = "string_array"
                                     elif isinstance(p_value[0], bool): p_type = "bool_array"
                             
-                            self.parameter_files.set_parameter(
+                            self.parameters.set_parameter(
                                 p_name,
                                 p_value,
                                 param_type=ParameterType.PARAMETER,
