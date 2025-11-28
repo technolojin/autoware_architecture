@@ -45,61 +45,68 @@ class ParameterManager:
     # =========================================================================
     # Public API Methods
     # =========================================================================
-    
-    def get_parameter(self, parameter_name: str):
-        """Get parameter value by name."""
-        return self.parameter_files.get_parameter(parameter_name)
 
     def get_all_parameter_files(self):
         """Get all parameter_files."""
         return self.parameter_files.list
     
-    def get_parameter_files_for_launch(self) -> List[Dict[str, str]]:
-        """Get parameter files formatted for launcher generation with resolved paths.
-        
-        Returns list of dicts with 'path' key, in order (defaults first, then overrides).
+    def get_all_parameters_for_launch(self) -> List[Dict[str, Any]]:
+        """Get all parameters in the specified order for launcher generation.
+
+        Order:
+        1. Default parameters (is_default=True)
+        2. Parameter files (<param from=""/>)
+        3. Non-default parameters (is_default=False)
+
+        Returns list of dicts with different structures based on parameter type:
+        - Parameter files: {"type": "param_file", "path": "..."}
+        - Parameters: {"type": "param", "name": "...", "value": "...", "is_default": bool}
         """
-        package_name = None
+        result = []
+
+        # Get all parameters from the parameter list
+        all_params = self.parameter_files.list
+
+        # Separate into categories
+        default_params = []
+        param_files = []
+        override_params = []
+
+        for param in all_params:
+            if param.param_type == ParameterType.PARAMETER_FILE:
+                # Parameter files go in the middle
+                resolved_path = self._resolve_parameter_file_path(param.value, self._get_package_name(), param.is_default)
+                param_files.append({
+                    "type": "param_file",
+                    "path": resolved_path
+                })
+            elif param.param_type == ParameterType.PARAMETER:
+                # Only include if value is not None and not "none"
+                if param.value is not None and param.value != "none":
+                    param_dict = {
+                        "type": "param",
+                        "name": param.name,
+                        "value": param.value,
+                        "is_default": param.is_default
+                    }
+                    if param.is_default:
+                        default_params.append(param_dict)
+                    else:
+                        override_params.append(param_dict)
+
+        # Combine in specified order: defaults, param_files, overrides
+        result.extend(default_params)
+        result.extend(param_files)
+        result.extend(override_params)
+
+        return result
+
+    def _get_package_name(self) -> Optional[str]:
+        """Get package name from instance configuration."""
         if self.instance.entity_type == "node" and self.instance.configuration:
             launch_config = self.instance.configuration.launch
-            package_name = launch_config.get("package")
-        
-        result = []
-        for param in self.parameter_files.get_parameter_files_ordered():
-            # We use the original value (unresolved path) here because the launcher generator
-            # might handle resolution or we want to preserve $(find-pkg-share) syntax for launch files.
-            # However, if we want to support absolute paths we resolved earlier, we should use them?
-            # The current design seems to re-resolve at launch generation time. 
-            # Let's keep using _resolve_parameter_file_path but we need to be careful about
-            # what 'config_registry' context we have here. 
-            # Since we don't pass config_registry here, we can only resolve based on what we have.
-            # But wait, we need package paths to resolve $(find-pkg-share).
-            # If we don't have config_registry here, we can't resolve correctly if it relies on it.
-            # For now, we'll assume the value is what we want in the launch file 
-            # (which might include $(find-pkg-share)).
-            
-            # If the value is an absolute path (resolved during init), use it.
-            # If it is a relative path and we have package info, we might produce $(find-pkg-share ...).
-             
-             resolved_path = self._resolve_parameter_file_path(param.value, package_name, param.is_default)
-             result.append({"path": resolved_path})
-        
-        return result
-    
-    def get_parameters_for_launch(self) -> List[Dict[str, Any]]:
-        """Get parameters formatted for launcher generation.
-        
-        Returns list of dicts with 'name' and 'value' keys, filtering out 'none' values.
-        """
-        result = []
-        for param in self.parameter_files.get_parameters():
-            # Only include if value is not None and not "none"
-            if param.value is not None and param.value != "none":
-                result.append({
-                    "name": param.name,
-                    "value": param.value
-                })
-        return result
+            return launch_config.get("package")
+        return None
 
     # =========================================================================
     # Parameter Path Resolution
@@ -180,12 +187,6 @@ class ParameterManager:
                         data_type="path",
                         allow_substs=True,
                         is_default=False  # Parameter set overrides are not defaults
-                    )
-                    # Load the parameters from this file as well
-                    target_instance.parameter_manager._load_parameters_from_file(
-                        param_path, 
-                        is_default=False, 
-                        config_registry=config_registry
                     )
         
         # Apply parameters (these override parameter files)
@@ -282,7 +283,7 @@ class ParameterManager:
             for cfg_param in self.instance.configuration.parameter_files:
                 param_name = cfg_param.get("name")
                 param_value = cfg_param.get("value", cfg_param.get("default"))
-                param_schema = cfg_param.get("schema")
+                # param_schema = cfg_param.get("schema")
 
                 if param_name is None or param_value is None:
                     raise ValueError(f"param_name or param_value is None. namespace: {self.instance.namespace_str}, parameter_files: {self.instance.configuration.parameter_files}")
