@@ -18,7 +18,7 @@ import os
 import shutil
 import re
 
-from ..models.parameters import ParameterList, ParameterFileList, Parameter, ParameterFile
+from ..models.parameters import ParameterList, ParameterFileList, Parameter, ParameterFile, ParameterType
 from ..parsers.yaml_parser import yaml_parser
 
 if TYPE_CHECKING:
@@ -59,7 +59,7 @@ class ParameterManager:
         """Get all parameters for launcher generation.
 
         Returns list of parameter dicts:
-        - {"type": "param", "name": "...", "value": "...", "is_default": bool}
+        - {"type": "param", "name": "...", "value": "...", "parameter_type": ParameterType}
         """
         result = []
         for param in self.parameters.list:
@@ -68,7 +68,7 @@ class ParameterManager:
                     "type": "param",
                     "name": param.name,
                     "value": param.value,
-                    "is_default": param.is_default
+                    "parameter_type": param.parameter_type
                 })
         return result
 
@@ -80,7 +80,7 @@ class ParameterManager:
         """
         result = []
         for param_file in self.parameter_files.list:
-            resolved_path = self._resolve_parameter_file_path(param_file.path, self._get_package_name(), param_file.is_default)
+            resolved_path = self._resolve_parameter_file_path(param_file.path, self._get_package_name(), param_file.parameter_type)
             result.append({
                 "type": "param_file",
                 "path": resolved_path
@@ -98,37 +98,40 @@ class ParameterManager:
     # Parameter Path Resolution
     # =========================================================================
     
-    def _resolve_parameter_file_path(self, path: str, package_name: Optional[str] = None, 
-                                     is_default: bool = False, config_registry: Optional['ConfigRegistry'] = None) -> str:
+    def _resolve_parameter_file_path(self, path: str, package_name: Optional[str] = None,
+                                     parameter_type: ParameterType = ParameterType.DEFAULT_FILE, config_registry: Optional['ConfigRegistry'] = None) -> str:
         """Resolve parameter file path with package prefix if needed.
-        
+
         Args:
             path: The parameter file path
             package_name: The ROS package name for default parameters
-            is_default: Whether this is a default parameter file
+            parameter_type: Type of parameter file with priority
             config_registry: Registry to look up package paths
-            
+
         Returns:
             Resolved path with package prefix if applicable
         """
 
         if path is None:
             raise ValueError(f"path is None. package_name: {package_name}, node_namespace: {self.instance.namespace_str}, path: {path}")
-        
+
         # If path already starts with $( or /, don't add prefix
         if path.startswith('$(') or path.startswith('/'):
             return path
-        
-        # If we have config_registry and it's a default param, try to resolve to absolute path
-        if is_default and package_name and config_registry:
+
+        # Check if this is a default parameter file (not override)
+        is_default_file = parameter_type in (ParameterType.DEFAULT_FILE, ParameterType.OVERRIDE_FILE)
+
+        # If we have config_registry and it's a parameter file, try to resolve to absolute path
+        if is_default_file and package_name and config_registry:
             pkg_path = config_registry.get_package_path(package_name)
             if pkg_path:
                 return os.path.join(pkg_path, path)
 
-        # For default parameters without registry (or fallback), add package prefix for launch file
-        if is_default and package_name:
+        # For parameter files without registry (or fallback), add package prefix for launch file
+        if is_default_file and package_name:
             return f"$(find-pkg-share {package_name})/{path}"
-        
+
         # For overrides or when no package name, return as-is
         return path
 
@@ -170,7 +173,7 @@ class ParameterManager:
                         param_name,
                         param_path,
                         allow_substs=True,
-                        is_default=False  # Parameter set overrides are not defaults
+                        parameter_type=ParameterType.OVERRIDE_FILE  # Parameter set overrides
                     )
         
         # Apply parameters (these override parameter files)
@@ -185,7 +188,7 @@ class ParameterManager:
                     param_value,
                     data_type=param_type,
                     allow_substs=True,
-                    is_default=False  # Parameter set are not defaults
+                    parameter_type=ParameterType.OVERRIDE  # Parameter set overrides
                 )
 
     # =========================================================================
@@ -273,9 +276,9 @@ class ParameterManager:
                 
                 # Load individual parameters from this file
                 self._load_parameters_from_file(
-                    param_value, 
-                    package_name=package_name, 
-                    is_default=True, 
+                    param_value,
+                    package_name=package_name,
+                    parameter_type=ParameterType.DEFAULT_FILE,
                     config_registry=config_registry
                 )
         
@@ -296,7 +299,7 @@ class ParameterManager:
                         param_value,
                         data_type=param_type,
                         allow_substs=True,
-                        is_default=True  # These are default parameters
+                        parameter_type=ParameterType.DEFAULT  # These are default parameters
                     )
 
     def _flatten_parameters(self, params: Dict[str, Any], parent_key: str = "", separator: str = ".") -> Dict[str, Any]:
@@ -320,8 +323,8 @@ class ParameterManager:
                 items[new_key] = v
         return items
 
-    def _load_parameters_from_file(self, file_path: str, package_name: Optional[str] = None, 
-                                  is_default: bool = False, config_registry: Optional['ConfigRegistry'] = None):
+    def _load_parameters_from_file(self, file_path: str, package_name: Optional[str] = None,
+                                  parameter_type: ParameterType = ParameterType.DEFAULT_FILE, config_registry: Optional['ConfigRegistry'] = None):
         """Load parameters from a YAML file and add them to the parameter list."""
         if not config_registry:
             logger.debug(f"Skipping parameter file load for {file_path}: No config_registry provided")
@@ -329,7 +332,7 @@ class ParameterManager:
 
         try:
             # Resolve the full path
-            resolved_path = self._resolve_parameter_file_path(file_path, package_name, is_default, config_registry)
+            resolved_path = self._resolve_parameter_file_path(file_path, package_name, parameter_type, config_registry)
             
             # Skip if we couldn't resolve to an absolute path or it involves substitutions
             if not resolved_path or resolved_path.startswith("$") or not os.path.isabs(resolved_path):
@@ -385,7 +388,7 @@ class ParameterManager:
                                 p_name,
                                 p_value,
                                 data_type=p_type,
-                                is_default=is_default
+                                parameter_type=parameter_type
                             )
         except Exception as e:
             logger.warning(f"Failed to load parameters from file {file_path}: {e}")

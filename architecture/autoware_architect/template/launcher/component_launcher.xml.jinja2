@@ -17,7 +17,7 @@
 
       <!-- Parameters - Default -->
 {% for param in node.parameters %}
-{% if param.is_default %}
+{% if param.parameter_type.name == 'DEFAULT' or param.parameter_type.name == 'DEFAULT_FILE' %}
       <param name="{{ param.name }}" value="{{ param.value }}"/>
 {% endif %}
 {% endfor %}
@@ -29,7 +29,7 @@
 
       <!-- Parameters - Overrides -->
 {% for param in node.parameters %}
-{% if not param.is_default %}
+{% if param.parameter_type.name == 'OVERRIDE' %}
       <param name="{{ param.name }}" value="{{ param.value }}"/>
 {% endif %}
 {% endfor %}
@@ -44,7 +44,7 @@
 
     <!-- Parameters - Default -->
 {% for param in node.parameters %}
-{% if param.is_default %}
+{% if param.parameter_type.name == 'DEFAULT' or param.parameter_type.name == 'DEFAULT_FILE' %}
     <param name="{{ param.name }}" value="{{ param.value }}"/>
 {% endif %}
 {% endfor %}
@@ -54,9 +54,9 @@
     <param from="{{ param_file.path }}"/>
 {% endfor %}
 
-    <!-- Parameters - Parameter overrides -->
+    <!-- Parameters - Overrides -->
 {% for param in node.parameters %}
-{% if not param.is_default %}
+{% if param.parameter_type.name == 'OVERRIDE' %}
     <param name="{{ param.name }}" value="{{ param.value }}"/>
 {% endif %}
 {% endfor %}

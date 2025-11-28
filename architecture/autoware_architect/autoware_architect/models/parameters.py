@@ -13,21 +13,30 @@
 # limitations under the License.
 
 from typing import List, Optional, Dict, Any
+from enum import Enum
+
+
+class ParameterType(Enum):
+    """Parameter type with priority ordering (lower value = lower priority)."""
+    DEFAULT = 1          # Default parameter
+    DEFAULT_FILE = 2     # Default loaded from parameter file
+    OVERRIDE_FILE = 3    # Override loaded from parameter file
+    OVERRIDE = 4         # Override parameter
 
 class Parameter:
     """Represents a single parameter with its value and metadata."""
     def __init__(self, name: str, value: Any, data_type: str = "string",
                  schema_path: Optional[str] = None, allow_substs: bool = True,
-                 is_default: bool = False):
+                 parameter_type: ParameterType = ParameterType.DEFAULT):
         self.name = name
         self.value = value
         self.data_type = data_type  # string, bool, int, float, etc.
         self.schema_path = schema_path  # path to the schema file if available
         self.allow_substs = allow_substs  # whether to allow substitutions in ROS launch
-        self.is_default = is_default  # True if this is a default parameter, False if override
+        self.parameter_type = parameter_type  # Parameter type with priority
 
 class ParameterList:
-    """Manages an ordered list of parameters, maintaining order with defaults first and overrides later."""
+    """Manages an ordered list of parameters, maintaining priority order (higher priority comes later)."""
 
     def __init__(self):
         self.list: List[Parameter] = []
@@ -42,10 +51,11 @@ class ParameterList:
 
     def set_parameter(self, parameter_name, parameter_value, data_type: str = "string",
                      schema_path: Optional[str] = None, allow_substs: bool = True,
-                     is_default: bool = False):
+                     parameter_type: ParameterType = ParameterType.DEFAULT):
         """Set a parameter value.
 
-        Later calls override earlier ones (update in place or append).
+        Higher priority parameters override lower priority ones.
+        Parameters are maintained in priority order (lower to higher).
 
         Args:
             parameter_name: Name of the parameter
@@ -53,7 +63,7 @@ class ParameterList:
             data_type: Data type of the value
             schema_path: Optional schema path
             allow_substs: Whether to allow substitutions
-            is_default: True if this is a default parameter, False if override
+            parameter_type: Type of parameter with priority
         """
         # Find and update existing parameter, or append new
         for parameter in self.list:
@@ -63,23 +73,23 @@ class ParameterList:
                 parameter.data_type = data_type
                 parameter.schema_path = schema_path
                 parameter.allow_substs = allow_substs
-                parameter.is_default = is_default
+                parameter.parameter_type = parameter_type
                 return
         # Not found, add new parameter
         self.list.append(Parameter(parameter_name, parameter_value, data_type,
-                                 schema_path, allow_substs, is_default))
+                                 schema_path, allow_substs, parameter_type))
 
 class ParameterFile:
     """Represents a parameter file reference."""
     def __init__(self, name: str, path: str, schema_path: Optional[str] = None,
-                 allow_substs: bool = True, is_default: bool = False):
+                 allow_substs: bool = True, parameter_type: ParameterType = ParameterType.DEFAULT_FILE):
         self.name = name
         self.path = path
         self.schema_path = schema_path  # path to the schema file if available
         self.allow_substs = allow_substs  # whether to allow substitutions in ROS launch
-        self.is_default = is_default  # True if this is a default parameter, False if override
+        self.parameter_type = parameter_type  # Parameter type with priority
 class ParameterFileList:
-    """Manages an ordered list of parameter files."""
+    """Manages an ordered list of parameter files by priority."""
 
     def __init__(self):
         self.list: List[ParameterFile] = []
@@ -93,20 +103,20 @@ class ParameterFileList:
         return None
 
     def add_parameter_file(self, parameter_name, parameter_path, schema_path: Optional[str] = None,
-                          allow_substs: bool = True, is_default: bool = False):
+                          allow_substs: bool = True, parameter_type: ParameterType = ParameterType.DEFAULT_FILE):
         """Add a parameter file.
 
-        Simply appends to maintain order. Defaults should be added first,
-        then overrides. ROS 2 will handle the actual overriding during loading.
+        Higher priority parameter files override lower priority ones.
+        Parameter files are maintained in priority order.
 
         Args:
             parameter_name: Name of the parameter file
             parameter_path: Path to the parameter file
             schema_path: Optional schema path
             allow_substs: Whether to allow substitutions
-            is_default: True if this is a default parameter file, False if override
+            parameter_type: Type of parameter file with priority
         """
         new_param_file = ParameterFile(parameter_name, parameter_path, schema_path,
-                                     allow_substs, is_default)
+                                     allow_substs, parameter_type)
         self.list.append(new_param_file)
 

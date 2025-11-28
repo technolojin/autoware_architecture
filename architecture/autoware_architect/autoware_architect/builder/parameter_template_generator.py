@@ -121,8 +121,11 @@ class ParameterTemplateGenerator:
             full_namespace = instance.namespace_str
             
             # Get parameter information from parameter_manager
-            parameter_files, parameters = self._extract_parameters_from_manager(instance)
-            
+            parameter_files_list, parameters = self._extract_parameters_from_manager(instance)
+
+            # Convert parameter files list back to dict for template compatibility
+            parameter_files = {pf["name"]: pf["path"] for pf in parameter_files_list}
+
             if parameter_files or parameters:
                 node_info = {
                     "node": full_namespace,
@@ -137,18 +140,18 @@ class ParameterTemplateGenerator:
             for child in instance.children.values():
                 self._collect_node_parameter_files_recursive(child, node_data, current_namespace)
     
-    def _extract_parameters_from_manager(self, node_instance: 'Instance') -> tuple[Dict[str, str], List[Dict[str, Any]]]:
+    def _extract_parameters_from_manager(self, node_instance: 'Instance') -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         """Extract parameter files and parameters from parameter manager.
-        
+
         Args:
             node_instance: Node instance to extract parameters from
-            
+
         Returns:
-            Tuple of (parameter_files_dict, parameters_list)
+            Tuple of (parameter_files_list, parameters_list) - both sorted by priority
         """
-        parameter_files = {}
+        parameter_files = []
         parameters = []
-        
+
         # Get parameter files from the parameter manager
         all_parameter_files = node_instance.parameter_manager.get_all_parameter_files()
         # Get parameters from the parameter manager
@@ -161,16 +164,25 @@ class ParameterTemplateGenerator:
             param_name = param_file.name
             # Generate template path based on namespace and parameter name
             template_path = f"{base_path}/{param_name}.param.yaml"
-            parameter_files[param_name] = template_path
+            parameter_files.append({
+                "name": param_name,
+                "path": template_path,
+                "priority": param_file.parameter_type.value
+            })
 
         for param in all_parameters:
             configuration = {
                 "name": param.name,
                 "type": param.data_type,
-                "value": param.value
+                "value": param.value,
+                "priority": param.parameter_type.value
             }
             parameters.append(configuration)
-        
+
+        # Sort parameter files and parameters by priority (higher priority comes later)
+        parameter_files.sort(key=lambda pf: pf["priority"])
+        parameters.sort(key=lambda p: p["priority"])
+
         return parameter_files, parameters
     
     def _create_namespace_structure_and_copy_configs(self, node_data: Dict[str, Any], 
