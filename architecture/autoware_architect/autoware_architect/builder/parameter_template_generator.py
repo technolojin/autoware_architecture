@@ -17,6 +17,8 @@ from typing import TYPE_CHECKING, List, Dict, Any, Optional
 import os
 import shutil
 
+from ..models.parameters import ParameterType
+
 if TYPE_CHECKING:
     from .instances import Instance
 
@@ -173,6 +175,11 @@ class ParameterTemplateGenerator:
             })
 
         for param in all_parameters:
+            # Skip parameters that are loaded from parameter files
+            # (they are already included in the parameter_files section)
+            if param.parameter_type in [ParameterType.DEFAULT_FILE, ParameterType.OVERRIDE_FILE]:
+                continue
+
             configuration = {
                 "name": param.name,
                 "type": param.data_type,
