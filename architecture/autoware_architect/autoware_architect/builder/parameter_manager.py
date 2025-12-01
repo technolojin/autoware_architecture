@@ -38,8 +38,9 @@ class ParameterManager:
     4. Resolving parameter file paths with package prefixes
     """
     
-    def __init__(self, instance: 'Instance'):
+    def __init__(self, instance: 'Instance', parameter_resolver = None):
         self.instance = instance
+        self.parameter_resolver = parameter_resolver
         self.parameters: ParameterList = ParameterList()
         self.parameter_files: ParameterFileList = ParameterFileList()
 
@@ -175,6 +176,10 @@ class ParameterManager:
         if parameter_files:
             for param_file_mapping in parameter_files:
                 for param_name, param_path in param_file_mapping.items():
+                    # Resolve parameter file path if resolver is available
+                    if self.parameter_resolver:
+                        param_path = self.parameter_resolver.resolve_parameter_file_path(param_path)
+
                     target_instance.parameter_manager.parameter_files.add_parameter_file(
                         param_name,
                         param_path,
@@ -188,6 +193,10 @@ class ParameterManager:
                 param_name = param.get("name")
                 param_type = param.get("type", "string")
                 param_value = param.get("value")
+
+                # Resolve parameter value if resolver is available
+                if self.parameter_resolver:
+                    param_value = self.parameter_resolver.resolve_parameter_value(param_value)
 
                 target_instance.parameter_manager.parameters.set_parameter(
                     param_name,
@@ -279,7 +288,11 @@ class ParameterManager:
 
                 if param_name is None or param_value is None:
                     raise ValueError(f"param_name or param_value is None. namespace: {self.instance.namespace_str}, parameter_files: {self.instance.configuration.parameter_files}")
-                
+
+                # Resolve parameter file path if resolver is available
+                if self.parameter_resolver:
+                    param_value = self.parameter_resolver.resolve_parameter_file_path(param_value)
+
                 # Load individual parameters from this file
                 self._load_parameters_from_file(
                     param_value,
@@ -297,6 +310,10 @@ class ParameterManager:
 
                 if param_name is None or param_value is None:
                     raise ValueError(f"param_name or param_value is None. namespace: {self.instance.namespace_str}, parameter_files: {self.instance.configuration.parameter_files}")
+
+                # Resolve parameter value if resolver is available
+                if self.parameter_resolver:
+                    param_value = self.parameter_resolver.resolve_parameter_value(param_value)
 
                 # Only set if a default value is provided
                 if param_value is not None:

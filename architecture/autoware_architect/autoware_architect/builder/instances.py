@@ -128,8 +128,21 @@ class Instance:
         # parameter manager
         self.parameter_manager: ParameterManager = ParameterManager(self)
 
+        # parameter resolver (set later by deployment)
+        self.parameter_resolver = None
+
         # event manager
         self.event_manager: EventManager = EventManager(self)
+
+    def set_parameter_resolver(self, parameter_resolver):
+        """Set the parameter resolver for this instance and propagate to parameter manager."""
+        self.parameter_resolver = parameter_resolver
+        if self.parameter_manager:
+            self.parameter_manager.parameter_resolver = parameter_resolver
+
+        # Recursively set for all children
+        for child in self.children.values():
+            child.set_parameter_resolver(parameter_resolver)
 
         # status
         self.is_initialized = False
@@ -287,7 +300,12 @@ class Instance:
                         
                         parameter_files_raw = param_config.get("parameter_files", [])
                         parameters = param_config.get("parameters", [])
-                        
+
+                        # Resolve ROS substitutions if resolver is available
+                        if self.parameter_resolver:
+                            parameter_files_raw = self.parameter_resolver.resolve_parameter_files(parameter_files_raw)
+                            parameters = self.parameter_resolver.resolve_parameters(parameters)
+
                         # Validate parameter_files format (should be list of dicts)
                         parameter_files = []
                         if parameter_files_raw:
@@ -296,7 +314,7 @@ class Instance:
                                     parameter_files.append(pf)
                                 else:
                                     logger.warning(f"Invalid parameter_files format in parameter set '{param_set_name}': {pf}")
-                        
+
                         # Apply parameters directly to the target node
                         instance.parameter_manager.apply_node_parameters(
                             node_namespace, parameter_files, parameters, config_registry
@@ -436,6 +454,10 @@ class Instance:
                 param_value = param_config.get('value')
                 param_type = param_config.get('type', 'string')  # Default to string if not specified
 
+                # Resolve parameter value if resolver is available
+                if self.parameter_resolver:
+                    param_value = self.parameter_resolver.resolve_parameter_value(param_value)
+
                 if param_name is not None and param_value is not None:
                     self.parameter_manager.parameters.set_parameter(
                         param_name,
@@ -460,19 +482,26 @@ class DeploymentInstance(Instance):
         system: Config,
         config_registry,
         mode: str = None,
+        parameter_resolver = None,
     ):
         """Set system for this deployment instance.
-        
+
         Args:
             system: System configuration
             config_registry: Registry of all configurations
             mode: Optional mode name to filter components (None means no filtering)
+            parameter_resolver: Resolver for ROS-independent parameter substitution
         """
         self.mode = mode
-        logger.info(f"Setting system {system.full_name} for instance {self.name}" + 
+        self.parameter_resolver = parameter_resolver
+        logger.info(f"Setting system {system.full_name} for instance {self.name}" +
                    (f" (mode: {mode})" if mode else ""))
         self.configuration = system
         self.entity_type = "system"
+
+        # Propagate parameter resolver to all instances in the tree
+        if parameter_resolver:
+            self.set_parameter_resolver(parameter_resolver)
 
         # 1. set component instances
         logger.info(f"Instance '{self.name}': setting component instances")

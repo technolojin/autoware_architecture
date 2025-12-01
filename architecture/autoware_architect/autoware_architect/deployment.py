@@ -23,6 +23,7 @@ from .builder.config_registry import ConfigRegistry
 from .builder.instances import DeploymentInstance
 from .builder.launcher_generator import generate_module_launch_file
 from .builder.parameter_template_generator import ParameterTemplateGenerator
+from .builder.parameter_resolver import ParameterResolver
 from .parsers.data_validator import entity_name_decode
 from .parsers.yaml_parser import yaml_parser
 from .exceptions import ValidationError
@@ -57,6 +58,13 @@ class Deployment:
             self.config_yaml_dir = system_config.deployment_file
             self.config_yaml = yaml_parser.load_config(self.config_yaml_dir)
             self.name = self.config_yaml.get("name")
+
+        # create parameter resolver for ROS-independent operation
+        self.parameter_resolver = ParameterResolver(
+            global_params=self.config_yaml.get('global_parameters', []),
+            env_params=self.config_yaml.get('environment_parameters', []),
+            package_paths=package_paths
+        )
 
         # Check the configuration
         self._check_config()
@@ -180,7 +188,7 @@ class Deployment:
                 
                 # Set system with mode filtering
                 deploy_instance.set_system(
-                    system, self.config_registry, mode=mode_name
+                    system, self.config_registry, mode=mode_name, parameter_resolver=self.parameter_resolver
                 )
                 
                 # Apply global parameters to all nodes in the deployment instance
