@@ -437,7 +437,7 @@ class Instance:
                 param_type = param_config.get('type', 'string')  # Default to string if not specified
 
                 if param_name is not None and param_value is not None:
-                    self.parameter_manager.global_parameters.set_parameter(
+                    self.parameter_manager.parameters.set_parameter(
                         param_name,
                         param_value,
                         data_type=param_type,

@@ -41,7 +41,6 @@ class ParameterManager:
     def __init__(self, instance: 'Instance'):
         self.instance = instance
         self.parameters: ParameterList = ParameterList()
-        self.global_parameters: ParameterList = ParameterList()
         self.parameter_files: ParameterFileList = ParameterFileList()
 
     # =========================================================================
@@ -67,17 +66,7 @@ class ParameterManager:
         """
         result = []
 
-        # Add global parameters first (lowest priority, applied first)
-        for param in self.global_parameters.list:
-            if param.value is not None:
-                result.append({
-                    "type": "param",
-                    "name": param.name,
-                    "value": param.value,
-                    "parameter_type": param.parameter_type
-                })
-
-        # Add regular parameters (higher priority, can override global parameters)
+        # Add regular parameters
         for param in self.parameters.list:
             if param.value is not None:
                 result.append({
