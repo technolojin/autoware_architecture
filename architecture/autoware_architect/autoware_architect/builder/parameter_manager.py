@@ -94,6 +94,25 @@ class ParameterManager:
             })
         return result
 
+    def resolve_all_parameters(self):
+        """Resolve any remaining substitutions in all parameters and parameter files."""
+        if not self.parameter_resolver:
+            return
+
+        # Resolve all parameter values
+        for param in self.parameters.list:
+            if param.value is not None and isinstance(param.value, str):
+                resolved_value = self.parameter_resolver.resolve_string(param.value)
+                if resolved_value != param.value:
+                    param.value = resolved_value
+
+        # Resolve all parameter file paths
+        for param_file in self.parameter_files.list:
+            if param_file.path and isinstance(param_file.path, str):
+                resolved_path = self.parameter_resolver.resolve_string(param_file.path)
+                if resolved_path != param_file.path:
+                    param_file.path = resolved_path
+
     def _get_package_name(self) -> Optional[str]:
         """Get package name from instance configuration."""
         if self.instance.entity_type == "node" and self.instance.configuration:
@@ -122,8 +141,12 @@ class ParameterManager:
         if path is None:
             raise ValueError(f"path is None. package_name: {package_name}, node_namespace: {self.instance.namespace_str}, path: {path}")
 
-        # If path already starts with $( or /, don't add prefix
-        if path.startswith('$(') or path.startswith('/'):
+        # Resolve any substitutions in the path first
+        if self.parameter_resolver:
+            path = self.parameter_resolver.resolve_string(path)
+
+        # If path is now absolute, return it
+        if path.startswith('/'):
             return path
 
         # Check if this is a default parameter file (not override)
@@ -391,6 +414,10 @@ class ParameterManager:
                         flattened_params = self._flatten_parameters(value["ros__parameters"])
                         
                         for p_name, p_value in flattened_params.items():
+                            # Resolve parameter value if resolver is available
+                            if self.parameter_resolver:
+                                p_value = self.parameter_resolver.resolve_parameter_value(p_value)
+
                             # Infer type
                             p_type = "string"
                             if isinstance(p_value, bool):
@@ -406,7 +433,7 @@ class ParameterManager:
                                     elif isinstance(p_value[0], float): p_type = "double_array"
                                     elif isinstance(p_value[0], str): p_type = "string_array"
                                     elif isinstance(p_value[0], bool): p_type = "bool_array"
-                            
+
                             # Use appropriate parameter type based on whether this is from an override file
                             param_type = ParameterType.OVERRIDE_FILE if is_override else ParameterType.DEFAULT_FILE
                             self.parameters.set_parameter(

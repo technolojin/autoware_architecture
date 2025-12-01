@@ -11,6 +11,8 @@ global_parameters:
     value: $(env HOME)/autoware_data
 
 environment_parameters:
+  - name: config_path
+    value: $(find-pkg-share tier4_perception_launch)/../../../autoware_launch/share/autoware_launch/config
   - name: lanelet2_map_file
     value: lanelet2_map.osm
   - name: pointcloud_map_file

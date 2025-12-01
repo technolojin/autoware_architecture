@@ -192,7 +192,8 @@ class Deployment:
                 )
                 
                 # Apply global parameters to all nodes in the deployment instance
-                deploy_instance.apply_global_parameters(self.config_yaml.get('global_parameters', []))
+                global_params = self.config_yaml.get('global_parameters', [])
+                deploy_instance.apply_global_parameters(global_params)
 
                 # Store instance
                 mode_key = mode_name if mode_name else "default"
