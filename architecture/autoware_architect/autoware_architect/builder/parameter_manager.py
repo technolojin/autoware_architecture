@@ -80,7 +80,7 @@ class ParameterManager:
         """
         result = []
         for param_file in self.parameter_files.list:
-            resolved_path = self._resolve_parameter_file_path(param_file.path, self._get_package_name(), param_file.parameter_type)
+            resolved_path = self._resolve_parameter_file_path(param_file.path, self._get_package_name(), param_file.is_override)
             result.append({
                 "type": "param_file",
                 "path": resolved_path
@@ -99,13 +99,13 @@ class ParameterManager:
     # =========================================================================
     
     def _resolve_parameter_file_path(self, path: str, package_name: Optional[str] = None,
-                                     parameter_type: ParameterType = ParameterType.DEFAULT_FILE, config_registry: Optional['ConfigRegistry'] = None) -> str:
+                                     is_override: bool = False, config_registry: Optional['ConfigRegistry'] = None) -> str:
         """Resolve parameter file path with package prefix if needed.
 
         Args:
             path: The parameter file path
             package_name: The ROS package name for default parameters
-            parameter_type: Type of parameter file with priority
+            is_override: True for override parameter files, False for default
             config_registry: Registry to look up package paths
 
         Returns:
@@ -120,7 +120,7 @@ class ParameterManager:
             return path
 
         # Check if this is a default parameter file (not override)
-        is_default_file = parameter_type in (ParameterType.DEFAULT_FILE, ParameterType.OVERRIDE_FILE)
+        is_default_file = not is_override
 
         # If we have config_registry and it's a parameter file, try to resolve to absolute path
         if is_default_file and package_name and config_registry:
@@ -173,7 +173,7 @@ class ParameterManager:
                         param_name,
                         param_path,
                         allow_substs=True,
-                        parameter_type=ParameterType.OVERRIDE_FILE  # Parameter set overrides
+                        is_override=True  # Parameter set parameter files are overrides
                     )
         
         # Apply parameters (these override parameter files)
@@ -278,7 +278,7 @@ class ParameterManager:
                 self._load_parameters_from_file(
                     param_value,
                     package_name=package_name,
-                    parameter_type=ParameterType.DEFAULT_FILE,
+                    is_override=False,  # Node configuration parameter files are defaults
                     config_registry=config_registry
                 )
         
@@ -324,7 +324,7 @@ class ParameterManager:
         return items
 
     def _load_parameters_from_file(self, file_path: str, package_name: Optional[str] = None,
-                                  parameter_type: ParameterType = ParameterType.DEFAULT_FILE, config_registry: Optional['ConfigRegistry'] = None):
+                                  is_override: bool = True, config_registry: Optional['ConfigRegistry'] = None):
         """Load parameters from a YAML file and add them to the parameter list."""
         if not config_registry:
             logger.debug(f"Skipping parameter file load for {file_path}: No config_registry provided")
@@ -332,7 +332,7 @@ class ParameterManager:
 
         try:
             # Resolve the full path
-            resolved_path = self._resolve_parameter_file_path(file_path, package_name, parameter_type, config_registry)
+            resolved_path = self._resolve_parameter_file_path(file_path, package_name, is_override, config_registry)
             
             # Skip if we couldn't resolve to an absolute path or it involves substitutions
             if not resolved_path or resolved_path.startswith("$") or not os.path.isabs(resolved_path):
@@ -384,11 +384,13 @@ class ParameterManager:
                                     elif isinstance(p_value[0], str): p_type = "string_array"
                                     elif isinstance(p_value[0], bool): p_type = "bool_array"
                             
+                            # Use appropriate parameter type based on whether this is from an override file
+                            param_type = ParameterType.OVERRIDE_FILE if is_override else ParameterType.DEFAULT_FILE
                             self.parameters.set_parameter(
                                 p_name,
                                 p_value,
                                 data_type=p_type,
-                                parameter_type=parameter_type
+                                parameter_type=param_type
                             )
         except Exception as e:
             logger.warning(f"Failed to load parameters from file {file_path}: {e}")

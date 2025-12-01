@@ -164,10 +164,12 @@ class ParameterTemplateGenerator:
             param_name = param_file.name
             # Generate template path based on namespace and parameter name
             template_path = f"{base_path}/{param_name}.param.yaml"
+            # Override parameter files have higher priority than default ones
+            priority = 2 if param_file.is_override else 1
             parameter_files.append({
                 "name": param_name,
                 "path": template_path,
-                "priority": param_file.parameter_type.value
+                "priority": priority
             })
 
         for param in all_parameters:

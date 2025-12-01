@@ -274,11 +274,9 @@ class Instance:
                 cfg_param_set = config_registry.get_parameter_set(param_set_name)
                 node_params = cfg_param_set.parameters
                 logger.info(f"Applying parameter set '{param_set_name}' to component '{instance.name}'")
-                
-                # New parameter set format: direct node targeting
+
                 for param_config in node_params:
                     if isinstance(param_config, dict) and "node" in param_config:
-                        # New format: direct node targeting with absolute namespace
                         node_namespace = param_config.get("node")
                         
                         # Only apply if the target node is under this component's namespace
