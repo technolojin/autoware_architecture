@@ -20,7 +20,8 @@ class ParameterType(Enum):
     """Parameter type with priority ordering (lower value = lower priority).
     Used only for individual parameters, not parameter files.
     """
-    DEFAULT = 1          # Default parameter (lowest priority)
+    GLOBAL = 0           # Global parameter (lowest priority)
+    DEFAULT = 1          # Default parameter 
     DEFAULT_FILE = 2     # Parameter loaded from default parameter file
     OVERRIDE_FILE = 3    # Parameter loaded from override parameter file
     OVERRIDE = 4         # Directly set override parameter (highest priority)

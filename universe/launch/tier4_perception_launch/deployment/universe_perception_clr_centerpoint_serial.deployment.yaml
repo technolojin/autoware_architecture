@@ -2,7 +2,14 @@ name: universe_perception_clr_centerpoint_serial.deployment
 
 system: CameraLidarRadarCenterpointSerial.system
 
-vehicle_parameters:
-  - vehicle_id: virtual_vehicle_01
+global_parameters:
+  - name: vehicle_id
+    value: virtual_vehicle_01
+  - name: data_path
+    value: $(env HOME)/autoware_data
 
-environment_parameters: []
+environment_parameters:
+  - name: lanelet2_map_file
+    value: lanelet2_map.osm
+  - name: pointcloud_map_file
+    value: pointcloud_map.pcd

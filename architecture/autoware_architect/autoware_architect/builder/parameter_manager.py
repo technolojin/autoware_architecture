@@ -41,6 +41,7 @@ class ParameterManager:
     def __init__(self, instance: 'Instance'):
         self.instance = instance
         self.parameters: ParameterList = ParameterList()
+        self.global_parameters: ParameterList = ParameterList()
         self.parameter_files: ParameterFileList = ParameterFileList()
 
     # =========================================================================

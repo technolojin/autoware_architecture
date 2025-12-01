@@ -47,7 +47,7 @@ class Deployment:
             self.config_yaml = {}
             self.config_yaml['system'] = system_config.deployment_file
             self.config_yaml['name'] = system_config.deployment_file
-            self.config_yaml.setdefault('vehicle_parameters', [])
+            self.config_yaml.setdefault('global_parameters', [])
             self.config_yaml.setdefault('environment_parameters', [])
             self.name = self.config_yaml.get("name")
 
@@ -62,7 +62,7 @@ class Deployment:
 
         # member variables - now supports multiple instances (one per mode)
         self.deploy_instances: Dict[str, DeploymentInstance] = {}  # mode_name -> DeploymentInstance
-        self.vehicle_parameters_yaml = None
+        self.global_parameters_yaml = None
         self.sensor_calibration_yaml = None
         self.map_yaml = None
 
@@ -76,8 +76,7 @@ class Deployment:
         # build the deployment
         self.build()
 
-        # set the vehicle individual parameters
-        #   sensor calibration, vehicle parameters, map, etc.
+        # resolve parameter variables
 
 
     def _get_system_list(self, system_config: SystemConfig) -> Tuple[List[str], Dict[str, str]]:
@@ -133,7 +132,7 @@ class Deployment:
         """Validate & normalize deployment configuration.
 
         Two supported input forms:
-        1. Deployment YAML (fields: name, system, vehicle_parameters, environment_parameters)
+        1. Deployment YAML (fields: name, system, global_parameters, environment_parameters)
         2. Raw System YAML (only 'name' ending with '.system'). We synthesize a minimal
            deployment in-memory (no vehicles / environment parameters) so downstream logic works.
         """
@@ -145,8 +144,8 @@ class Deployment:
                 )
 
         # Optional lists: default to empty if omitted
-        if 'vehicle_parameters' not in self.config_yaml:
-            self.config_yaml['vehicle_parameters'] = []
+        if 'global_parameters' not in self.config_yaml:
+            self.config_yaml['global_parameters'] = []
         if 'environment_parameters' not in self.config_yaml:
             self.config_yaml['environment_parameters'] = []
 
