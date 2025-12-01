@@ -15,6 +15,13 @@
       <remap from="~/{{ port.direction }}/{{ port.name }}" to="{{ port.topic }}"/>
 {% endfor %}
 
+      <!-- Parameters - Global (lowest priority, applied first) -->
+{% for param in node.parameters %}
+{% if param.parameter_type.name == 'GLOBAL' %}
+      <param name="{{ param.name }}" value="{{ param.value }}"/>
+{% endif %}
+{% endfor %}
+
       <!-- Parameters - Default -->
 {% for param in node.parameters %}
 {% if param.parameter_type.name == 'DEFAULT' or param.parameter_type.name == 'DEFAULT_FILE' %}
@@ -40,6 +47,13 @@
     <!-- Remap input and output topics -->
 {% for port in node.ports %}
     <remap from="~/{{ port.direction }}/{{ port.name }}" to="{{ port.topic }}"/>
+{% endfor %}
+
+    <!-- Parameters - Global (lowest priority, applied first) -->
+{% for param in node.parameters %}
+{% if param.parameter_type.name == 'GLOBAL' %}
+    <param name="{{ param.name }}" value="{{ param.value }}"/>
+{% endif %}
 {% endfor %}
 
     <!-- Parameters - Default -->

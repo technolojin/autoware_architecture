@@ -18,6 +18,7 @@ import logging
 from typing import Dict, Tuple, List
 from .config import SystemConfig
 from .models.config import Config
+from .models.parameters import ParameterType
 from .builder.config_registry import ConfigRegistry
 from .builder.instances import DeploymentInstance
 from .builder.launcher_generator import generate_module_launch_file
@@ -182,6 +183,9 @@ class Deployment:
                     system, self.config_registry, mode=mode_name
                 )
                 
+                # Apply global parameters to all nodes in the deployment instance
+                deploy_instance.apply_global_parameters(self.config_yaml.get('global_parameters', []))
+
                 # Store instance
                 mode_key = mode_name if mode_name else "default"
                 self.deploy_instances[mode_key] = deploy_instance
@@ -307,3 +311,4 @@ class Deployment:
             logger.info(f"Generated {len(output_path_list)} parameter set templates for mode: {mode_key}")
         
         return output_paths
+

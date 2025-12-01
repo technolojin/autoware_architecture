@@ -16,6 +16,7 @@ import logging
 from typing import List, Dict
 
 from ..models.config import Config, NodeConfig, ModuleConfig, ParameterSetConfig, SystemConfig
+from ..models.parameters import ParameterType
 from ..parsers.data_parser import entity_name_decode
 from ..config import config
 from ..exceptions import ValidationError
@@ -406,6 +407,48 @@ class Instance:
             data["mode"] = self.mode
 
         return data
+
+    def apply_global_parameters(self, global_params_config):
+        """Apply global parameters from deployment configuration to all nodes in the instance.
+
+        Args:
+            global_params_config: List of global parameter configurations from deployment
+        """
+        if not global_params_config:
+            logger.debug("No global parameters defined in deployment configuration")
+            return
+
+        logger.info(f"Applying {len(global_params_config)} global parameters to all nodes")
+
+        # Traverse all instances and apply global parameters to nodes
+        self._apply_global_parameters_recursive(global_params_config)
+
+    def _apply_global_parameters_recursive(self, global_params_config):
+        """Recursively apply global parameters to all nodes in the instance tree.
+
+        Args:
+            global_params_config: List of global parameter configurations
+        """
+        # If this is a node, apply global parameters to it
+        if self.entity_type == "node":
+            for param_config in global_params_config:
+                param_name = param_config.get('name')
+                param_value = param_config.get('value')
+                param_type = param_config.get('type', 'string')  # Default to string if not specified
+
+                if param_name is not None and param_value is not None:
+                    self.parameter_manager.global_parameters.set_parameter(
+                        param_name,
+                        param_value,
+                        data_type=param_type,
+                        allow_substs=True,
+                        parameter_type=ParameterType.GLOBAL
+                    )
+                    logger.debug(f"Applied global parameter '{param_name}'={param_value} to node '{self.namespace_str}'")
+
+        # Recursively process children
+        for child in self.children.values():
+            child._apply_global_parameters_recursive(global_params_config)
 
 class DeploymentInstance(Instance):
     def __init__(self, name: str, mode: str = None):

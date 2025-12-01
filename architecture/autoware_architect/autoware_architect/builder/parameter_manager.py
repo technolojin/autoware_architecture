@@ -61,8 +61,23 @@ class ParameterManager:
 
         Returns list of parameter dicts:
         - {"type": "param", "name": "...", "value": "...", "parameter_type": ParameterType}
+
+        Global parameters are returned first (applied first in launcher), followed by other parameters.
+        Higher priority parameters will override lower priority ones.
         """
         result = []
+
+        # Add global parameters first (lowest priority, applied first)
+        for param in self.global_parameters.list:
+            if param.value is not None:
+                result.append({
+                    "type": "param",
+                    "name": param.name,
+                    "value": param.value,
+                    "parameter_type": param.parameter_type
+                })
+
+        # Add regular parameters (higher priority, can override global parameters)
         for param in self.parameters.list:
             if param.value is not None:
                 result.append({
@@ -71,6 +86,7 @@ class ParameterManager:
                     "value": param.value,
                     "parameter_type": param.parameter_type
                 })
+
         return result
 
     def get_parameter_files_for_launch(self) -> List[Dict[str, Any]]:
