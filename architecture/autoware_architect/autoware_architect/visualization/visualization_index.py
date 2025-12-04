@@ -70,6 +70,49 @@ def update_index(output_root_dir: str):
     except Exception as e:
         logger.error(f"Failed to update visualization index: {e}")
 
+def _generate_deployment_overview_pages(install_root: Path, deployments):
+    """Generate deployment overview pages that combine different diagram types."""
+    from ..template_utils import TemplateRenderer
+
+    renderer = TemplateRenderer()
+
+    for dep in deployments:
+        # Find available modes for this deployment
+        visualization_root = install_root / dep['path'].parent.parent  # Go up from web/node_diagram.html
+        available_modes = set()
+
+        # Look for data files to determine available modes
+        data_dir = visualization_root / "web" / "data"
+        if data_dir.exists():
+            for js_file in data_dir.glob("*_node_diagram.js"):
+                mode = js_file.stem.replace("_node_diagram", "")
+                available_modes.add(mode)
+            for js_file in data_dir.glob("*_sequence_diagram.js"):
+                mode = js_file.stem.replace("_sequence_diagram", "")
+                available_modes.add(mode)
+
+        available_modes = sorted(list(available_modes))
+        default_mode = "default" if "default" in available_modes else (available_modes[0] if available_modes else "default")
+        default_diagram_type = dep['diagram_types'][0] if dep['diagram_types'] else "node_diagram"
+
+        # Prepare template data
+        template_data = {
+            "deployment_name": dep['name'],
+            "package_name": dep['package'],
+            "available_diagram_types": dep['diagram_types'],
+            "available_modes": available_modes,
+            "default_diagram_type": default_diagram_type,
+            "default_mode": default_mode
+        }
+
+        # Generate the overview page
+        overview_path = install_root / dep['path'].parent / f"{dep['name']}_overview.html"
+        try:
+            renderer.render_template_to_file("visualization/deployment_overview.html.jinja2", str(overview_path), **template_data)
+            logger.info(f"Generated deployment overview page: {overview_path}")
+        except Exception as e:
+            logger.error(f"Failed to generate deployment overview page for {dep['name']}: {e}")
+
 def _generate_index_file(install_root: Path, output_file: Path):
     deployments = []
 
@@ -94,39 +137,36 @@ def _generate_index_file(install_root: Path, output_file: Path):
                     except ValueError:
                         continue
 
-                    # Find associated sequence diagrams
-                    sequence_diagrams = []
+                    # Find all available diagram types
+                    diagram_types = set()
                     # Looking in .../visualization/ (parent of web)
                     visualization_root = path.parents[1]
                     if visualization_root.exists():
-                        # Look recursively for _sequence_graph.html files
-                        for seq_path in visualization_root.rglob("*_sequence_graph.html"):
-                             try:
-                                 seq_rel_path = seq_path.relative_to(install_root)
-                                 # Extract mode from filename if possible, or directory
-                                 # Structure: visualization/<mode>/<name>_sequence_graph.html
-                                 # Filename: <name>_<mode>_sequence_graph.html or <name>_sequence_graph.html
-                                 mode_name = seq_path.parent.name
-                                 sequence_diagrams.append({
-                                     'name': mode_name,
-                                     'path': seq_rel_path
-                                 })
-                             except ValueError:
-                                 continue
+                        # Look for node_diagram.html (already found via the rglob above)
+                        diagram_types.add('node_diagram')
 
-                    sequence_diagrams.sort(key=lambda x: x['name'])
+                        # Look for sequence_diagram.html file
+                        sequence_diagram_path = visualization_root / "web" / "sequence_diagram.html"
+                        if sequence_diagram_path.exists():
+                            diagram_types.add('sequence_diagram')
+
+                        # Could add more diagram types here in the future
+                        # e.g., look for other diagram files
 
                     deployments.append({
                         'name': deployment_dir_name,
                         'package': package_name,
                         'path': rel_path,
-                        'sequence_diagrams': sequence_diagrams
+                        'diagram_types': sorted(list(diagram_types))
                     })
         except IndexError:
             continue
 
     # Sort by package then system name
     deployments.sort(key=lambda x: (x['package'], x['name']))
+
+    # Generate deployment overview pages
+    _generate_deployment_overview_pages(install_root, deployments)
 
     # Generate HTML
     html_content = """<!DOCTYPE html>
@@ -173,18 +213,45 @@ def _generate_index_file(install_root: Path, output_file: Path):
             transition: transform 0.2s, box-shadow 0.2s;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
         .deployment-item:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0,0,0,0.05);
             border-color: #b0b0b0;
         }
-        .deployment-link {
+        .deployment-header {
+            padding: 20px 20px 15px 20px;
+        }
+        .diagram-buttons {
+            display: flex;
+            gap: 10px;
+            padding: 0 20px 20px 20px;
+            border-top: 1px solid #f0f0f0;
+            background: #fafafa;
+        }
+        .diagram-button {
             text-decoration: none;
-            color: inherit;
-            display: block;
-            padding: 20px;
-            flex-grow: 1;
+            color: #0066cc;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-size: 0.9em;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .diagram-button:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+            color: #0056b3;
+        }
+        .diagram-icon {
+            display: flex;
+            align-items: center;
         }
         .deployment-name {
             font-weight: bold;
@@ -205,26 +272,6 @@ def _generate_index_file(install_root: Path, output_file: Path):
             border-radius: 4px;
             font-family: monospace;
         }
-        .sequence-links {
-            padding: 0 20px 20px 20px;
-            border-top: 1px solid #eee;
-            font-size: 0.9em;
-        }
-        .sequence-title {
-            margin: 10px 0 5px 0;
-            font-weight: 600;
-            color: #555;
-        }
-        .sequence-link-item {
-            margin-bottom: 4px;
-        }
-        .sequence-link-item a {
-            color: #0066cc;
-            text-decoration: none;
-        }
-        .sequence-link-item a:hover {
-            text-decoration: underline;
-        }
     </style>
 </head>
 <body>
@@ -237,25 +284,23 @@ def _generate_index_file(install_root: Path, output_file: Path):
     for dep in deployments:
         html_content += f"""
             <li class="deployment-item">
-                <a class="deployment-link" href="{dep['path']}">
+                <div class="deployment-header">
                     <div class="deployment-name">{dep['name']}</div>
                     <div class="deployment-meta">Package: <span class="deployment-package">{dep['package']}</span></div>
-                    <div class="deployment-meta" style="font-size: 0.8em; color: #888;">Node Diagram (Main)</div>
-                </a>"""
+                </div>
+                <div class="diagram-buttons">"""
 
-        if dep['sequence_diagrams']:
-            html_content += """
-                <div class="sequence-links">
-                    <div class="sequence-title">Sequence Diagrams:</div>"""
-            for seq in dep['sequence_diagrams']:
-                html_content += f"""
-                    <div class="sequence-link-item">
-                        <a href="{seq['path']}">{seq['name']}</a>
-                    </div>"""
-            html_content += """
-                </div>"""
+        for diagram_type in dep['diagram_types']:
+            diagram_label = diagram_type.replace('_', ' ').title()
+            # Create a link to a unified deployment page with diagram type parameter
+            deployment_overview_path = dep['path'].parent / f"{dep['name']}_overview.html"
+            html_content += f"""
+                    <a class="diagram-button" href="{deployment_overview_path}?diagram={diagram_type}" data-type="{diagram_type}">
+                        <span class="diagram-icon">{diagram_label}</span>
+                    </a>"""
 
         html_content += """
+                </div>
             </li>"""
 
     html_content += """

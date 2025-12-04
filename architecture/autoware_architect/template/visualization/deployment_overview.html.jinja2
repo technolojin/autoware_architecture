@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Autoware Architecture - {{ deployment_name }}</title>
+    <script src="https://cdn.jsdelivr.net/npm/elkjs@0.9.3/lib/elk.bundled.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #f8f9fa;
+            display: flex;
+        }
+
+        /* Sidebar */
+        #sidebar {
+            width: 250px;
+            background: #ffffff;
+            border-right: 1px solid #e9ecef;
+            display: flex;
+            flex-direction: column;
+            z-index: 2;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+        }
+
+        #sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            background: #f8f9fa;
+        }
+
+        #sidebar-header h1 {
+            margin: 0 0 10px 0;
+            font-size: 18px;
+            color: #212529;
+        }
+
+        #sidebar-header .package-info {
+            font-size: 14px;
+            color: #6c757d;
+        }
+
+        #diagram-list {
+            padding: 15px 20px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        #diagram-list .section-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #495057;
+            font-size: 14px;
+        }
+
+        .diagram-type-item {
+            display: block;
+            padding: 8px 12px;
+            margin-bottom: 4px;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #495057;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .diagram-type-item:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+
+        .diagram-type-item.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+
+        .diagram-item {
+            margin-bottom: 8px;
+        }
+
+        .diagram-link {
+            display: block;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #495057;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .diagram-link:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+
+        .diagram-link.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        /* Canvas container */
+        #canvas-container {
+            flex-grow: 1;
+            background: #ffffff;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #diagram-display {
+            flex-grow: 1;
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        #mode-selector-section {
+            padding: 15px 20px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        #mode-selector-section label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #495057;
+        }
+
+        #mode-selector {
+            padding: 6px 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 13px;
+            min-width: 120px;
+        }
+
+        /* Node diagram styles */
+        .node-diagram-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            cursor: grab;
+        }
+
+        .node-diagram-container:active {
+            cursor: grabbing;
+        }
+
+        .node-diagram-container svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .node-rect {
+            stroke-width: 1.5px;
+            transition: all 0.2s;
+        }
+
+        .node-label {
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 12px;
+            pointer-events: none;
+            text-anchor: middle;
+            dominant-baseline: middle;
+        }
+
+        .port-rect {
+            stroke: #6c757d;
+            stroke-width: 1px;
+            fill: #e9ecef;
+            transition: all 0.1s;
+        }
+
+        .port-label {
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 9px;
+            pointer-events: none;
+            text-anchor: middle;
+            dominant-baseline: middle;
+        }
+
+        .edge-path {
+            fill: none;
+            stroke: #adb5bd;
+            stroke-width: 1.5px;
+            transition: all 0.2s;
+        }
+
+        .edge-arrow {
+            fill: #adb5bd;
+        }
+
+        .highlighted .node-rect {
+            stroke: #0d6efd !important;
+            stroke-width: 2.5px;
+        }
+
+        .highlighted .edge-path {
+            stroke: #0d6efd !important;
+            stroke-width: 2.5px;
+        }
+
+        .highlighted .edge-arrow {
+            fill: #0d6efd !important;
+            stroke-width: 2.5px;
+        }
+
+        .port-highlighted {
+            stroke: #0d6efd !important;
+            stroke-width: 2px;
+            fill: #cfe2ff;
+        }
+
+        /* Sequence diagram styles */
+        .sequence-diagram-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .sequence-diagram-container .mermaid {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .sequence-diagram-container .mermaid svg {
+            height: 100%;
+            width: 100%;
+            max-width: none;
+        }
+
+        /* Interaction styles for sequence diagrams */
+        .sequence-diagram-container .active-connection,
+        .sequence-diagram-container .active-connection:hover {
+            stroke-width: 7px !important;
+            stroke: #dc3545 !important;
+            filter: drop-shadow(0 0 2px rgba(0,0,0,0.3));
+            stroke-dasharray: none !important;
+        }
+
+        .sequence-diagram-container g [class^="messageLine"] {
+            cursor: pointer !important;
+            pointer-events: all;
+            stroke-width: 6px !important;
+            stroke: #888 !important;
+        }
+
+        .sequence-diagram-container g [class^="messageLine"]:hover {
+            stroke: #555 !important;
+            stroke-width: 7px !important;
+        }
+
+        /* Loading overlay */
+        #loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            font-size: 18px;
+            color: #495057;
+            z-index: 100;
+            display: none;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #0d6efd;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Info panel in sidebar */
+        #info-panel {
+            padding: 15px 20px;
+            border-bottom: 1px solid #e9ecef;
+            flex-grow: 1;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .info-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+            margin-bottom: 10px;
+        }
+
+        .info-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #212529;
+            border-bottom: 2px solid #dee2e6;
+            padding-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .info-row {
+            margin-bottom: 4px;
+            font-size: 13px;
+            display: flex;
+        }
+
+        .info-label {
+            color: #6c757d;
+            font-weight: 500;
+            width: 80px;
+            flex-shrink: 0;
+        }
+
+        .info-value {
+            color: #212529;
+            font-family: 'Consolas', monospace;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        <div class="spinner"></div>
+        <div id="loading-text">Loading...</div>
+    </div>
+
+    <!-- Sidebar -->
+    <div id="sidebar">
+        <div id="sidebar-header">
+            <h1>{{ deployment_name }}</h1>
+            <div class="package-info">Package: {{ package_name }}</div>
+        </div>
+
+        <div id="mode-selector-section">
+            <label for="mode-selector">View Mode:</label>
+            <select id="mode-selector">
+                {% for mode in available_modes %}
+                <option value="{{ mode }}" {% if mode == default_mode %}selected{% endif %}>{{ mode }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div id="diagram-list">
+            <div class="section-title">Diagram Types</div>
+            {% for diagram_type in available_diagram_types %}
+            <a class="diagram-type-item {% if diagram_type == default_diagram_type %}active{% endif %}" href="#" data-type="{{ diagram_type }}">
+                {{ diagram_type.replace('_', ' ').title() }}
+            </a>
+            {% endfor %}
+        </div>
+
+        <div id="info-panel">
+            <!-- Node details will be populated here -->
+        </div>
+    </div>
+
+    <!-- Canvas Container -->
+    <div id="canvas-container">
+        <div id="diagram-display"></div>
+    </div>
+
+    <script>
+        // Configuration
+        const deploymentName = "{{ deployment_name }}";
+        const availableDiagramTypes = {{ available_diagram_types | tojson }};
+        const availableModes = {{ available_modes | tojson }};
+        const defaultDiagramType = "{{ default_diagram_type }}";
+        const defaultMode = "{{ default_mode }}";
+
+        // Parse URL parameters
+        function getUrlParameter(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+
+        // State
+        let currentDiagramType = getUrlParameter('diagram') || defaultDiagramType;
+        let currentMode = defaultMode;
+        let currentDiagramData = null;
+        let nodeDiagramInstance = null;
+        let sequenceDiagramInstance = null;
+
+        // DOM elements
+        const modeSelect = document.getElementById('mode-selector');
+        const diagramDisplay = document.getElementById('diagram-display');
+        const loading = document.getElementById('loading');
+        const infoPanel = document.getElementById('info-panel');
+        const diagramTypeItems = document.querySelectorAll('.diagram-type-item');
+
+        // Initialize Mermaid
+        console.log('Mermaid available:', typeof mermaid);
+        if (typeof mermaid === 'undefined') {
+            throw new Error('Mermaid library not loaded');
+        }
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: 'default',
+            securityLevel: 'loose',
+            sequence: {
+                showSequenceNumbers: false,
+                useMaxWidth: false,
+                mirrorActors: true,
+                bottomMarginAdj: 10,
+                messageAlign: 'center'
+            }
+        });
+
+        function showLoading(show, text = "Loading...") {
+            loading.style.display = show ? 'flex' : 'none';
+            document.getElementById('loading-text').textContent = text;
+        }
+
+        function updateDiagramTypeSelection() {
+            // Update active state of diagram type items
+            diagramTypeItems.forEach(item => {
+                if (item.getAttribute('data-type') === currentDiagramType) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        }
+
+        async function loadDiagram(diagramType, mode) {
+            showLoading(true, `Loading ${diagramType.replace('_', ' ')}...`);
+
+            try {
+                if (diagramType === 'node_diagram') {
+                    await loadNodeDiagram(mode);
+                } else if (diagramType === 'sequence_diagram') {
+                    await loadSequenceDiagram(mode);
+                }
+            } catch (error) {
+                console.error('Error loading diagram:', error);
+                alert(`Error loading diagram: ${error.message}`);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function loadNodeDiagram(mode) {
+            console.log('Loading node diagram for mode:', mode);
+
+            // Clear previous content
+            diagramDisplay.innerHTML = '';
+
+            // Create container
+            const container = document.createElement('div');
+            container.className = 'node-diagram-container';
+            container.id = 'node-diagram-svg';
+            diagramDisplay.appendChild(container);
+
+            console.log('Container created');
+
+            // Load data script if not already loaded
+            if (!window.architectureData || !window.architectureData[mode]) {
+                console.log('Loading data script for mode:', mode);
+                await loadScript(`./data/${mode}_node_diagram.js`);
+            }
+
+            if (!window.architectureData || !window.architectureData[mode]) {
+                console.error('No data available after loading script for mode:', mode);
+                throw new Error(`No data available for mode: ${mode}`);
+            }
+
+            console.log('Data loaded successfully, transforming...');
+
+            // Transform and render
+            const elkGraph = transformNodeDataToElk(window.architectureData[mode]);
+            console.log('Data transformed, rendering...');
+            await layoutAndRenderNodeDiagram(elkGraph);
+
+            console.log('Node diagram rendered successfully');
+
+            // Show info panel for node diagrams
+            infoPanel.style.display = 'block';
+        }
+
+        async function loadSequenceDiagram(mode) {
+            console.log('Loading sequence diagram for mode:', mode);
+
+            // Clear previous content
+            diagramDisplay.innerHTML = '';
+
+            // Create container
+            const container = document.createElement('div');
+            container.className = 'sequence-diagram-container';
+            diagramDisplay.appendChild(container);
+
+            const mermaidContainer = document.createElement('div');
+            mermaidContainer.className = 'mermaid';
+            container.appendChild(mermaidContainer);
+
+            console.log('Sequence diagram container created');
+
+            // Load data script if not already loaded
+            if (!window.sequenceDiagramData || !window.sequenceDiagramData[mode]) {
+                console.log('Loading sequence diagram data script for mode:', mode);
+                await loadScript(`./data/${mode}_sequence_diagram.js`);
+            }
+
+            if (!window.sequenceDiagramData || !window.sequenceDiagramData[mode]) {
+                console.error('No sequence diagram data available after loading script for mode:', mode);
+                throw new Error(`No sequence diagram data available for mode: ${mode}`);
+            }
+
+            console.log('Sequence diagram data loaded, rendering with Mermaid...');
+
+            // Render sequence diagram
+            const { svg } = await mermaid.render('sequence-diagram-svg-' + Date.now(), window.sequenceDiagramData[mode]);
+            console.log('Mermaid render completed');
+            mermaidContainer.innerHTML = svg;
+
+            const svgElement = mermaidContainer.querySelector('svg');
+            if (svgElement) {
+                svgElement.style.maxWidth = 'none';
+                svgElement.style.height = '100%';
+                svgElement.style.width = '100%';
+
+                // Initialize pan-zoom with full diagram visible
+                sequenceDiagramInstance = svgPanZoom(svgElement, {
+                    zoomEnabled: true,
+                    controlIconsEnabled: false,
+                    fit: true,
+                    center: true,
+                    minZoom: 0.05, // Even lower to show more
+                    maxZoom: 50,
+                    zoomScaleSensitivity: 0.4,
+                    dblClickZoomEnabled: false,
+                    contain: false // Allow panning outside bounds
+                });
+
+                // Ensure the entire diagram is visible initially with some padding
+                setTimeout(() => {
+                    if (sequenceDiagramInstance) {
+                        // Zoom out more to show more of the diagram
+                        const sizes = sequenceDiagramInstance.getSizes();
+                        const zoomLevel = Math.min(
+                            sizes.viewBox.width / sizes.width,
+                            sizes.viewBox.height / sizes.height
+                        ) * 0.8; // 80% to add some margin
+                        sequenceDiagramInstance.zoom(zoomLevel);
+                        sequenceDiagramInstance.center();
+                    }
+                }, 200);
+
+                // Add click interactions
+                setupSequenceDiagramInteractions(svgElement);
+            }
+
+            // Hide info panel for sequence diagrams
+            infoPanel.style.display = 'none';
+        }
+
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = () => {
+                    console.log('Script loaded successfully:', src);
+                    resolve();
+                };
+                script.onerror = (error) => {
+                    console.error('Failed to load script:', src, error);
+                    reject(error);
+                };
+                document.head.appendChild(script);
+            });
+        }
+
+        // Node diagram functions (adapted from original template)
+        function transformNodeDataToElk(root) {
+            const elementData = new Map();
+
+            function convertNode(instance) {
+                if (!instance || !instance.unique_id) return null;
+
+                const nodeId = String(instance.unique_id);
+                elementData.set(nodeId, instance);
+
+                const inPortsCount = (instance.in_ports || []).length;
+                const outPortsCount = (instance.out_ports || []).length;
+                const maxPorts = Math.max(inPortsCount, outPortsCount);
+                const nodeHeight = Math.max(100, 80 + maxPorts * 25);
+
+                const node = {
+                    id: nodeId,
+                    labels: [
+                        { text: (instance.namespace && instance.namespace.join('/')) || "" },
+                        { text: instance.name || nodeId || "Unnamed" }
+                    ],
+                    width: 300,
+                    height: nodeHeight,
+                    children: [],
+                    ports: [],
+                    properties: {
+                        'org.eclipse.elk.portConstraints': 'FIXED_SIDE',
+                        'org.eclipse.elk.nodeLabels.placement': 'H_CENTER V_TOP',
+                        'org.eclipse.elk.portLabels.placement': 'INSIDE',
+                        'org.eclipse.elk.portAlignment.default': 'CENTER',
+                        'org.eclipse.elk.spacing.portPort': '15'
+                    }
+                };
+
+                // Add ports
+                (instance.in_ports || []).forEach(port => {
+                    if (!port.unique_id) return;
+                    const portId = String(port.unique_id);
+                    elementData.set(portId, port);
+                    node.ports.push({
+                        id: portId,
+                        width: 10,
+                        height: 10,
+                        properties: { 'org.eclipse.elk.port.side': 'WEST' },
+                        labels: [{ text: port.name || "Port", width: ((port.name && port.name.length) || 4) * 6, height: 10 }]
+                    });
+                });
+
+                (instance.out_ports || []).forEach(port => {
+                    if (!port.unique_id) return;
+                    const portId = String(port.unique_id);
+                    elementData.set(portId, port);
+                    node.ports.push({
+                        id: portId,
+                        width: 10,
+                        height: 10,
+                        properties: { 'org.eclipse.elk.port.side': 'EAST' },
+                        labels: [{ text: port.name || "Port", width: ((port.name && port.name.length) || 4) * 6, height: 10 }]
+                    });
+                });
+
+                // Add children
+                if (instance.children && instance.children.length > 0) {
+                    node.children = instance.children.map(convertNode).filter(n => n);
+                    if (node.children.length > 0) {
+                        delete node.width;
+                        delete node.height;
+                    }
+                }
+
+                // Add links
+                if (instance.links) {
+                    node.edges = instance.links.map((link, index) => {
+                        if (!link.from_port || !link.to_port) return null;
+                        const edgeId = `edge_${link.from_port.unique_id}_${link.to_port.unique_id}_${index}`;
+                        elementData.set(edgeId, link);
+                        return {
+                            id: edgeId,
+                            sources: [String(link.from_port.unique_id)],
+                            targets: [String(link.to_port.unique_id)],
+                            properties: {}
+                        };
+                    }).filter(e => e);
+                }
+
+                return node;
+            }
+
+            const rootNode = convertNode(root);
+            if (rootNode) {
+                delete rootNode.width;
+                delete rootNode.height;
+                if (!rootNode.id) rootNode.id = 'root';
+            }
+
+            return rootNode;
+        }
+
+        async function layoutAndRenderNodeDiagram(graphData) {
+            console.log('ELK available:', typeof ELK);
+            console.log('ELK object:', ELK);
+
+            let elk;
+            if (typeof ELK === 'function') {
+                elk = new ELK();
+            } else if (typeof ELK.default === 'function') {
+                elk = new ELK.default();
+            } else {
+                throw new Error('ELK library not properly loaded');
+            }
+
+            console.log('ELK instance created:', elk);
+
+            const graph = await elk.layout(graphData, {
+                layoutOptions: {
+                    'algorithm': 'layered',
+                    'org.eclipse.elk.direction': 'RIGHT',
+                    'org.eclipse.elk.spacing.nodeNode': '60',
+                    'org.eclipse.elk.spacing.edgeNode': '30',
+                    'org.eclipse.elk.edgeRouting': 'ORTHOGONAL',
+                    'org.eclipse.elk.layered.spacing.edgeNodeBetweenLayers': '30',
+                    'org.eclipse.elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
+                    'org.eclipse.elk.layered.layering.strategy': 'INTERACTIVE',
+                    'org.eclipse.elk.padding': '[top=50,left=50,bottom=50,right=50]'
+                }
+            });
+
+            console.log('ELK layout completed, result:', graph);
+            renderNodeDiagram(graph);
+            fitNodeDiagramToScreen();
+        }
+
+        function renderNodeDiagram(graph) {
+            console.log('Rendering node diagram, graph:', graph);
+            const container = document.getElementById('node-diagram-svg');
+            console.log('Container element:', container);
+            container.innerHTML = '';
+
+            // Create proper SVG root element
+            const svgRoot = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            svgRoot.setAttribute("width", "100%");
+            svgRoot.setAttribute("height", "100%");
+            svgRoot.style.width = "100%";
+            svgRoot.style.height = "100%";
+            svgRoot.style.cursor = "grab";
+
+            const svg = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            svg.id = 'zoom-layer';
+            svgRoot.appendChild(svg);
+            container.appendChild(svgRoot);
+            console.log('SVG root and group elements created and added to container');
+
+            // Add zoom/pan functionality
+            let transform = { x: 0, y: 0, k: 1 };
+            let isDragging = false;
+            let startPoint = { x: 0, y: 0 };
+
+            function updateTransform() {
+                svg.setAttribute("transform", `translate(${transform.x},${transform.y}) scale(${transform.k})`);
+            }
+
+            svgRoot.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const zoomIntensity = 0.1;
+                const delta = e.deltaY > 0 ? -zoomIntensity : zoomIntensity;
+                const newScale = transform.k * (1 + delta);
+                const rect = svgRoot.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+                transform.x -= (mouseX - transform.x) * delta;
+                transform.y -= (mouseY - transform.y) * delta;
+                transform.k = Math.min(Math.max(newScale, 0.1), 5);
+                updateTransform();
+            });
+
+            svgRoot.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                svgRoot.style.cursor = "grabbing";
+                startPoint = { x: e.clientX - transform.x, y: e.clientY - transform.y };
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                e.preventDefault();
+                transform.x = e.clientX - startPoint.x;
+                transform.y = e.clientY - startPoint.y;
+                updateTransform();
+            });
+
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+                svgRoot.style.cursor = "grab";
+            });
+
+            // Render nodes and edges (simplified version)
+            function renderNode(node, parentGroup, depth = 0) {
+                console.log('Rendering node:', node.id, 'at depth:', depth);
+                const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                g.setAttribute("transform", `translate(${node.x},${node.y})`);
+                g.classList.add("node-group");
+
+                const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                rect.setAttribute("width", node.width);
+                rect.setAttribute("height", node.height);
+                rect.setAttribute("rx", 4);
+                rect.classList.add("node-rect");
+                rect.setAttribute("fill", "#ffffff");
+                rect.setAttribute("stroke", "#333");
+
+                rect.onclick = (e) => {
+                    e.stopPropagation();
+                    updateInfoPanel(node, 'Node');
+                    document.querySelectorAll('.highlighted').forEach(el => el.classList.remove('highlighted'));
+                    g.classList.add('highlighted');
+                };
+
+                g.appendChild(rect);
+
+                if (node.labels && node.labels.length > 0) {
+                    const fontSize = Math.max(12, 36 - (depth * 5));
+                    let yOffset = 10;
+
+                    if (node.labels.length > 1 && node.labels[0].text) {
+                        const nsText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                        nsText.setAttribute("x", node.width / 2);
+                        nsText.setAttribute("y", yOffset);
+                        nsText.textContent = "/" + node.labels[0].text + "/";
+                        nsText.classList.add("node-label");
+                        nsText.style.fontSize = "5px";
+                        nsText.style.fill = "#6c757d";
+                        g.appendChild(nsText);
+                        yOffset += 8;
+                    }
+
+                    const nameText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    nameText.setAttribute("x", node.width / 2);
+                    nameText.setAttribute("y", yOffset + fontSize / 2);
+                    nameText.textContent = node.labels[node.labels.length - 1].text;
+                    nameText.classList.add("node-label");
+                    nameText.style.fontSize = `${fontSize}px`;
+                    if (depth <= 1) nameText.style.fontWeight = "bold";
+                    g.appendChild(nameText);
+                }
+
+                if (node.children) {
+                    node.children.forEach(child => renderNode(child, g, depth + 1));
+                }
+
+                if (node.edges) {
+                    node.edges.forEach(edge => {
+                        if (!edge.sections) return;
+                        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                        let d = "";
+                        edge.sections.forEach(section => {
+                            d += `M ${section.startPoint.x} ${section.startPoint.y} `;
+                            if (section.bendPoints) {
+                                section.bendPoints.forEach(bp => d += `L ${bp.x} ${bp.y} `);
+                            }
+                            d += `L ${section.endPoint.x} ${section.endPoint.y} `;
+                        });
+                        path.setAttribute("d", d);
+                        path.classList.add("edge-path");
+                        path.setAttribute("marker-end", "url(#arrowhead)");
+                        g.appendChild(path);
+                    });
+                }
+
+                parentGroup.appendChild(g);
+            }
+
+            // Add arrow marker
+            const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+            defs.innerHTML = `
+                <marker id="arrowhead" markerWidth="10" markerHeight="7"
+                refX="10" refY="3.5" orient="auto">
+                  <polygon points="0 0, 10 3.5, 0 7" fill="#adb5bd" />
+                </marker>
+            `;
+            svgRoot.insertBefore(defs, svg);
+
+            renderNode(graph, svg);
+        }
+
+        function fitNodeDiagramToScreen() {
+            const container = document.getElementById('node-diagram-svg');
+            const svg = container.querySelector('#zoom-layer');
+            if (!svg) {
+                console.error('No zoom-layer SVG found');
+                return;
+            }
+
+            const bbox = svg.getBBox();
+            console.log('SVG bbox:', bbox);
+
+            if (bbox.width === 0 || bbox.height === 0) {
+                console.error('SVG has zero size bbox, no content to display');
+                // Try to get bbox of the SVG root instead
+                const svgRoot = container.querySelector('svg');
+                if (svgRoot) {
+                    const rootBbox = svgRoot.getBBox();
+                    console.log('SVG root bbox:', rootBbox);
+                }
+                return;
+            }
+
+            const containerRect = container.getBoundingClientRect();
+            console.log('Container rect:', containerRect);
+
+            const scale = Math.min(
+                (containerRect.width - 40) / bbox.width,
+                (containerRect.height - 40) / bbox.height
+            );
+
+            console.log('Calculated scale:', scale);
+
+            // Reset transform
+            const transform = `translate(${(containerRect.width - bbox.width * scale) / 2 - bbox.x * scale},${(containerRect.height - bbox.height * scale) / 2 - bbox.y * scale}) scale(${Math.min(scale, 1)})`;
+            console.log('Setting transform:', transform);
+            svg.setAttribute("transform", transform);
+        }
+
+        function updateInfoPanel(data, type) {
+            let html = `<div class="info-card"><div class="info-title">${type} Details</div>`;
+            for (const [key, value] of Object.entries(data)) {
+                if (['id', 'children', 'edges', 'ports', 'layoutOptions', 'width', 'height', 'x', 'y', 'source', 'target', 'sections'].includes(key)) continue;
+                let displayValue = value;
+                if (typeof value === 'object' && value !== null) {
+                    displayValue = Array.isArray(value) ? `[${value.length}]` : '{...}';
+                }
+                html += `<div class="info-row"><span class="info-label">${key}:</span> <span class="info-value">${displayValue}</span></div>`;
+            }
+            html += '</div>';
+            infoPanel.innerHTML = html;
+        }
+
+        function setupSequenceDiagramInteractions(svgElement) {
+            svgElement.addEventListener('click', (e) => {
+                let target = e.target;
+                let lineElement = null;
+
+                const isLine = (el) => el && el.getAttribute && (el.getAttribute('class') || '').includes('messageLine');
+
+                if (target.tagName === 'path' || target.tagName === 'line') {
+                    if (isLine(target)) lineElement = target;
+                } else if (target.tagName === 'text' || target.tagName === 'tspan') {
+                    const textEl = target.closest('text');
+                    if (textEl && (textEl.getAttribute('class') || '').includes('messageText')) {
+                        let next = textEl.nextElementSibling;
+                        while (next) {
+                            if (isLine(next)) {
+                                lineElement = next;
+                                break;
+                            }
+                            if (next.tagName === 'text' && (next.getAttribute('class') || '').includes('messageText')) break;
+                            next = next.nextElementSibling;
+                        }
+                    }
+                }
+
+                if (lineElement) {
+                    svgElement.querySelectorAll('.active-connection').forEach(el => {
+                        if (el !== lineElement) el.classList.remove('active-connection');
+                    });
+                    lineElement.classList.toggle('active-connection');
+                    e.stopPropagation();
+                } else {
+                    svgElement.querySelectorAll('.active-connection').forEach(el => el.classList.remove('active-connection'));
+                }
+            });
+        }
+
+        // Event listeners
+        diagramTypeItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                currentDiagramType = item.getAttribute('data-type');
+                updateDiagramTypeSelection();
+                loadDiagram(currentDiagramType, currentMode);
+            });
+        });
+
+        modeSelect.addEventListener('change', (e) => {
+            currentMode = e.target.value;
+            loadDiagram(currentDiagramType, currentMode);
+        });
+
+        // Initialize
+        window.addEventListener('load', () => {
+            // Wait a bit more to ensure all scripts are fully loaded
+            setTimeout(() => {
+                updateDiagramTypeSelection();
+                loadDiagram(currentDiagramType, currentMode);
+            }, 100);
+        });
+    </script>
+</body>
+</html>
