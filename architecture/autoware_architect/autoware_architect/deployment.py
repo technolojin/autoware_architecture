@@ -15,13 +15,15 @@
 
 import os
 import logging
-from typing import Dict
+from typing import Dict, Tuple, List
 from .config import SystemConfig
 from .models.config import Config
+from .models.parameters import ParameterType
 from .builder.config_registry import ConfigRegistry
 from .builder.instances import DeploymentInstance
 from .builder.launcher_generator import generate_module_launch_file
 from .builder.parameter_template_generator import ParameterTemplateGenerator
+from .builder.parameter_resolver import ParameterResolver
 from .parsers.data_validator import entity_name_decode
 from .parsers.yaml_parser import yaml_parser
 from .exceptions import ValidationError
@@ -33,8 +35,8 @@ debug_mode = True
 class Deployment:
     def __init__(self, system_config: SystemConfig ):
         # entity collection
-        system_yaml_list = self._get_system_list(system_config)
-        self.config_registry = ConfigRegistry(system_yaml_list)
+        system_yaml_list, package_paths = self._get_system_list(system_config)
+        self.config_registry = ConfigRegistry(system_yaml_list, package_paths)
 
         # detect mode of input file (deployment vs system only)
         # if deployment_file ends with .system, it's a system-only file
@@ -47,7 +49,7 @@ class Deployment:
             self.config_yaml = {}
             self.config_yaml['system'] = system_config.deployment_file
             self.config_yaml['name'] = system_config.deployment_file
-            self.config_yaml.setdefault('vehicle_parameters', [])
+            self.config_yaml.setdefault('global_parameters', [])
             self.config_yaml.setdefault('environment_parameters', [])
             self.name = self.config_yaml.get("name")
 
@@ -57,12 +59,19 @@ class Deployment:
             self.config_yaml = yaml_parser.load_config(self.config_yaml_dir)
             self.name = self.config_yaml.get("name")
 
+        # create parameter resolver for ROS-independent operation
+        self.parameter_resolver = ParameterResolver(
+            global_params=self.config_yaml.get('global_parameters', []),
+            env_params=self.config_yaml.get('environment_parameters', []),
+            package_paths=package_paths
+        )
+
         # Check the configuration
         self._check_config()
 
         # member variables - now supports multiple instances (one per mode)
         self.deploy_instances: Dict[str, DeploymentInstance] = {}  # mode_name -> DeploymentInstance
-        self.vehicle_parameters_yaml = None
+        self.global_parameters_yaml = None
         self.sensor_calibration_yaml = None
         self.map_yaml = None
 
@@ -76,12 +85,12 @@ class Deployment:
         # build the deployment
         self.build()
 
-        # set the vehicle individual parameters
-        #   sensor calibration, vehicle parameters, map, etc.
+        # resolve parameter variables
 
 
-    def _get_system_list(self, system_config: SystemConfig) -> list[str]:
+    def _get_system_list(self, system_config: SystemConfig) -> Tuple[List[str], Dict[str, str]]:
         system_list: list[str] = []
+        package_paths: Dict[str, str] = {}
         manifest_dir = system_config.manifest_dir
         if not os.path.isdir(manifest_dir):
             raise ValidationError(f"Architecture manifest directory not found or not a directory: {manifest_dir}")
@@ -100,6 +109,12 @@ class Deployment:
                 if manifest_domain not in domains_filter:
                     logger.debug(f"Skipping manifest '{entry}' (domain='{manifest_domain}' not in filter)")
                     continue
+                
+                # Get package path if available
+                package_name = os.path.splitext(entry)[0]
+                if 'package_path' in manifest_yaml:
+                    package_paths[package_name] = manifest_yaml['package_path']
+
                 files = manifest_yaml.get('system_config_files')
                 # Allow the field to be empty or null without raising an error
                 if files in (None, []):
@@ -120,13 +135,13 @@ class Deployment:
                 logger.warning(f"Failed to load manifest {manifest_file}: {e}")
         if not system_list:
             raise ValidationError(f"No architecture configuration files collected (domains={sorted(domains_filter)}).")
-        return system_list
+        return system_list, package_paths
 
     def _check_config(self) -> bool:
         """Validate & normalize deployment configuration.
 
         Two supported input forms:
-        1. Deployment YAML (fields: name, system, vehicle_parameters, environment_parameters)
+        1. Deployment YAML (fields: name, system, global_parameters, environment_parameters)
         2. Raw System YAML (only 'name' ending with '.system'). We synthesize a minimal
            deployment in-memory (no vehicles / environment parameters) so downstream logic works.
         """
@@ -138,8 +153,8 @@ class Deployment:
                 )
 
         # Optional lists: default to empty if omitted
-        if 'vehicle_parameters' not in self.config_yaml:
-            self.config_yaml['vehicle_parameters'] = []
+        if 'global_parameters' not in self.config_yaml:
+            self.config_yaml['global_parameters'] = []
         if 'environment_parameters' not in self.config_yaml:
             self.config_yaml['environment_parameters'] = []
 
@@ -173,9 +188,13 @@ class Deployment:
                 
                 # Set system with mode filtering
                 deploy_instance.set_system(
-                    system, self.config_registry, mode=mode_name
+                    system, self.config_registry, mode=mode_name, parameter_resolver=self.parameter_resolver
                 )
                 
+                # Apply global parameters to all nodes in the deployment instance
+                global_params = self.config_yaml.get('global_parameters', [])
+                deploy_instance.apply_global_parameters(global_params)
+
                 # Store instance
                 mode_key = mode_name if mode_name else "default"
                 self.deploy_instances[mode_key] = deploy_instance
@@ -204,7 +223,6 @@ class Deployment:
         template_dir = os.path.join(os.path.dirname(__file__), "../template")
         node_dot_template_path = os.path.join(template_dir, "node_diagram.dot.jinja2")
         logit_dot_template_path = os.path.join(template_dir, "logic_diagram.dot.jinja2")
-        sequence_template_path = os.path.join(template_dir, "sequence_diagram.puml.jinja2")
         
         # Web visualization templates
         web_data_template_path = os.path.join(template_dir, "visualization", "data.js.jinja2")
@@ -223,8 +241,6 @@ class Deployment:
             filename_base = f"{self.name}_{mode_key}" if mode_key != "default" else self.name
             self.generate_by_template(data, node_dot_template_path, mode_visualization_dir, filename_base + "_node_graph.dot")
             self.generate_by_template(data, logit_dot_template_path, mode_visualization_dir, filename_base + "_logic_graph.dot")
-            self.generate_by_template(data, sequence_template_path, mode_visualization_dir, filename_base + "_sequence_graph.puml")
-            self.generate_by_template(data, sequence_html_template_path, mode_visualization_dir, filename_base + "_sequence_graph.html")
             
             # Generate JS data for web visualization
             web_data_dir = os.path.join(self.visualization_dir, "web", "data")
@@ -232,18 +248,26 @@ class Deployment:
             
             logger.info(f"Generated visualization for mode: {mode_key}")
 
-        # Generate node_diagram.html for web visualization (once)
+        # Generate web visualization files
         if self.deploy_instances:
             web_dir = os.path.join(self.visualization_dir, "web")
             modes = list(self.deploy_instances.keys())
             default_mode = "default" if "default" in modes else modes[0]
             
+            # Generate node_diagram.html
             index_data = {
                 "modes": modes,
                 "default_mode": default_mode
             }
             self.generate_by_template(index_data, web_index_template_path, web_dir, "node_diagram.html")
             logger.info("Generated web visualization node_diagram.html")
+            
+            # Generate sequence_graph.html for each mode
+            for mode_key, deploy_instance in self.deploy_instances.items():
+                data = deploy_instance.collect_instance_data()
+                filename_base = f"{self.name}_{mode_key}" if mode_key != "default" else self.name
+                self.generate_by_template(data, sequence_html_template_path, web_dir, filename_base + "_sequence_graph.html")
+                logger.info(f"Generated web visualization sequence_graph.html for mode: {mode_key}")
 
     def generate_system_monitor(self):
         # load the template file
@@ -301,3 +325,4 @@ class Deployment:
             logger.info(f"Generated {len(output_path_list)} parameter set templates for mode: {mode_key}")
         
         return output_paths
+
