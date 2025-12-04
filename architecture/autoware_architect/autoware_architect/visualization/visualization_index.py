@@ -259,6 +259,10 @@ def _generate_index_file(install_root: Path, output_file: Path):
             color: #0066cc;
             margin-bottom: 10px;
             word-break: break-word;
+            text-decoration: none;
+        }
+        .deployment-name:hover {
+            color: #0056b3;
         }
         .deployment-meta {
             color: #666;
@@ -282,10 +286,11 @@ def _generate_index_file(install_root: Path, output_file: Path):
 """
 
     for dep in deployments:
+        deployment_overview_path = dep['path'].parent / f"{dep['name']}_overview.html"
         html_content += f"""
             <li class="deployment-item">
                 <div class="deployment-header">
-                    <div class="deployment-name">{dep['name']}</div>
+                    <a href="{deployment_overview_path}?diagram=node_diagram" class="deployment-name">{dep['name']}</a>
                     <div class="deployment-meta">Package: <span class="deployment-package">{dep['package']}</span></div>
                 </div>
                 <div class="diagram-buttons">"""
