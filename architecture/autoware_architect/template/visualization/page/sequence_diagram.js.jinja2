@@ -57,18 +57,18 @@ class SequenceDiagramModule {
                     pointer-events: all;
                 }
                 .mermaid g [class^="messageLine"] {
-                    stroke: #888;
+                    stroke: #888888;
                     stroke-width: 7px !important;
+                }
+                .mermaid .line-hover {
+                    stroke: #555555;
+                    stroke-width: 8px !important;
                 }
                 .mermaid .line-highlight {
                     stroke: #dc3545 !important;
                     stroke-width: 8px !important;
                     filter: drop-shadow(0 0 2px rgba(0,0,0,0.3)) !important;
                     stroke-dasharray: none !important;
-                }
-                .mermaid .line-hover {
-                    stroke: #555 !important;
-                    stroke-width: 8px !important;
                 }
             `;
             document.head.appendChild(style);
@@ -232,7 +232,6 @@ class SequenceDiagramModule {
         svgElement.addEventListener('mouseover', (e) => {
             const target = e.target;
             if ((target.tagName === 'path' || target.tagName === 'line') && isLine(target)) {
-                // If this line is not selected, show hover highlight in #888
                 if (target !== selectedLine) {
                     target.classList.add('line-hover');
                 }
