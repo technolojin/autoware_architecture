@@ -386,6 +386,33 @@
             document.getElementById('loading-text').textContent = text;
         }
 
+        function updateInfoPanel(data, type) {
+            let html = `<div class="info-card"><div class="info-title">${type} Details</div>`;
+
+            function displayProps(obj) {
+                let str = '';
+                for (const [key, value] of Object.entries(obj)) {
+                    if (['id', 'children', 'edges', 'ports', 'layoutOptions', 'width', 'height', 'x', 'y', 'source', 'target', 'sections'].includes(key)) continue;
+
+                    let displayValue = value;
+                    if (typeof value === 'object' && value !== null) {
+                        if (Array.isArray(value)) displayValue = '[' + value.length + ']';
+                        else displayValue = '{...}';
+                    }
+
+                    str += `<div class="info-row">
+                        <span class="info-label">${key}:</span>
+                        <span class="info-value">${displayValue}</span>
+                    </div>`;
+                }
+                return str;
+            }
+
+            html += displayProps(data);
+            html += '</div>';
+            infoPanel.innerHTML = html;
+        }
+
         function updateDiagramTypeSelection() {
             // Update active state of diagram type items
             diagramTypeItems.forEach(item => {
