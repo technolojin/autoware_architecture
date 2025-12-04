@@ -223,7 +223,6 @@ class Deployment:
         template_dir = os.path.join(os.path.dirname(__file__), "../template")
         node_dot_template_path = os.path.join(template_dir, "node_diagram.dot.jinja2")
         logit_dot_template_path = os.path.join(template_dir, "logic_diagram.dot.jinja2")
-        sequence_template_path = os.path.join(template_dir, "sequence_diagram.puml.jinja2")
         
         # Web visualization templates
         web_data_template_path = os.path.join(template_dir, "visualization", "data.js.jinja2")
@@ -242,7 +241,6 @@ class Deployment:
             filename_base = f"{self.name}_{mode_key}" if mode_key != "default" else self.name
             self.generate_by_template(data, node_dot_template_path, mode_visualization_dir, filename_base + "_node_graph.dot")
             self.generate_by_template(data, logit_dot_template_path, mode_visualization_dir, filename_base + "_logic_graph.dot")
-            self.generate_by_template(data, sequence_template_path, mode_visualization_dir, filename_base + "_sequence_graph.puml")
             
             # Generate JS data for web visualization
             web_data_dir = os.path.join(self.visualization_dir, "web", "data")
