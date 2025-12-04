@@ -57,7 +57,7 @@ class SequenceDiagramModule {
                     pointer-events: all;
                 }
                 .mermaid g [class^="messageLine"] {
-                    stroke: #888;
+                    stroke: #555;
                     stroke-width: 7px !important;
                 }
                 .mermaid .line-highlight {
@@ -65,6 +65,10 @@ class SequenceDiagramModule {
                     stroke-width: 8px !important;
                     filter: drop-shadow(0 0 2px rgba(0,0,0,0.3)) !important;
                     stroke-dasharray: none !important;
+                }
+                .mermaid .line-hover {
+                    stroke: #888 !important;
+                    stroke-width: 8px !important;
                 }
             `;
             document.head.appendChild(style);
@@ -206,6 +210,7 @@ class SequenceDiagramModule {
 
         // Apply highlight styles to a line
         const applyHighlight = (lineElement) => {
+            lineElement.classList.remove('line-hover'); // Remove hover effect first
             lineElement.classList.add('line-highlight');
         };
 
@@ -218,6 +223,7 @@ class SequenceDiagramModule {
         const clearAllHighlights = () => {
             svgElement.querySelectorAll('[class*="messageLine"]').forEach(line => {
                 removeHighlight(line);
+                line.classList.remove('line-hover'); // Also remove any hover effects
             });
             selectedLine = null;
         };
@@ -226,9 +232,9 @@ class SequenceDiagramModule {
         svgElement.addEventListener('mouseover', (e) => {
             const target = e.target;
             if ((target.tagName === 'path' || target.tagName === 'line') && isLine(target)) {
-                // If this line is not selected, show hover highlight
+                // If this line is not selected, show hover highlight in #888
                 if (target !== selectedLine) {
-                    applyHighlight(target);
+                    target.classList.add('line-hover');
                 }
             }
         });
@@ -238,7 +244,7 @@ class SequenceDiagramModule {
             if ((target.tagName === 'path' || target.tagName === 'line') && isLine(target)) {
                 // If this line is not selected, remove hover highlight
                 if (target !== selectedLine) {
-                    removeHighlight(target);
+                    target.classList.remove('line-hover');
                 }
             }
         });
