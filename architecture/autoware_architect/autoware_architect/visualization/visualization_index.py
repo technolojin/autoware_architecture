@@ -75,8 +75,11 @@ def _generate_deployment_overview_pages(install_root: Path, deployments):
     from ..template_utils import TemplateRenderer
 
     renderer = TemplateRenderer()
+    overview_availability = {}
 
     for dep in deployments:
+        overview_available = False
+
         # Find available modes for this deployment
         visualization_root = install_root / dep['path'].parent.parent  # Go up from web/node_diagram.html
         available_modes = set()
@@ -95,78 +98,109 @@ def _generate_deployment_overview_pages(install_root: Path, deployments):
         default_mode = "default" if "default" in available_modes else (available_modes[0] if available_modes else "default")
         default_diagram_type = dep['diagram_types'][0] if dep['diagram_types'] else "node_diagram"
 
-        # Prepare template data
-        template_data = {
-            "deployment_name": dep['name'],
-            "package_name": dep['package'],
-            "available_diagram_types": dep['diagram_types'],
-            "available_modes": available_modes,
-            "default_diagram_type": default_diagram_type,
-            "default_mode": default_mode
-        }
+        # Only generate overview page if we have multiple diagram types or modes
+        should_generate_overview = len(dep['diagram_types']) > 1 or len(available_modes) > 1
 
-        # Generate the overview page
-        overview_path = install_root / dep['path'].parent / f"{dep['name']}_overview.html"
-        try:
-            renderer.render_template_to_file("visualization/page/deployment_overview.html.jinja2", str(overview_path), **template_data)
-            logger.info(f"Generated deployment overview page: {overview_path}")
-        except Exception as e:
-            logger.error(f"Failed to generate deployment overview page for {dep['name']}: {e}")
+        if should_generate_overview:
+            # Prepare template data
+            template_data = {
+                "deployment_name": dep['name'],
+                "package_name": dep['package'],
+                "available_diagram_types": dep['diagram_types'],
+                "available_modes": available_modes,
+                "default_diagram_type": default_diagram_type,
+                "default_mode": default_mode
+            }
+
+            # Generate the overview page
+            overview_path = install_root / dep['path'].parent / f"{dep['name']}_overview.html"
+            try:
+                renderer.render_template_to_file("visualization/page/deployment_overview.html.jinja2", str(overview_path), **template_data)
+                logger.info(f"Generated deployment overview page: {overview_path}")
+                overview_available = True
+            except Exception as e:
+                logger.error(f"Failed to generate deployment overview page for {dep['name']}: {e}")
+                overview_available = False
+        else:
+            logger.debug(f"Skipping overview page generation for {dep['name']} - single diagram type and mode")
+
+        overview_availability[dep['name']] = overview_available
+
+    return overview_availability
 
 def _generate_index_file(install_root: Path, output_file: Path):
     deployments = []
 
     # Walk through the install directory to find deployments
     # We scan specifically for our known structure to avoid false positives
-    for path in install_root.rglob("node_diagram.html"):
+    # Look for visualization directories and check what data files they contain
+    deployment_map = {}
+
+    for visualization_dir in install_root.rglob("visualization"):
         try:
             # Expected path structure:
-            # .../exports/<system_name>/visualization/web/node_diagram.html
+            # .../exports/<system_name>/visualization/
 
-            if len(path.parts) < 6:
+            if len(visualization_dir.parts) < 5:
                 continue
 
-            if path.parts[-2] == 'web' and path.parts[-3] == 'visualization':
-                if path.parts[-5] == 'exports':
-                    deployment_dir_name = path.parts[-4]
-                    package_name = path.parts[-6] # .../share/<pkg>/exports/...
+            if visualization_dir.parts[-3] == 'exports':
+                deployment_dir_name = visualization_dir.parts[-2]
+                package_name = visualization_dir.parts[-4]  # .../share/<pkg>/exports/...
 
-                    # Calculate relative path for the link
-                    try:
-                        rel_path = path.relative_to(install_root)
-                    except ValueError:
-                        continue
+                web_dir = visualization_dir / "web"
+                data_dir = web_dir / "data"
 
-                    # Find all available diagram types
-                    diagram_types = set()
-                    # Looking in .../visualization/ (parent of web)
-                    visualization_root = path.parents[1]
-                    if visualization_root.exists():
-                        # Look for node_diagram.html (already found via the rglob above)
-                        diagram_types.add('node_diagram')
+                if not web_dir.exists() or not data_dir.exists():
+                    continue
 
-                        # Look for sequence_diagram.html file
-                        sequence_diagram_path = visualization_root / "web" / "sequence_diagram.html"
-                        if sequence_diagram_path.exists():
-                            diagram_types.add('sequence_diagram')
+                # Skip if we've already processed this deployment
+                deployment_key = f"{package_name}:{deployment_dir_name}"
+                if deployment_key in deployment_map:
+                    continue
 
-                        # Could add more diagram types here in the future
-                        # e.g., look for other diagram files
+                # Find all available diagram types based on data files
+                diagram_types = set()
 
-                    deployments.append({
-                        'name': deployment_dir_name,
-                        'package': package_name,
-                        'path': rel_path,
-                        'diagram_types': sorted(list(diagram_types))
-                    })
-        except IndexError:
+                # Discover diagram types dynamically by looking for data files
+                # Pattern: <mode>_<diagram_type>.js
+                for data_file in data_dir.glob("*.js"):
+                    if data_file.name.endswith('.js'):
+                        # Extract diagram type from filename (remove mode prefix and .js extension)
+                        parts = data_file.stem.split('_')
+                        if len(parts) >= 2:
+                            diagram_type = '_'.join(parts[1:])  # Everything after the first underscore
+                            diagram_types.add(diagram_type)
+
+                # If no diagram types found, skip this deployment
+                if not diagram_types:
+                    continue
+
+                # Create a reference path - use the web directory as base
+                # The actual path will be constructed in the HTML generation based on availability
+                rel_path = web_dir.relative_to(install_root)
+
+                deployment_map[deployment_key] = {
+                    'name': deployment_dir_name,
+                    'package': package_name,
+                    'path': rel_path,
+                    'diagram_types': sorted(list(diagram_types))
+                }
+        except (IndexError, ValueError):
             continue
+
+    # Convert map to list
+    deployments.extend(deployment_map.values())
 
     # Sort by package then system name
     deployments.sort(key=lambda x: (x['package'], x['name']))
 
-    # Generate deployment overview pages
-    _generate_deployment_overview_pages(install_root, deployments)
+    # Generate deployment overview pages and get availability info
+    overview_availability = _generate_deployment_overview_pages(install_root, deployments)
+
+    # Update deployments with overview availability info
+    for dep in deployments:
+        dep['overview_available'] = overview_availability.get(dep['name'], False)
 
     # Generate HTML
     html_content = """<!DOCTYPE html>
@@ -286,21 +320,40 @@ def _generate_index_file(install_root: Path, output_file: Path):
 """
 
     for dep in deployments:
-        deployment_overview_path = dep['path'].parent / f"{dep['name']}_overview.html"
+        web_path = dep['path']  # This is now the web directory path
+        deployment_overview_path = web_path / f"{dep['name']}_overview.html"
+
         html_content += f"""
             <li class="deployment-item">
-                <div class="deployment-header">
-                    <a href="{deployment_overview_path}?diagram=node_diagram" class="deployment-name">{dep['name']}</a>
+                <div class="deployment-header">"""
+
+        # Use overview page link if available, otherwise show diagram types directly
+        if dep['overview_available']:
+            main_link = f"{deployment_overview_path}?diagram={dep['diagram_types'][0]}"
+        else:
+            # Use the first available diagram type as main link
+            main_diagram_type = dep['diagram_types'][0]
+            main_link = f"{web_path}/{main_diagram_type}.html"
+
+        html_content += f"""
+                    <a href="{main_link}" class="deployment-name">{dep['name']}</a>
                     <div class="deployment-meta">Package: <span class="deployment-package">{dep['package']}</span></div>
                 </div>
                 <div class="diagram-buttons">"""
 
+        # Show diagram type buttons
         for diagram_type in dep['diagram_types']:
             diagram_label = diagram_type.replace('_', ' ').title()
-            # Create a link to a unified deployment page with diagram type parameter
-            deployment_overview_path = dep['path'].parent / f"{dep['name']}_overview.html"
+
+            if dep['overview_available']:
+                # Use overview page with diagram parameter
+                diagram_link = f"{deployment_overview_path}?diagram={diagram_type}"
+            else:
+                # Use direct links to individual diagram pages (if they exist)
+                diagram_link = f"{web_path}/{diagram_type}.html"
+
             html_content += f"""
-                    <a class="diagram-button" href="{deployment_overview_path}?diagram={diagram_type}" data-type="{diagram_type}">
+                    <a class="diagram-button" href="{diagram_link}" data-type="{diagram_type}">
                         <span class="diagram-icon">{diagram_label}</span>
                     </a>"""
 

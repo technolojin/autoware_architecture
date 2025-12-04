@@ -36,7 +36,7 @@ def visualize_deployment(deploy_data: Dict[str, Dict], name: str, visualization_
 
     # Web visualization templates
     web_data_template_path = os.path.join(template_dir, "visualization", "data", "node_diagram_data.js.jinja2")
-    web_index_template_path = os.path.join(template_dir, "visualization", "page", "node_diagram.html.jinja2")
+    # web_node_diagram_template_path = os.path.join(template_dir, "visualization", "page", "node_diagram.html.jinja2")
     sequence_html_template_path = os.path.join(template_dir, "visualization", "page", "sequence_diagram.html.jinja2")
     sequence_mermaid_template_path = os.path.join(template_dir, "visualization", "data", "sequence_diagram_mermaid.jinja2")
     sequence_data_template_path = os.path.join(template_dir, "visualization", "data", "sequence_diagram_data.js.jinja2")
@@ -79,13 +79,13 @@ def visualize_deployment(deploy_data: Dict[str, Dict], name: str, visualization_
         modes = list(deploy_data.keys())
         default_mode = "default" if "default" in modes else modes[0]
 
-        # Generate node_diagram.html
-        index_data = {
-            "modes": modes,
-            "default_mode": default_mode
-        }
-        generate_by_template(index_data, web_index_template_path, web_dir, "node_diagram.html")
-        logger.info("Generated web visualization node_diagram.html")
+        # # Generate node_diagram.html
+        # index_data = {
+        #     "modes": modes,
+        #     "default_mode": default_mode
+        # }
+        # generate_by_template(index_data, web_node_diagram_template_path, web_dir, "node_diagram.html")
+        # logger.info("Generated web visualization node_diagram.html")
 
         # Generate sequence_diagram.html (single file with mode selector)
         sequence_index_data = {
