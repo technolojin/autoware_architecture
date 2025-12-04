@@ -409,6 +409,9 @@
         let nodeDiagramInstance = null;
         let sequenceDiagramInstance = null;
 
+        // Data store for interactions (decoupled from ELK graph)
+        let elementData = new Map();
+
         // DOM elements
         const modeSelect = document.getElementById('mode-selector');
         const diagramDisplay = document.getElementById('diagram-display');
@@ -599,7 +602,7 @@
 
         // Node diagram functions (adapted from original template)
         function transformNodeDataToElk(root) {
-            const elementData = new Map();
+            elementData.clear();
 
             function convertNode(instance) {
                 if (!instance || !instance.unique_id) return null;
@@ -803,8 +806,15 @@
                 rect.setAttribute("height", node.height);
                 rect.setAttribute("rx", 4);
                 rect.classList.add("node-rect");
-                rect.setAttribute("fill", "#ffffff");
-                rect.setAttribute("stroke", "#333");
+
+                const userData = elementData.get(node.id) || {};
+                const visGuide = userData.vis_guide || {};
+                let fillColor = visGuide.background_color || "#ffffff";
+                if (userData.entity_type === "node") {
+                    fillColor = visGuide.medium_color || fillColor;
+                }
+                rect.setAttribute("fill", fillColor);
+                rect.setAttribute("stroke", visGuide.color || "#333");
 
                 rect.onclick = (e) => {
                     e.stopPropagation();
