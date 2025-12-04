@@ -385,7 +385,7 @@
 
     <!-- Canvas Container -->
     <div id="canvas-container">
-        <div id="diagram-display"></div>
+        <div id="diagram-container" style="width: 100%; height: 100%; position: relative;"></div>
     </div>
 
     <script>
@@ -414,28 +414,16 @@
 
         // DOM elements
         const modeSelect = document.getElementById('mode-selector');
-        const diagramDisplay = document.getElementById('diagram-display');
+        const diagramContainer = document.getElementById('diagram-container');
         const loading = document.getElementById('loading');
         const infoPanel = document.getElementById('info-panel');
         const diagramTypeItems = document.querySelectorAll('.diagram-type-item');
 
-        // Initialize Mermaid
-        console.log('Mermaid available:', typeof mermaid);
-        if (typeof mermaid === 'undefined') {
-            throw new Error('Mermaid library not loaded');
-        }
-        mermaid.initialize({
-            startOnLoad: false,
-            theme: 'default',
-            securityLevel: 'loose',
-            sequence: {
-                showSequenceNumbers: false,
-                useMaxWidth: false,
-                mirrorActors: true,
-                bottomMarginAdj: 10,
-                messageAlign: 'center'
-            }
-        });
+        // Current diagram module instance
+        let currentDiagramModule = null;
+
+        // DOM element for diagram content
+        const diagramContent = document.getElementById('diagram-content');
 
         function showLoading(show, text = "Loading...") {
             loading.style.display = show ? 'flex' : 'none';
@@ -453,15 +441,52 @@
             });
         }
 
+        async function loadDiagramModule(diagramType, mode) {
+            // Destroy current diagram module if it exists
+            if (currentDiagramModule) {
+                currentDiagramModule.destroy();
+                currentDiagramModule = null;
+            }
+
+            // Clear container
+            diagramContainer.innerHTML = '';
+
+            try {
+                // Load the appropriate module script if not already loaded
+                const moduleUrl = `${diagramType}.js`;
+                await loadScript(moduleUrl);
+
+                // Create module instance
+                const ModuleClass = diagramType === 'node_diagram' ? window.NodeDiagramModule :
+                                  diagramType === 'sequence_diagram' ? window.SequenceDiagramModule : null;
+
+                if (!ModuleClass) {
+                    throw new Error(`Module class not found for diagram type: ${diagramType}. Make sure ${moduleUrl} is properly generated.`);
+                }
+
+                currentDiagramModule = new ModuleClass(diagramContainer, {
+                    mode: mode,
+                    deployment: deploymentName,
+                    onInfoUpdate: (data, type) => {
+                        updateInfoPanel(data, type);
+                    }
+                });
+
+                // Show info panel for node diagrams, hide for sequence diagrams
+                infoPanel.style.display = diagramType === 'node_diagram' ? 'block' : 'none';
+
+            } catch (error) {
+                console.error('Error loading diagram module:', error);
+                const errorMessage = error.message || 'Unknown error occurred';
+                diagramContainer.innerHTML = `<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #dc3545; font-family: Arial, sans-serif;">Error loading diagram: ${errorMessage}</div>`;
+            }
+        }
+
         async function loadDiagram(diagramType, mode) {
             showLoading(true, `Loading ${diagramType.replace('_', ' ')}...`);
 
             try {
-                if (diagramType === 'node_diagram') {
-                    await loadNodeDiagram(mode);
-                } else if (diagramType === 'sequence_diagram') {
-                    await loadSequenceDiagram(mode);
-                }
+                await loadDiagramModule(diagramType, mode);
             } catch (error) {
                 console.error('Error loading diagram:', error);
                 alert(`Error loading diagram: ${error.message}`);
@@ -470,122 +495,16 @@
             }
         }
 
-        async function loadNodeDiagram(mode) {
-            console.log('Loading node diagram for mode:', mode);
-
-            // Clear previous content
-            diagramDisplay.innerHTML = '';
-
-            // Create container
-            const container = document.createElement('div');
-            container.className = 'node-diagram-container';
-            container.id = 'node-diagram-svg';
-            diagramDisplay.appendChild(container);
-
-            console.log('Container created');
-
-            // Load data script if not already loaded
-            if (!window.architectureData || !window.architectureData[mode]) {
-                console.log('Loading data script for mode:', mode);
-                await loadScript(`./data/${mode}_node_diagram.js`);
-            }
-
-            if (!window.architectureData || !window.architectureData[mode]) {
-                console.error('No data available after loading script for mode:', mode);
-                throw new Error(`No data available for mode: ${mode}`);
-            }
-
-            console.log('Data loaded successfully, transforming...');
-
-            // Transform and render
-            const elkGraph = transformNodeDataToElk(window.architectureData[mode]);
-            console.log('Data transformed, rendering...');
-            await layoutAndRenderNodeDiagram(elkGraph);
-
-            console.log('Node diagram rendered successfully');
-
-            // Show info panel for node diagrams
-            infoPanel.style.display = 'block';
-        }
-
-        async function loadSequenceDiagram(mode) {
-            console.log('Loading sequence diagram for mode:', mode);
-
-            // Clear previous content
-            diagramDisplay.innerHTML = '';
-
-            // Create container
-            const container = document.createElement('div');
-            container.className = 'sequence-diagram-container';
-            diagramDisplay.appendChild(container);
-
-            const mermaidContainer = document.createElement('div');
-            mermaidContainer.className = 'mermaid';
-            container.appendChild(mermaidContainer);
-
-            console.log('Sequence diagram container created');
-
-            // Load data script if not already loaded
-            if (!window.sequenceDiagramData || !window.sequenceDiagramData[mode]) {
-                console.log('Loading sequence diagram data script for mode:', mode);
-                await loadScript(`./data/${mode}_sequence_diagram.js`);
-            }
-
-            if (!window.sequenceDiagramData || !window.sequenceDiagramData[mode]) {
-                console.error('No sequence diagram data available after loading script for mode:', mode);
-                throw new Error(`No sequence diagram data available for mode: ${mode}`);
-            }
-
-            console.log('Sequence diagram data loaded, rendering with Mermaid...');
-
-            // Render sequence diagram
-            const { svg } = await mermaid.render('sequence-diagram-svg-' + Date.now(), window.sequenceDiagramData[mode]);
-            console.log('Mermaid render completed');
-            mermaidContainer.innerHTML = svg;
-
-            const svgElement = mermaidContainer.querySelector('svg');
-            if (svgElement) {
-                svgElement.style.maxWidth = 'none';
-                svgElement.style.height = '100%';
-                svgElement.style.width = '100%';
-
-                // Initialize pan-zoom with full diagram visible
-                sequenceDiagramInstance = svgPanZoom(svgElement, {
-                    zoomEnabled: true,
-                    controlIconsEnabled: false,
-                    fit: true,
-                    center: true,
-                    minZoom: 0.05, // Even lower to show more
-                    maxZoom: 50,
-                    zoomScaleSensitivity: 0.4,
-                    dblClickZoomEnabled: false,
-                    contain: false // Allow panning outside bounds
-                });
-
-                // Ensure the entire diagram is visible initially with some padding
-                setTimeout(() => {
-                    if (sequenceDiagramInstance) {
-                        // Zoom out more to show more of the diagram
-                        const sizes = sequenceDiagramInstance.getSizes();
-                        const zoomLevel = Math.min(
-                            sizes.viewBox.width / sizes.width,
-                            sizes.viewBox.height / sizes.height
-                        ) * 0.8; // 80% to add some margin
-                        sequenceDiagramInstance.zoom(zoomLevel);
-                        sequenceDiagramInstance.center();
-                    }
-                }, 200);
-
-                // Add click interactions
-                setupSequenceDiagramInteractions(svgElement);
-            }
-
-            // Hide info panel for sequence diagrams
-            infoPanel.style.display = 'none';
-        }
 
         function loadScript(src) {
             return new Promise((resolve, reject) => {
+                // Check if script is already loaded
+                const existingScript = document.querySelector(`script[src="${src}"]`);
+                if (existingScript) {
+                    resolve();
+                    return;
+                }
+
                 const script = document.createElement('script');
                 script.src = src;
                 script.onload = () => {
@@ -600,383 +519,8 @@
             });
         }
 
-        // Node diagram functions (adapted from original template)
-        function transformNodeDataToElk(root) {
-            elementData.clear();
 
-            function convertNode(instance) {
-                if (!instance || !instance.unique_id) return null;
 
-                const nodeId = String(instance.unique_id);
-                elementData.set(nodeId, instance);
-
-                const inPortsCount = (instance.in_ports || []).length;
-                const outPortsCount = (instance.out_ports || []).length;
-                const maxPorts = Math.max(inPortsCount, outPortsCount);
-                const nodeHeight = Math.max(100, 80 + maxPorts * 25);
-
-                const node = {
-                    id: nodeId,
-                    labels: [
-                        { text: (instance.namespace && instance.namespace.join('/')) || "" },
-                        { text: instance.name || nodeId || "Unnamed" }
-                    ],
-                    width: 300,
-                    height: nodeHeight,
-                    children: [],
-                    ports: [],
-                    properties: {
-                        'org.eclipse.elk.portConstraints': 'FIXED_SIDE',
-                        'org.eclipse.elk.nodeLabels.placement': 'H_CENTER V_TOP',
-                        'org.eclipse.elk.portLabels.placement': 'INSIDE',
-                        'org.eclipse.elk.portAlignment.default': 'CENTER',
-                        'org.eclipse.elk.spacing.portPort': '15'
-                    }
-                };
-
-                // Add ports
-                (instance.in_ports || []).forEach(port => {
-                    if (!port.unique_id) return;
-                    const portId = String(port.unique_id);
-                    elementData.set(portId, port);
-                    node.ports.push({
-                        id: portId,
-                        width: 10,
-                        height: 10,
-                        properties: { 'org.eclipse.elk.port.side': 'WEST' },
-                        labels: [{ text: port.name || "Port", width: ((port.name && port.name.length) || 4) * 6, height: 10 }]
-                    });
-                });
-
-                (instance.out_ports || []).forEach(port => {
-                    if (!port.unique_id) return;
-                    const portId = String(port.unique_id);
-                    elementData.set(portId, port);
-                    node.ports.push({
-                        id: portId,
-                        width: 10,
-                        height: 10,
-                        properties: { 'org.eclipse.elk.port.side': 'EAST' },
-                        labels: [{ text: port.name || "Port", width: ((port.name && port.name.length) || 4) * 6, height: 10 }]
-                    });
-                });
-
-                // Add children
-                if (instance.children && instance.children.length > 0) {
-                    node.children = instance.children.map(convertNode).filter(n => n);
-                    if (node.children.length > 0) {
-                        delete node.width;
-                        delete node.height;
-                    }
-                }
-
-                // Add links
-                if (instance.links) {
-                    node.edges = instance.links.map((link, index) => {
-                        if (!link.from_port || !link.to_port) return null;
-                        const edgeId = `edge_${link.from_port.unique_id}_${link.to_port.unique_id}_${index}`;
-                        elementData.set(edgeId, link);
-                        return {
-                            id: edgeId,
-                            sources: [String(link.from_port.unique_id)],
-                            targets: [String(link.to_port.unique_id)],
-                            properties: {}
-                        };
-                    }).filter(e => e);
-                }
-
-                return node;
-            }
-
-            const rootNode = convertNode(root);
-            if (rootNode) {
-                delete rootNode.width;
-                delete rootNode.height;
-                if (!rootNode.id) rootNode.id = 'root';
-            }
-
-            return rootNode;
-        }
-
-        async function layoutAndRenderNodeDiagram(graphData) {
-            console.log('ELK available:', typeof ELK);
-            console.log('ELK object:', ELK);
-
-            let elk;
-            if (typeof ELK === 'function') {
-                elk = new ELK();
-            } else if (typeof ELK.default === 'function') {
-                elk = new ELK.default();
-            } else {
-                throw new Error('ELK library not properly loaded');
-            }
-
-            console.log('ELK instance created:', elk);
-
-            const graph = await elk.layout(graphData, {
-                layoutOptions: {
-                    'algorithm': 'layered',
-                    'org.eclipse.elk.direction': 'RIGHT',
-                    'org.eclipse.elk.spacing.nodeNode': '60',
-                    'org.eclipse.elk.spacing.edgeNode': '30',
-                    'org.eclipse.elk.edgeRouting': 'ORTHOGONAL',
-                    'org.eclipse.elk.layered.spacing.edgeNodeBetweenLayers': '30',
-                    'org.eclipse.elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
-                    'org.eclipse.elk.layered.layering.strategy': 'INTERACTIVE',
-                    'org.eclipse.elk.padding': '[top=50,left=50,bottom=50,right=50]'
-                }
-            });
-
-            console.log('ELK layout completed, result:', graph);
-            renderNodeDiagram(graph);
-            fitNodeDiagramToScreen();
-        }
-
-        function renderNodeDiagram(graph) {
-            console.log('Rendering node diagram, graph:', graph);
-            const container = document.getElementById('node-diagram-svg');
-            console.log('Container element:', container);
-            container.innerHTML = '';
-
-            // Create proper SVG root element
-            const svgRoot = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-            svgRoot.setAttribute("width", "100%");
-            svgRoot.setAttribute("height", "100%");
-            svgRoot.style.width = "100%";
-            svgRoot.style.height = "100%";
-            svgRoot.style.cursor = "grab";
-
-            const svg = document.createElementNS("http://www.w3.org/2000/svg", "g");
-            svg.id = 'zoom-layer';
-            svgRoot.appendChild(svg);
-            container.appendChild(svgRoot);
-            console.log('SVG root and group elements created and added to container');
-
-            // Add zoom/pan functionality
-            let transform = { x: 0, y: 0, k: 1 };
-            let isDragging = false;
-            let startPoint = { x: 0, y: 0 };
-
-            function updateTransform() {
-                svg.setAttribute("transform", `translate(${transform.x},${transform.y}) scale(${transform.k})`);
-            }
-
-            svgRoot.addEventListener('wheel', (e) => {
-                e.preventDefault();
-                const zoomIntensity = 0.1;
-                const delta = e.deltaY > 0 ? -zoomIntensity : zoomIntensity;
-                const newScale = transform.k * (1 + delta);
-                const rect = svgRoot.getBoundingClientRect();
-                const mouseX = e.clientX - rect.left;
-                const mouseY = e.clientY - rect.top;
-                transform.x -= (mouseX - transform.x) * delta;
-                transform.y -= (mouseY - transform.y) * delta;
-                transform.k = Math.min(Math.max(newScale, 0.1), 5);
-                updateTransform();
-            });
-
-            svgRoot.addEventListener('mousedown', (e) => {
-                isDragging = true;
-                svgRoot.style.cursor = "grabbing";
-                startPoint = { x: e.clientX - transform.x, y: e.clientY - transform.y };
-            });
-
-            window.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-                e.preventDefault();
-                transform.x = e.clientX - startPoint.x;
-                transform.y = e.clientY - startPoint.y;
-                updateTransform();
-            });
-
-            window.addEventListener('mouseup', () => {
-                isDragging = false;
-                svgRoot.style.cursor = "grab";
-            });
-
-            // Render nodes and edges (simplified version)
-            function renderNode(node, parentGroup, depth = 0) {
-                console.log('Rendering node:', node.id, 'at depth:', depth);
-                const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-                g.setAttribute("transform", `translate(${node.x},${node.y})`);
-                g.classList.add("node-group");
-
-                const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-                rect.setAttribute("width", node.width);
-                rect.setAttribute("height", node.height);
-                rect.setAttribute("rx", 4);
-                rect.classList.add("node-rect");
-
-                const userData = elementData.get(node.id) || {};
-                const visGuide = userData.vis_guide || {};
-                let fillColor = visGuide.background_color || "#ffffff";
-                if (userData.entity_type === "node") {
-                    fillColor = visGuide.medium_color || fillColor;
-                }
-                rect.setAttribute("fill", fillColor);
-                rect.setAttribute("stroke", visGuide.color || "#333");
-
-                rect.onclick = (e) => {
-                    e.stopPropagation();
-                    updateInfoPanel(node, 'Node');
-                    document.querySelectorAll('.highlighted').forEach(el => el.classList.remove('highlighted'));
-                    g.classList.add('highlighted');
-                };
-
-                g.appendChild(rect);
-
-                if (node.labels && node.labels.length > 0) {
-                    const fontSize = Math.max(12, 36 - (depth * 5));
-                    let yOffset = 10;
-
-                    if (node.labels.length > 1 && node.labels[0].text) {
-                        const nsText = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                        nsText.setAttribute("x", node.width / 2);
-                        nsText.setAttribute("y", yOffset);
-                        nsText.textContent = "/" + node.labels[0].text + "/";
-                        nsText.classList.add("node-label");
-                        nsText.style.fontSize = "5px";
-                        nsText.style.fill = "#6c757d";
-                        g.appendChild(nsText);
-                        yOffset += 8;
-                    }
-
-                    const nameText = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                    nameText.setAttribute("x", node.width / 2);
-                    nameText.setAttribute("y", yOffset + fontSize / 2);
-                    nameText.textContent = node.labels[node.labels.length - 1].text;
-                    nameText.classList.add("node-label");
-                    nameText.style.fontSize = `${fontSize}px`;
-                    if (depth <= 1) nameText.style.fontWeight = "bold";
-                    g.appendChild(nameText);
-                }
-
-                if (node.children) {
-                    node.children.forEach(child => renderNode(child, g, depth + 1));
-                }
-
-                if (node.edges) {
-                    node.edges.forEach(edge => {
-                        if (!edge.sections) return;
-                        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                        let d = "";
-                        edge.sections.forEach(section => {
-                            d += `M ${section.startPoint.x} ${section.startPoint.y} `;
-                            if (section.bendPoints) {
-                                section.bendPoints.forEach(bp => d += `L ${bp.x} ${bp.y} `);
-                            }
-                            d += `L ${section.endPoint.x} ${section.endPoint.y} `;
-                        });
-                        path.setAttribute("d", d);
-                        path.classList.add("edge-path");
-                        path.setAttribute("marker-end", "url(#arrowhead)");
-                        g.appendChild(path);
-                    });
-                }
-
-                parentGroup.appendChild(g);
-            }
-
-            // Add arrow marker
-            const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-            defs.innerHTML = `
-                <marker id="arrowhead" markerWidth="10" markerHeight="7"
-                refX="10" refY="3.5" orient="auto">
-                  <polygon points="0 0, 10 3.5, 0 7" fill="#adb5bd" />
-                </marker>
-            `;
-            svgRoot.insertBefore(defs, svg);
-
-            renderNode(graph, svg);
-        }
-
-        function fitNodeDiagramToScreen() {
-            const container = document.getElementById('node-diagram-svg');
-            const svg = container.querySelector('#zoom-layer');
-            if (!svg) {
-                console.error('No zoom-layer SVG found');
-                return;
-            }
-
-            const bbox = svg.getBBox();
-            console.log('SVG bbox:', bbox);
-
-            if (bbox.width === 0 || bbox.height === 0) {
-                console.error('SVG has zero size bbox, no content to display');
-                // Try to get bbox of the SVG root instead
-                const svgRoot = container.querySelector('svg');
-                if (svgRoot) {
-                    const rootBbox = svgRoot.getBBox();
-                    console.log('SVG root bbox:', rootBbox);
-                }
-                return;
-            }
-
-            const containerRect = container.getBoundingClientRect();
-            console.log('Container rect:', containerRect);
-
-            const scale = Math.min(
-                (containerRect.width - 40) / bbox.width,
-                (containerRect.height - 40) / bbox.height
-            );
-
-            console.log('Calculated scale:', scale);
-
-            // Reset transform
-            const transform = `translate(${(containerRect.width - bbox.width * scale) / 2 - bbox.x * scale},${(containerRect.height - bbox.height * scale) / 2 - bbox.y * scale}) scale(${Math.min(scale, 1)})`;
-            console.log('Setting transform:', transform);
-            svg.setAttribute("transform", transform);
-        }
-
-        function updateInfoPanel(data, type) {
-            let html = `<div class="info-card"><div class="info-title">${type} Details</div>`;
-            for (const [key, value] of Object.entries(data)) {
-                if (['id', 'children', 'edges', 'ports', 'layoutOptions', 'width', 'height', 'x', 'y', 'source', 'target', 'sections'].includes(key)) continue;
-                let displayValue = value;
-                if (typeof value === 'object' && value !== null) {
-                    displayValue = Array.isArray(value) ? `[${value.length}]` : '{...}';
-                }
-                html += `<div class="info-row"><span class="info-label">${key}:</span> <span class="info-value">${displayValue}</span></div>`;
-            }
-            html += '</div>';
-            infoPanel.innerHTML = html;
-        }
-
-        function setupSequenceDiagramInteractions(svgElement) {
-            svgElement.addEventListener('click', (e) => {
-                let target = e.target;
-                let lineElement = null;
-
-                const isLine = (el) => el && el.getAttribute && (el.getAttribute('class') || '').includes('messageLine');
-
-                if (target.tagName === 'path' || target.tagName === 'line') {
-                    if (isLine(target)) lineElement = target;
-                } else if (target.tagName === 'text' || target.tagName === 'tspan') {
-                    const textEl = target.closest('text');
-                    if (textEl && (textEl.getAttribute('class') || '').includes('messageText')) {
-                        let next = textEl.nextElementSibling;
-                        while (next) {
-                            if (isLine(next)) {
-                                lineElement = next;
-                                break;
-                            }
-                            if (next.tagName === 'text' && (next.getAttribute('class') || '').includes('messageText')) break;
-                            next = next.nextElementSibling;
-                        }
-                    }
-                }
-
-                if (lineElement) {
-                    svgElement.querySelectorAll('.active-connection').forEach(el => {
-                        if (el !== lineElement) el.classList.remove('active-connection');
-                    });
-                    lineElement.classList.toggle('active-connection');
-                    e.stopPropagation();
-                } else {
-                    svgElement.querySelectorAll('.active-connection').forEach(el => el.classList.remove('active-connection'));
-                }
-            });
-        }
 
         // Event listeners
         diagramTypeItems.forEach(item => {

@@ -41,6 +41,11 @@ def visualize_deployment(deploy_data: Dict[str, Dict], name: str, visualization_
     sequence_mermaid_template_path = os.path.join(template_dir, "visualization", "sequence_diagram_mermaid.jinja2")
     sequence_data_template_path = os.path.join(template_dir, "visualization", "sequence_diagram_data.js.jinja2")
 
+    # Module templates for overview page
+    node_module_template_path = os.path.join(template_dir, "visualization", "node_diagram.js.jinja2")
+    sequence_module_template_path = os.path.join(template_dir, "visualization", "sequence_diagram.js.jinja2")
+    overview_template_path = os.path.join(template_dir, "visualization", "deployment_overview.html.jinja2")
+
     # Generate visualization for each mode
     for mode_key, data in deploy_data.items():
 
@@ -90,6 +95,29 @@ def visualize_deployment(deploy_data: Dict[str, Dict], name: str, visualization_
         }
         generate_by_template(sequence_index_data, sequence_html_template_path, web_dir, "sequence_diagram.html")
         logger.info("Generated web visualization sequence_diagram.html")
+
+        # Generate module JS files for overview page
+        module_data = {
+            "modes": modes,
+            "default_mode": default_mode
+        }
+        generate_by_template(module_data, node_module_template_path, web_dir, "node_diagram.js")
+        logger.info("Generated node diagram module: node_diagram.js")
+
+        generate_by_template(module_data, sequence_module_template_path, web_dir, "sequence_diagram.js")
+        logger.info("Generated sequence diagram module: sequence_diagram.js")
+
+        # Generate overview HTML file
+        overview_data = {
+            "deployment_name": name,
+            "package_name": name,  # Using name as package name for now
+            "available_modes": modes,
+            "available_diagram_types": ["node_diagram", "sequence_diagram"],
+            "default_mode": default_mode,
+            "default_diagram_type": "node_diagram"
+        }
+        generate_by_template(overview_data, overview_template_path, web_dir, f"{name}_overview.html")
+        logger.info(f"Generated deployment overview: {name}_overview.html")
 
 
 def generate_by_template(data, template_path, output_dir, output_filename):

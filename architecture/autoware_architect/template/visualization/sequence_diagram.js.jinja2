@@ -1,0 +1,227 @@
+// Sequence Diagram Module
+// This module provides functionality to render sequence diagrams in a given container
+
+class SequenceDiagramModule {
+    constructor(container, options = {}) {
+        this.container = container;
+        this.options = {
+            mode: options.mode || 'default',
+            deployment: options.deployment || '',
+            ...options
+        };
+
+        this.panZoomInstance = null;
+        this.init();
+    }
+
+    async init() {
+        // Load required libraries if not already loaded
+        if (typeof mermaid === 'undefined') {
+            await this.loadScript('https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js');
+        }
+        if (typeof svgPanZoom === 'undefined') {
+            await this.loadScript('https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js');
+        }
+
+        // Initialize Mermaid
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: 'default',
+            securityLevel: 'loose',
+            sequence: {
+                showSequenceNumbers: false,
+                useMaxWidth: false,
+                mirrorActors: true,
+                bottomMarginAdj: 10,
+                messageAlign: 'center'
+            }
+        });
+
+        // Load and render the diagram
+        await this.loadAndRender();
+    }
+
+    async loadScript(src) {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = () => resolve();
+            script.onerror = (error) => reject(error);
+            document.head.appendChild(script);
+        });
+    }
+
+    async loadDataScript(mode) {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = `data/${mode}_sequence_diagram.js`;
+            script.onload = () => resolve();
+            script.onerror = (error) => reject(error);
+            document.head.appendChild(script);
+        });
+    }
+
+    async loadAndRender() {
+        try {
+            // Load data if not already loaded
+            if (!window.sequenceDiagramData || !window.sequenceDiagramData[this.options.mode]) {
+                await this.loadDataScript(this.options.mode);
+            }
+
+            if (!window.sequenceDiagramData || !window.sequenceDiagramData[this.options.mode]) {
+                throw new Error(`No sequence diagram data available for mode: ${this.options.mode}`);
+            }
+
+            // Render sequence diagram
+            await this.renderSequenceDiagram(window.sequenceDiagramData[this.options.mode]);
+
+        } catch (error) {
+            console.error('Error loading sequence diagram:', error);
+            this.showError(`Error loading sequence diagram: ${error.message}`);
+        }
+    }
+
+    async renderSequenceDiagram(mermaidSyntax) {
+        // Clear container
+        this.container.innerHTML = '';
+
+        // Create mermaid container
+        const mermaidContainer = document.createElement('div');
+        mermaidContainer.className = 'mermaid';
+        this.container.appendChild(mermaidContainer);
+
+        try {
+            // Render with Mermaid
+            const { svg } = await mermaid.render('sequence-diagram-svg-' + Date.now(), mermaidSyntax);
+            mermaidContainer.innerHTML = svg;
+
+            const svgElement = mermaidContainer.querySelector('svg');
+            if (svgElement) {
+                // Configure SVG
+                svgElement.style.maxWidth = 'none';
+                svgElement.style.height = '100%';
+                svgElement.style.width = '100%';
+
+                // Add interaction styles
+                this.addInteractionStyles(svgElement);
+
+                // Initialize pan-zoom
+                this.panZoomInstance = svgPanZoom(svgElement, {
+                    zoomEnabled: true,
+                    controlIconsEnabled: false,
+                    fit: true,
+                    center: true,
+                    minZoom: 0.5,
+                    maxZoom: 50,
+                    zoomScaleSensitivity: 0.4,
+                    dblClickZoomEnabled: false
+                });
+
+                // Initial fit
+                setTimeout(() => {
+                    if (this.panZoomInstance) {
+                        this.panZoomInstance.resize();
+                        this.panZoomInstance.fit();
+                        this.panZoomInstance.center();
+                    }
+                }, 200);
+            }
+        } catch (e) {
+            console.error("Mermaid rendering failed:", e);
+            throw new Error("Error rendering sequence diagram: " + e.message);
+        }
+    }
+
+    addInteractionStyles(svgElement) {
+        // Add CSS for interactions
+        const style = document.createElement('style');
+        style.textContent = `
+            .mermaid .active-connection,
+            .mermaid .active-connection:hover {
+                stroke-width: 7px !important;
+                stroke: #dc3545 !important;
+                filter: drop-shadow(0 0 2px rgba(0,0,0,0.3));
+                stroke-dasharray: none !important;
+            }
+            .mermaid g [class^="messageLine"],
+            .mermaid g [class^="messageText"] {
+                cursor: pointer !important;
+                pointer-events: all;
+            }
+            .mermaid g [class^="messageLine"] {
+                stroke-width: 6px !important;
+                stroke: #888 !important;
+            }
+            .mermaid g [class^="messageLine"]:hover {
+                stroke: #555 !important;
+                stroke-width: 7px !important;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Add click interactions
+        svgElement.addEventListener('click', (e) => {
+            let target = e.target;
+            let lineElement = null;
+
+            const isLine = (el) => {
+                if (!el || !el.getAttribute) return false;
+                const cls = el.getAttribute('class') || '';
+                return cls.includes('messageLine');
+            };
+
+            if (target.tagName === 'path' || target.tagName === 'line') {
+                if (isLine(target)) {
+                    lineElement = target;
+                }
+            } else if (target.tagName === 'text' || target.tagName === 'tspan') {
+                const textEl = target.closest('text');
+                if (textEl && (textEl.getAttribute('class') || '').includes('messageText')) {
+                    let next = textEl.nextElementSibling;
+                    while (next) {
+                        if (isLine(next)) {
+                            lineElement = next;
+                            break;
+                        }
+                        if (next.tagName === 'text' && (next.getAttribute('class') || '').includes('messageText')) break;
+                        next = next.nextElementSibling;
+                    }
+                }
+            }
+
+            if (lineElement) {
+                svgElement.querySelectorAll('.active-connection').forEach(el => {
+                    if (el !== lineElement) el.classList.remove('active-connection');
+                });
+                lineElement.classList.toggle('active-connection');
+                e.stopPropagation();
+            } else {
+                svgElement.querySelectorAll('.active-connection').forEach(el => {
+                    el.classList.remove('active-connection');
+                });
+            }
+        });
+    }
+
+    resetZoom() {
+        if (this.panZoomInstance) {
+            this.panZoomInstance.reset();
+            this.panZoomInstance.center();
+        }
+    }
+
+    showError(message) {
+        this.container.innerHTML = `<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #dc3545;">${message}</div>`;
+    }
+
+    destroy() {
+        if (this.panZoomInstance) {
+            this.panZoomInstance.destroy();
+            this.panZoomInstance = null;
+        }
+        this.container.innerHTML = '';
+    }
+}
+
+// Export for use in the overview page
+window.SequenceDiagramModule = SequenceDiagramModule;
