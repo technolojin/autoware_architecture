@@ -148,10 +148,7 @@
 
         async function renderSequenceDiagram(mermaidSyntax) {
             showLoading(true, "Rendering Diagram...");
-            
-            // Clear previous content
-            mermaidContainer.innerHTML = '';
-            
+
             // Destroy previous pan-zoom instance if it exists
             if (panZoomInstance) {
                 panZoomInstance.destroy();
@@ -159,23 +156,19 @@
             }
 
             try {
-                // Create a unique ID for this diagram
-                const diagramId = 'sequence-diagram-' + Date.now();
-                mermaidContainer.id = diagramId;
-                mermaidContainer.innerHTML = mermaidSyntax;
+                // Use mermaid.render() to render the diagram directly
+                const { svg } = await mermaid.render('sequence-diagram-svg-' + Date.now(), mermaidSyntax);
 
-                // Render with Mermaid
-                await mermaid.run({
-                    nodes: [mermaidContainer]
-                });
-                
-                const svgElement = document.querySelector('.mermaid svg');
+                // Set the rendered SVG in the container
+                mermaidContainer.innerHTML = svg;
+
+                const svgElement = mermaidContainer.querySelector('svg');
                 if (svgElement) {
                     // Remove max-width to allow scaling
                     svgElement.style.maxWidth = 'none';
                     svgElement.style.height = '100%';
                     svgElement.style.width = '100%';
-                    
+
                     // Add interaction: Highlight connection on click
                     svgElement.addEventListener('click', (e) => {
                         let target = e.target;
@@ -193,7 +186,7 @@
                             if (isLine(target)) {
                                 lineElement = target;
                             }
-                        } 
+                        }
                         // 2. Check if clicked element is text
                         else if (target.tagName === 'text' || target.tagName === 'tspan') {
                             // If text is clicked, find the associated message line.
@@ -208,7 +201,7 @@
                                     }
                                     // If we hit another text, we've likely gone too far
                                     if (next.tagName === 'text' && (next.getAttribute('class') || '').includes('messageText')) {
-                                        break; 
+                                        break;
                                     }
                                     next = next.nextElementSibling;
                                 }
@@ -242,7 +235,7 @@
                         zoomScaleSensitivity: 0.4,
                         dblClickZoomEnabled: false // Conflicts with some user interactions
                     });
-                    
+
                     // Initial Fit
                     panZoomInstance.resize();
                     panZoomInstance.fit();
@@ -258,7 +251,7 @@
 
         function loadMode(mode) {
             showLoading(true, "Loading Data...");
-            
+
             const initData = () => {
                 if (window.sequenceDiagramData && window.sequenceDiagramData[mode]) {
                     const mermaidSyntax = window.sequenceDiagramData[mode];
@@ -273,7 +266,7 @@
                 initData();
                 return;
             }
-            
+
             const script = document.createElement('script');
             script.src = `data/${mode}_sequence_diagram.js`;
             script.onload = initData;
