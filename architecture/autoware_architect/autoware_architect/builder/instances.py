@@ -16,10 +16,12 @@ import logging
 from typing import List, Dict
 
 from ..models.config import Config, NodeConfig, ModuleConfig, ParameterSetConfig, SystemConfig
+from ..models.parameters import ParameterType
 from ..parsers.data_parser import entity_name_decode
 from ..config import config
 from ..exceptions import ValidationError
 from ..utils.naming import generate_unique_id
+from ..utils.visualization_guide import get_component_color, get_component_position
 from .config_registry import ConfigRegistry
 from .parameter_manager import ParameterManager
 from .link_manager import LinkManager
@@ -27,104 +29,6 @@ from .event_manager import EventManager
 
 logger = logging.getLogger(__name__)
 
-# Base color mapping for component types
-# All color variants (matte, medium, bright, text) are calculated from these base colors
-BASE_COLOR_MAP = {
-    "sensing": "#cc6666",      # red
-    "localization": "#cc8855", # orange
-    "map": "#6699aa",          # cyan/teal
-    "perception": "#ccaa55",   # yellow
-    "planning": "#6b9b6b",     # green
-    "control": "#6677bb",      # blue
-    "system": "#9966bb",       # purple
-}
-
-DEFAULT_BASE_COLOR = "#888888"  # gray
-
-def hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
-    """Convert hex color to RGB tuple.
-    
-    Args:
-        hex_color: Hex color string (e.g., "#cc6666")
-        
-    Returns:
-        Tuple of (r, g, b) values (0-255)
-    """
-    hex_color = hex_color.lstrip('#')
-    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
-
-def rgb_to_hex(r: int, g: int, b: int) -> str:
-    """Convert RGB values to hex color string.
-    
-    Args:
-        r, g, b: RGB values (0-255)
-        
-    Returns:
-        Hex color string (e.g., "#cc6666")
-    """
-    return f"#{r:02x}{g:02x}{b:02x}"
-
-def calculate_color_variant(base_color: str, variant: str) -> str:
-    """Calculate a color variant from a base color.
-    
-    Args:
-        base_color: Base hex color string
-        variant: Variant type - "matte", "medium", "bright", or "text"
-        
-    Returns:
-        Calculated hex color string
-    """
-    r, g, b = hex_to_rgb(base_color)
-    
-    if variant == "matte":
-        # Matte: use base color as-is
-        return base_color
-    elif variant == "medium":
-        # Medium: blend 50% base + 50% white for lighter background
-        return rgb_to_hex(
-            int(r * 0.5 + 255 * 0.5),
-            int(g * 0.5 + 255 * 0.5),
-            int(b * 0.5 + 255 * 0.5)
-        )
-    elif variant == "bright":
-        # Bright: blend 20% base + 80% white for pastel background
-        return rgb_to_hex(
-            int(r * 0.2 + 255 * 0.8),
-            int(g * 0.2 + 255 * 0.8),
-            int(b * 0.2 + 255 * 0.8)
-        )
-    elif variant == "text":
-        # Text: darken by 30% for better contrast
-        return rgb_to_hex(
-            int(r * 0.3),
-            int(g * 0.3),
-            int(b * 0.3)
-        )
-    else:
-        return base_color
-
-def get_component_color(namespace: List[str], variant: str = "matte") -> str:
-    """Get color for a component based on its top-level namespace.
-    
-    All color variants are calculated dynamically from the base color map.
-    
-    Args:
-        namespace: List of namespace components
-        variant: Color variant - "matte" (default), "medium", "bright", or "text"
-        
-    Returns:
-        Calculated hex color string
-    """
-    # Get base color
-    if not namespace or len(namespace) == 0:
-        base_color = DEFAULT_BASE_COLOR
-    else:
-        # Get the top-level component (first in namespace)
-        top_level = namespace[0].lower()
-        base_color = BASE_COLOR_MAP.get(top_level, DEFAULT_BASE_COLOR)
-    
-    # Calculate and return the requested variant
-    return calculate_color_variant(base_color, variant)
 
 def normalize_mode_field(mode_field) -> List[str]:
     """Normalize mode field to list of mode names.
@@ -224,8 +128,21 @@ class Instance:
         # parameter manager
         self.parameter_manager: ParameterManager = ParameterManager(self)
 
+        # parameter resolver (set later by deployment)
+        self.parameter_resolver = None
+
         # event manager
         self.event_manager: EventManager = EventManager(self)
+
+    def set_parameter_resolver(self, parameter_resolver):
+        """Set the parameter resolver for this instance and propagate to parameter manager."""
+        self.parameter_resolver = parameter_resolver
+        if self.parameter_manager:
+            self.parameter_manager.parameter_resolver = parameter_resolver
+
+        # Recursively set for all children
+        for child in self.children.values():
+            child.set_parameter_resolver(parameter_resolver)
 
         # status
         self.is_initialized = False
@@ -235,24 +152,15 @@ class Instance:
         return generate_unique_id(self.namespace, self.compute_unit, self.layer, self.name)
     
     @property
-    def color(self) -> str:
-        """Get matte color for this instance based on top-level namespace."""
-        return get_component_color(self.namespace, variant="matte")
-    
-    @property
-    def medium_color(self) -> str:
-        """Get medium color for this instance (for node backgrounds)."""
-        return get_component_color(self.namespace, variant="medium")
-    
-    @property
-    def background_color(self) -> str:
-        """Get brightened background color for this instance (for module backgrounds)."""
-        return get_component_color(self.namespace, variant="bright")
-    
-    @property
-    def text_color(self) -> str:
-        """Get darker text color for this instance (for better readability)."""
-        return get_component_color(self.namespace, variant="text")
+    def vis_guide(self) -> dict:
+        """Get visualization guide including colors."""
+        return {
+            "color": get_component_color(self.namespace, variant="matte"),
+            "medium_color": get_component_color(self.namespace, variant="medium"),
+            "background_color": get_component_color(self.namespace, variant="bright"),
+            "text_color": get_component_color(self.namespace, variant="text"),
+            "position": get_component_position(self.namespace),
+        }
 
     def set_instances(self, entity_id: str, config_registry: ConfigRegistry):
 
@@ -349,7 +257,7 @@ class Instance:
         self.entity_type = "node"
 
         # run the node configuration
-        self._run_node_configuration()
+        self._run_node_configuration(config_registry)
 
         # recursive call is finished
         self.is_initialized = True
@@ -380,11 +288,9 @@ class Instance:
                 cfg_param_set = config_registry.get_parameter_set(param_set_name)
                 node_params = cfg_param_set.parameters
                 logger.info(f"Applying parameter set '{param_set_name}' to component '{instance.name}'")
-                
-                # New parameter set format: direct node targeting
+
                 for param_config in node_params:
                     if isinstance(param_config, dict) and "node" in param_config:
-                        # New format: direct node targeting with absolute namespace
                         node_namespace = param_config.get("node")
                         
                         # Only apply if the target node is under this component's namespace
@@ -394,7 +300,12 @@ class Instance:
                         
                         parameter_files_raw = param_config.get("parameter_files", [])
                         parameters = param_config.get("parameters", [])
-                        
+
+                        # Resolve ROS substitutions if resolver is available
+                        if self.parameter_resolver:
+                            parameter_files_raw = self.parameter_resolver.resolve_parameter_files(parameter_files_raw)
+                            parameters = self.parameter_resolver.resolve_parameters(parameters)
+
                         # Validate parameter_files format (should be list of dicts)
                         parameter_files = []
                         if parameter_files_raw:
@@ -403,10 +314,10 @@ class Instance:
                                     parameter_files.append(pf)
                                 else:
                                     logger.warning(f"Invalid parameter_files format in parameter set '{param_set_name}': {pf}")
-                        
+
                         # Apply parameters directly to the target node
                         instance.parameter_manager.apply_node_parameters(
-                            node_namespace, parameter_files, parameters
+                            node_namespace, parameter_files, parameters, config_registry
                         )
                         logger.debug(f"Applied parameters to node '{node_namespace}' from set '{param_set_name}' files={len(parameter_files)} configs={len(parameters)}")
             except Exception as e:
@@ -448,7 +359,7 @@ class Instance:
         # log module configuration
         self.link_manager.log_module_configuration()
 
-    def _run_node_configuration(self):
+    def _run_node_configuration(self, config_registry: ConfigRegistry):
         if self.entity_type != "node":
             raise ValidationError(f"run_node_configuration is only supported for node, at {self.configuration.file_path}")
 
@@ -456,7 +367,7 @@ class Instance:
         self.link_manager.initialize_node_ports()
 
         # set parameters
-        self.parameter_manager.initialize_node_parameters()
+        self.parameter_manager.initialize_node_parameters(config_registry)
 
         # initialize processes and events
         self.event_manager.initialize_node_processes()
@@ -485,10 +396,7 @@ class Instance:
             "entity_type": self.entity_type,
             "namespace": self.namespace,
             "compute_unit": self.compute_unit,
-            "color": self.color,
-            "medium_color": self.medium_color,
-            "background_color": self.background_color,
-            "text_color": self.text_color,
+            "vis_guide": self.vis_guide,
             "in_ports": self.link_manager.get_all_in_ports(),
             "out_ports": self.link_manager.get_all_out_ports(),
             "children": (
@@ -509,7 +417,7 @@ class Instance:
                 else []
             ),
             "events": self.event_manager.get_all_events(),
-            "parameters": self.parameter_manager.get_all_parameter_files(),
+            "parameters": self.parameter_manager.get_all_parameters(),
         }
         
         # Add mode information if this is a deployment instance
@@ -517,6 +425,66 @@ class Instance:
             data["mode"] = self.mode
 
         return data
+
+    def apply_global_parameters(self, global_params_config):
+        """Apply global parameters from deployment configuration to all nodes in the instance.
+
+        Args:
+            global_params_config: List of global parameter configurations from deployment
+        """
+        if not global_params_config:
+            logger.debug("No global parameters defined in deployment configuration")
+            return
+
+        logger.info(f"Applying {len(global_params_config)} global parameters to all nodes")
+
+        # Traverse all instances and apply global parameters to nodes
+        self._apply_global_parameters_recursive(global_params_config)
+
+        # Now that global parameters are applied, resolve any remaining substitutions in all parameters
+        if hasattr(self, 'parameter_resolver') and self.parameter_resolver:
+            self._resolve_all_parameters_recursive()
+
+    def _apply_global_parameters_recursive(self, global_params_config):
+        """Recursively apply global parameters to all nodes in the instance tree.
+
+        Args:
+            global_params_config: List of global parameter configurations
+        """
+        # If this is a node, apply global parameters to it
+        if self.entity_type == "node":
+            for param_config in global_params_config:
+                param_name = param_config.get('name')
+                param_value = param_config.get('value')
+                param_type = param_config.get('type', 'string')  # Default to string if not specified
+
+                # Resolve parameter value if resolver is available
+                if self.parameter_resolver:
+                    param_value = self.parameter_resolver.resolve_parameter_value(param_value)
+
+                if param_name is not None and param_value is not None:
+                    self.parameter_manager.parameters.set_parameter(
+                        param_name,
+                        param_value,
+                        data_type=param_type,
+                        allow_substs=True,
+                        parameter_type=ParameterType.GLOBAL
+                    )
+                    logger.debug(f"Applied global parameter '{param_name}'={param_value} to node '{self.namespace_str}'")
+
+        # Recursively process children
+        for child in self.children.values():
+            child._apply_global_parameters_recursive(global_params_config)
+
+    def _resolve_all_parameters_recursive(self):
+        """Recursively resolve all parameters in the instance tree that may contain substitutions."""
+        # If this is a node, resolve all its parameters
+        if self.entity_type == "node" and hasattr(self, 'parameter_manager'):
+            self.parameter_manager.resolve_all_parameters()
+
+        # Recursively process children
+        for child in self.children.values():
+            child._resolve_all_parameters_recursive()
 
 class DeploymentInstance(Instance):
     def __init__(self, name: str, mode: str = None):
@@ -528,16 +496,19 @@ class DeploymentInstance(Instance):
         system: Config,
         config_registry,
         mode: str = None,
+        parameter_resolver = None,
     ):
         """Set system for this deployment instance.
-        
+
         Args:
             system: System configuration
             config_registry: Registry of all configurations
             mode: Optional mode name to filter components (None means no filtering)
+            parameter_resolver: Resolver for ROS-independent parameter substitution
         """
         self.mode = mode
-        logger.info(f"Setting system {system.full_name} for instance {self.name}" + 
+        self.parameter_resolver = parameter_resolver
+        logger.info(f"Setting system {system.full_name} for instance {self.name}" +
                    (f" (mode: {mode})" if mode else ""))
         self.configuration = system
         self.entity_type = "system"
@@ -545,6 +516,10 @@ class DeploymentInstance(Instance):
         # 1. set component instances
         logger.info(f"Instance '{self.name}': setting component instances")
         self.set_instances(system.full_name, config_registry)
+
+        # Propagate parameter resolver to all instances in the tree (now that they exist)
+        if parameter_resolver:
+            self.set_parameter_resolver(parameter_resolver)
 
         # 2. set connections
         logger.info(f"Instance '{self.name}': setting connections")
@@ -555,4 +530,3 @@ class DeploymentInstance(Instance):
         logger.info(f"Instance '{self.name}': building logical topology")
         # self.build_logical_topology()
         self.set_event_tree()
-

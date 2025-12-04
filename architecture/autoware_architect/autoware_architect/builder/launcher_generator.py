@@ -117,10 +117,10 @@ def _extract_node_data(node_instance: Instance, module_path: List[str]) -> Dict[
             "topic": topic
         })
     
-    # Get parameter files and parameters from parameter_manager (already parsed and ordered)
-    parameter_files = node_instance.parameter_manager.get_parameter_files_for_launch()
-    parameters = node_instance.parameter_manager.get_parameters_for_launch()
-    
+    # Get parameters and parameter files from parameter_manager
+    all_parameters = node_instance.parameter_manager.get_parameters_for_launch()
+    all_parameter_files = node_instance.parameter_manager.get_parameter_files_for_launch()
+
     return {
         "name": node_instance.name,
         "package": package,
@@ -132,8 +132,8 @@ def _extract_node_data(node_instance: Instance, module_path: List[str]) -> Dict[
         "namespace_groups": namespace_groups,
         "full_namespace_path": full_namespace_path,
         "ports": ports,
-        "parameter_files": parameter_files,
-        "parameters": parameters
+        "parameters": all_parameters,
+        "parameter_files": all_parameter_files
     }
 
 
@@ -166,46 +166,6 @@ def _generate_compute_unit_launcher(compute_unit: str, components: list, output_
     _render_template_to_file('compute_unit_launcher.xml.jinja2', launcher_file, template_data)
 
 
-def _build_namespace_tree(nodes: List[Dict[str, Any]], base_namespace: List[str]) -> Dict:
-    """Build a tree structure from nodes based on their namespace paths.
-    
-    Args:
-        nodes: List of node data dictionaries
-        base_namespace: Base namespace from the component (e.g., ['perception', 'object_recognition'])
-    
-    Returns:
-        A nested dictionary representing the namespace tree structure
-    """
-    tree = {}
-    
-    for node in nodes:
-        # Combine base namespace with node's namespace groups
-        full_namespace = base_namespace + node['namespace_groups']
-        
-        # Add node to the leaf node
-        if not full_namespace:
-            # Node at root level
-            if '__root__' not in tree:
-                tree['__root__'] = {'nodes': [], 'children': {}}
-            tree['__root__']['nodes'].append(node)
-        else:
-            # Navigate/create the tree structure and add node at the end
-            # Start with the root tree, then navigate through children
-            current = tree
-            for i, ns in enumerate(full_namespace):
-                if ns not in current:
-                    current[ns] = {'nodes': [], 'children': {}}
-                
-                # If this is the last namespace in the path, add the node here
-                if i == len(full_namespace) - 1:
-                    current[ns]['nodes'].append(node)
-                else:
-                    # Otherwise, continue navigating down into children
-                    current = current[ns]['children']
-    
-    return tree
-
-
 def _generate_component_launcher(compute_unit: str, namespace: str, components: list, output_dir: str):
     """Generate component launcher file that directly launches all nodes in the component."""
     component_dir = os.path.join(output_dir, compute_unit, namespace)
@@ -229,15 +189,21 @@ def _generate_component_launcher(compute_unit: str, namespace: str, components: 
         if not component_full_namespace and hasattr(component, 'namespace'):
             component_full_namespace = component.namespace.copy()
     
-    # Build namespace tree
-    namespace_tree = _build_namespace_tree(all_nodes, component_full_namespace)
-    
+    # Enrich nodes with full absolute namespace
+    for node in all_nodes:
+        # Combine component base namespace with node's internal namespace structure
+        full_ns_list = component_full_namespace + node['namespace_groups']
+        # Create namespace string (e.g., "perception/object_recognition/detection")
+        # We use relative path here, assuming the launcher will be included in a root context
+        # or the user wants these paths to be relative to wherever this launch file is included.
+        node['full_namespace'] = "/".join(full_ns_list)
+
     # Prepare template data
     template_data = {
         "compute_unit": compute_unit,
         "namespace": namespace,
         "component_full_namespace": component_full_namespace,
-        "namespace_tree": namespace_tree
+        "nodes": all_nodes
     }
     
     _render_template_to_file('component_launcher.xml.jinja2', launcher_file, template_data)

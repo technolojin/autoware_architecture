@@ -9,8 +9,8 @@ from launch.substitutions import LaunchConfiguration
 
 logger = logging.getLogger(__name__)
 
-TERMINAL_METHOD_PRIORITY = ('terminator', 'tmux')
-# TERMINAL_METHOD_PRIORITY = ('tmux', 'terminator')
+# TERMINAL_METHOD_PRIORITY = ('terminator', 'tmux')
+TERMINAL_METHOD_PRIORITY = ('tmux', 'terminator')
 GUI_TERMINAL_CANDIDATES = (
     'gnome-terminal',
     'xterm',

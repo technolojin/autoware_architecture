@@ -10,7 +10,7 @@ ament_auto_add_library(traffic_light_map_based_detector_cpp SHARED
 )
 rclcpp_components_register_node(traffic_light_map_based_detector_cpp
   PLUGIN "autoware::traffic_light::MapBasedDetector"
-  EXECUTABLE "traffic_light_map_based_detector"
+  EXECUTABLE "traffic_light_map_based_detector_node"
 )
 
 ament_auto_package(

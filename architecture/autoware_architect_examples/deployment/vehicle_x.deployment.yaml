@@ -2,8 +2,15 @@ name: vehicle_x.deployment
 
 system: TypeAlpha.system
 
-# vehicle specific parameters, such as sensor calibration, vehicle dimensions
-vehicle_parameters: []
+global_parameters:
+  - name: vehicle_id
+    value: vehicle_x
+  - name: data_path
+    value: $(env HOME)/autoware_data
 
 # environment specific parameters, such as map data
-environment_parameters: []
+environment_parameters:
+  - name: lanelet2_map_file
+    value: lanelet2_map.osm
+  - name: pointcloud_map_file
+    value: pointcloud_map.pcd

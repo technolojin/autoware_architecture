@@ -15,105 +15,123 @@
 from typing import List, Optional, Dict, Any
 from enum import Enum
 
+
 class ParameterType(Enum):
-    """Type of parameter - either a file path or a direct parameter value."""
-    PARAMETER_FILE = "parameter_file"  # Load from file
-    PARAMETER = "parameter"  # Direct overwrite of parameter
+    """Parameter type with priority ordering (lower value = lower priority).
+    Used only for individual parameters, not parameter files.
+    """
+    GLOBAL = 0           # Global parameter (lowest priority)
+    DEFAULT = 1          # Default parameter 
+    DEFAULT_FILE = 2     # Parameter loaded from default parameter file
+    OVERRIDE_FILE = 3    # Parameter loaded from override parameter file
+    OVERRIDE = 4         # Directly set override parameter (highest priority)
 
 class Parameter:
-    def __init__(self, name: str, value: str, param_type: ParameterType = ParameterType.PARAMETER, 
-                 data_type: str = "string", schema_path: Optional[str] = None, 
-                 allow_substs: bool = True, is_default: bool = False):
+    """Represents a single parameter with its value and metadata."""
+    def __init__(self, name: str, value: Any, data_type: str = "string",
+                 schema_path: Optional[str] = None, allow_substs: bool = True,
+                 parameter_type: ParameterType = ParameterType.DEFAULT):
         self.name = name
         self.value = value
-        self.param_type = param_type  # PARAMETER_FILE or PARAMETER
         self.data_type = data_type  # string, bool, int, float, etc.
         self.schema_path = schema_path  # path to the schema file if available
         self.allow_substs = allow_substs  # whether to allow substitutions in ROS launch
-        self.is_default = is_default  # True if this is a default parameter, False if override
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert parameter to dictionary representation."""
-        return {
-            "name": self.name,
-            "value": self.value,
-            "param_type": self.param_type.value,
-            "data_type": self.data_type,
-            "schema_path": self.schema_path,
-            "allow_substs": self.allow_substs,
-            "is_default": self.is_default
-        }
+        self.parameter_type = parameter_type  # Parameter type with priority
 
 class ParameterList:
-    """Manages an ordered list of parameters, maintaining order with defaults first and overrides later."""
-    
+    """Manages a list of parameters with priority-based resolution.
+    Higher priority parameters override lower priority ones.
+    """
+
     def __init__(self):
         self.list: List[Parameter] = []
 
     def get_parameter(self, parameter_name):
-        """Get the last (most recent/override) parameter value by name."""
-        for parameter in reversed(self.list):
+        """Get the highest priority parameter value by name.
+        Higher priority parameters override lower priority ones.
+        """
+        highest_priority_param = None
+        for parameter in self.list:
             if parameter.name == parameter_name:
-                return parameter.value
-        # not found, return None
-        return None
+                if (highest_priority_param is None or
+                    parameter.parameter_type.value > highest_priority_param.parameter_type.value):
+                    highest_priority_param = parameter
+        return highest_priority_param.value if highest_priority_param else None
 
-    def set_parameter(self, parameter_name, parameter_value, param_type: ParameterType = ParameterType.PARAMETER,
-                     data_type: str = "string", schema_path: Optional[str] = None, 
-                     allow_substs: bool = True, is_default: bool = False):
+    def set_parameter(self, parameter_name, parameter_value, data_type: str = "string",
+                     schema_path: Optional[str] = None, allow_substs: bool = True,
+                     parameter_type: ParameterType = ParameterType.DEFAULT):
         """Set a parameter value.
-        
-        For parameters: Later calls override earlier ones (update in place or append).
-        For parameter_files: Simply appends to maintain order. Defaults should be added first,
-                           then overrides. ROS 2 will handle the actual overriding during loading.
-        
+
+        Higher priority parameters override lower priority ones.
+        Lower priority parameters cannot override higher priority ones.
+
         Args:
             parameter_name: Name of the parameter
             parameter_value: Value of the parameter
-            param_type: Type of parameter (PARAMETER_FILE or PARAMETER)
             data_type: Data type of the value
             schema_path: Optional schema path
             allow_substs: Whether to allow substitutions
-            is_default: True if this is a default parameter, False if override
+            parameter_type: Type of parameter with priority
         """
-        if param_type == ParameterType.PARAMETER:
-            # For parameters: find and update existing, or append new
-            for parameter in self.list:
-                if parameter.name == parameter_name and parameter.param_type == ParameterType.PARAMETER:
-                    # Update existing parameter
+        # Find existing parameter
+        for parameter in self.list:
+            if parameter.name == parameter_name:
+                # Only update if the new parameter has equal or higher priority
+                if parameter_type.value >= parameter.parameter_type.value:
                     parameter.value = parameter_value
                     parameter.data_type = data_type
                     parameter.schema_path = schema_path
                     parameter.allow_substs = allow_substs
-                    parameter.is_default = is_default
-                    return
-            # Not found, add new parameter
-            self.list.append(Parameter(parameter_name, parameter_value, param_type, 
-                                     data_type, schema_path, allow_substs, is_default))
-        else:
-            # For parameter_files: simply append in order
-            # ROS 2 parameter loader will handle overriding - later files override earlier ones
-            # Caller is responsible for adding defaults first, then overrides
-            new_param = Parameter(parameter_name, parameter_value, param_type, 
-                                data_type, schema_path, allow_substs, is_default)
-            self.list.append(new_param)
-    
-    def get_parameters_dict(self) -> List[Dict[str, Any]]:
-        """Get all parameters as list of dictionaries in order."""
-        return [param.to_dict() for param in self.list]
-    
-    def get_parameter_files_ordered(self) -> List[Parameter]:
-        """Get all parameter files in order (defaults first, then overrides).
-        
-        This ensures that even if parameters were added out of order,
-        defaults are always loaded before overrides in the launcher.
+                    parameter.parameter_type = parameter_type
+                # If lower priority, don't update (higher priority takes precedence)
+                return
+
+        # Not found, add new parameter
+        self.list.append(Parameter(parameter_name, parameter_value, data_type,
+                                 schema_path, allow_substs, parameter_type))
+
+class ParameterFile:
+    """Represents a parameter file reference."""
+    def __init__(self, name: str, path: str, schema_path: Optional[str] = None,
+                 allow_substs: bool = True, is_override: bool = False):
+        self.name = name
+        self.path = path
+        self.schema_path = schema_path  # path to the schema file if available
+        self.allow_substs = allow_substs  # whether to allow substitutions in ROS launch
+        self.is_override = is_override  # True for override parameter files, False for default
+class ParameterFileList:
+    """Manages a list of parameter files.
+    Parameter files are accumulated in the order they are added.
+    Override parameter files take precedence over default parameter files.
+    """
+
+    def __init__(self):
+        self.list: List[ParameterFile] = []
+
+    def get_parameter_file(self, parameter_name):
+        """Get the last (most recent/override) parameter file path by name."""
+        for param_file in reversed(self.list):
+            if param_file.name == parameter_name:
+                return param_file.path
+        # not found, return None
+        return None
+
+    def add_parameter_file(self, parameter_name, parameter_path, schema_path: Optional[str] = None,
+                          allow_substs: bool = True, is_override: bool = False):
+        """Add a parameter file.
+
+        Parameter files are accumulated in the order they are added.
+        Override parameter files take precedence over default parameter files.
+
+        Args:
+            parameter_name: Name of the parameter file
+            parameter_path: Path to the parameter file
+            schema_path: Optional schema path
+            allow_substs: Whether to allow substitutions
+            is_override: True for override parameter files, False for default
         """
-        param_files = [param for param in self.list if param.param_type == ParameterType.PARAMETER_FILE]
-        # Sort: defaults (is_default=True) first, then overrides (is_default=False)
-        # Stable sort preserves relative order within each group
-        return sorted(param_files, key=lambda p: (not p.is_default))
-    
-    def get_parameters(self) -> List[Parameter]:
-        """Get all parameters."""
-        return [param for param in self.list if param.param_type == ParameterType.PARAMETER]
+        new_param_file = ParameterFile(parameter_name, parameter_path, schema_path,
+                                     allow_substs, is_override)
+        self.list.append(new_param_file)
 

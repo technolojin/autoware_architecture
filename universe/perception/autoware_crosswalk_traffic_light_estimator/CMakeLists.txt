@@ -10,7 +10,7 @@ ament_auto_add_library(crosswalk_traffic_light_estimator_cpp SHARED
 )
 rclcpp_components_register_node(crosswalk_traffic_light_estimator_cpp
   PLUGIN "autoware::crosswalk_traffic_light_estimator::CrosswalkTrafficLightEstimatorNode"
-  EXECUTABLE "crosswalk_traffic_light_estimator"
+  EXECUTABLE "crosswalk_traffic_light_estimator_node"
 )
 
 ament_auto_package(

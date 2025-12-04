@@ -10,7 +10,7 @@ ament_auto_add_library(traffic_light_multi_camera_fusion_cpp SHARED
 )
 rclcpp_components_register_node(traffic_light_multi_camera_fusion_cpp
   PLUGIN "autoware::traffic_light::MultiCameraFusion"
-  EXECUTABLE "traffic_light_multi_camera_fusion"
+  EXECUTABLE "traffic_light_multi_camera_fusion_node"
 )
 
 ament_auto_package(
