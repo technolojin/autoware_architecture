@@ -16,17 +16,16 @@
 import os
 import logging
 from typing import Dict
-from ..builder.instances import DeploymentInstance
 from ..template_utils import TemplateRenderer
 
 logger = logging.getLogger(__name__)
 
 
-def visualize_deployment(deploy_instances: Dict[str, DeploymentInstance], name: str, visualization_dir: str):
-    """Generate visualization files for deployment instances.
+def visualize_deployment(deploy_data: Dict[str, Dict], name: str, visualization_dir: str):
+    """Generate visualization files for deployment data.
 
     Args:
-        deploy_instances: Dictionary mapping mode names to deployment instances
+        deploy_data: Dictionary mapping mode names to deployment data dictionaries
         name: Base name for the deployment
         visualization_dir: Directory to output visualization files
     """
@@ -41,9 +40,7 @@ def visualize_deployment(deploy_instances: Dict[str, DeploymentInstance], name: 
     sequence_html_template_path = os.path.join(template_dir, "visualization", "sequence_diagram.html.jinja2")
 
     # Generate visualization for each mode
-    for mode_key, deploy_instance in deploy_instances.items():
-        # Collect data from the system instance
-        data = deploy_instance.collect_instance_data()
+    for mode_key, data in deploy_data.items():
 
         # Create mode-specific output directory
         mode_visualization_dir = os.path.join(visualization_dir, mode_key)
@@ -60,9 +57,9 @@ def visualize_deployment(deploy_instances: Dict[str, DeploymentInstance], name: 
         logger.info(f"Generated visualization for mode: {mode_key}")
 
     # Generate web visualization files
-    if deploy_instances:
+    if deploy_data:
         web_dir = os.path.join(visualization_dir, "web")
-        modes = list(deploy_instances.keys())
+        modes = list(deploy_data.keys())
         default_mode = "default" if "default" in modes else modes[0]
 
         # Generate node_diagram.html
@@ -74,8 +71,7 @@ def visualize_deployment(deploy_instances: Dict[str, DeploymentInstance], name: 
         logger.info("Generated web visualization node_diagram.html")
 
         # Generate sequence_graph.html for each mode
-        for mode_key, deploy_instance in deploy_instances.items():
-            data = deploy_instance.collect_instance_data()
+        for mode_key, data in deploy_data.items():
             filename_base = f"{name}_{mode_key}" if mode_key != "default" else name
             generate_by_template(data, sequence_html_template_path, web_dir, filename_base + "_sequence_graph.html")
             logger.info(f"Generated web visualization sequence_graph.html for mode: {mode_key}")

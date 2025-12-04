@@ -207,7 +207,12 @@ class Deployment:
                 raise ValidationError(f"Error in setting deploy for mode '{mode_name}': {e}")
 
     def visualize(self):
-        visualize_deployment(self.deploy_instances, self.name, self.visualization_dir)
+        # Collect data from all deployment instances
+        deploy_data = {}
+        for mode_key, deploy_instance in self.deploy_instances.items():
+            deploy_data[mode_key] = deploy_instance.collect_instance_data()
+
+        visualize_deployment(deploy_data, self.name, self.visualization_dir)
 
     def generate_by_template(self, data, template_path, output_dir, output_filename):
         """Generate file from template using the unified template renderer."""
