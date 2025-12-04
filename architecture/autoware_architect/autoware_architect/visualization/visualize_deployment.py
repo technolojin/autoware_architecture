@@ -35,7 +35,7 @@ def visualize_deployment(deploy_data: Dict[str, Dict], name: str, visualization_
     logit_dot_template_path = os.path.join(template_dir, "logic_diagram.dot.jinja2")
 
     # Web visualization templates
-    web_data_template_path = os.path.join(template_dir, "visualization", "data.js.jinja2")
+    web_data_template_path = os.path.join(template_dir, "visualization", "node_diagram_data.js.jinja2")
     web_index_template_path = os.path.join(template_dir, "visualization", "node_diagram.html.jinja2")
     sequence_html_template_path = os.path.join(template_dir, "visualization", "sequence_diagram.html.jinja2")
 
@@ -52,7 +52,7 @@ def visualize_deployment(deploy_data: Dict[str, Dict], name: str, visualization_
 
         # Generate JS data for web visualization
         web_data_dir = os.path.join(visualization_dir, "web", "data")
-        generate_by_template(data, web_data_template_path, web_data_dir, f"{mode_key}.js")
+        generate_by_template(data, web_data_template_path, web_data_dir, f"{mode_key}_node_diagram.js")
 
         logger.info(f"Generated visualization for mode: {mode_key}")
 

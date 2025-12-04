@@ -934,7 +934,7 @@
                 }
                 
                 const script = document.createElement('script');
-                script.src = `data/${mode}.js`;
+                script.src = `data/${mode}_node_diagram.js`;
                 script.onload = initData;
                 script.onerror = function(e) {
                     log("Error loading script for mode: " + mode, 'error');
