@@ -35,11 +35,11 @@ def visualize_deployment(deploy_data: Dict[str, Dict], name: str, visualization_
     logit_dot_template_path = os.path.join(template_dir, "logic_diagram.dot.jinja2")
 
     # Web visualization templates
-    web_data_template_path = os.path.join(template_dir, "visualization", "node_diagram_data.js.jinja2")
+    web_data_template_path = os.path.join(template_dir, "visualization", "data", "node_diagram_data.js.jinja2")
     web_index_template_path = os.path.join(template_dir, "visualization", "node_diagram.html.jinja2")
     sequence_html_template_path = os.path.join(template_dir, "visualization", "sequence_diagram.html.jinja2")
-    sequence_mermaid_template_path = os.path.join(template_dir, "visualization", "sequence_diagram_mermaid.jinja2")
-    sequence_data_template_path = os.path.join(template_dir, "visualization", "sequence_diagram_data.js.jinja2")
+    sequence_mermaid_template_path = os.path.join(template_dir, "visualization", "data", "sequence_diagram_mermaid.jinja2")
+    sequence_data_template_path = os.path.join(template_dir, "visualization", "data", "sequence_diagram_data.js.jinja2")
 
     # Module templates for overview page
     node_module_template_path = os.path.join(template_dir, "visualization", "node_diagram.js.jinja2")
@@ -64,7 +64,7 @@ def visualize_deployment(deploy_data: Dict[str, Dict], name: str, visualization_
 
         # Generate sequence diagram Mermaid syntax and data
         renderer = TemplateRenderer()
-        mermaid_syntax = renderer.render_template("visualization/sequence_diagram_mermaid.jinja2", **data)
+        mermaid_syntax = renderer.render_template("visualization/data/sequence_diagram_mermaid.jinja2", **data)
         sequence_data = {
             "mode": mode_key,
             "mermaid_syntax": mermaid_syntax
