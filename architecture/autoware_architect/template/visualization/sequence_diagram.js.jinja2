@@ -85,9 +85,15 @@ class SequenceDiagramModule {
         // Clear container
         this.container.innerHTML = '';
 
-        // Create mermaid container
+        // Create mermaid container that takes full height
         const mermaidContainer = document.createElement('div');
         mermaidContainer.className = 'mermaid';
+        mermaidContainer.style.width = '1200px'; // Set explicit width for Mermaid to generate larger SVG
+        mermaidContainer.style.height = '100%'; // Take full height of parent
+        mermaidContainer.style.minHeight = '800px'; // Minimum height fallback
+        mermaidContainer.style.overflow = 'visible';
+        mermaidContainer.style.display = 'flex';
+        mermaidContainer.style.alignItems = 'stretch';
         this.container.appendChild(mermaidContainer);
 
         try {
@@ -97,10 +103,29 @@ class SequenceDiagramModule {
 
             const svgElement = mermaidContainer.querySelector('svg');
             if (svgElement) {
-                // Configure SVG
-                svgElement.style.maxWidth = 'none';
-                svgElement.style.height = '100%';
+                // Configure SVG to take full height of container
+                svgElement.style.maxWidth = '100%';
                 svgElement.style.width = '100%';
+                svgElement.style.height = '100%'; // Take full height
+                svgElement.style.minHeight = '800px'; // Minimum height fallback
+
+                // Keep the original dimensions for proper aspect ratio
+                // but allow it to scale down if needed
+                if (!svgElement.getAttribute('viewBox') && svgElement.getAttribute('width') && svgElement.getAttribute('height')) {
+                    const width = parseFloat(svgElement.getAttribute('width'));
+                    const height = parseFloat(svgElement.getAttribute('height'));
+                    if (width > 0 && height > 0) {
+                        svgElement.setAttribute('viewBox', `0 0 ${width} ${height}`);
+                    }
+                }
+
+                // Remove fixed dimensions to allow CSS control
+                svgElement.removeAttribute('width');
+                svgElement.removeAttribute('height');
+
+                // Keep container at full height
+                mermaidContainer.style.width = '100%';
+                mermaidContainer.style.height = '100%';
 
                 // Add interaction styles
                 this.addInteractionStyles(svgElement);
