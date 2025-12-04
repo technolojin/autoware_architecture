@@ -27,6 +27,13 @@
             z-index: 10;
         }
         h1 { margin: 0; font-size: 18px; color: #212529; }
+        #mode-selector {
+            padding: 5px 10px;
+            font-size: 14px;
+            margin-left: 20px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+        }
         
         #canvas-container {
             flex-grow: 1;
@@ -106,78 +113,31 @@
 
     <div id="header">
         <h1>System Diagram: {{ name }}</h1>
-        <div id="controls">
+        <div id="controls" style="display: flex; align-items: center; gap: 10px;">
+            <label for="mode-selector" style="color: #495057; font-weight: 500;">View Mode:</label>
+            <select id="mode-selector">
+                {% for mode in modes %}
+                <option value="{{ mode }}" {% if mode == default_mode %}selected{% endif %}>{{ mode }}</option>
+                {% endfor %}
+            </select>
             <button onclick="resetZoom()" style="padding: 5px 10px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">Reset Zoom</button>
         </div>
     </div>
     
     <div id="canvas-container">
-        <div class="mermaid">
-            sequenceDiagram
-            
-            %% Macros adapted from Jinja2 to Mermaid syntax
-            
-            {% macro build_logic_graph(instance) -%}
-                {% if instance.entity_type == "node" -%}
-                    {# EVENTS -#}
-                    {% for event in instance.events -%}
-                        {% set ns_label = instance.namespace | join('<br/>') %}
-                        {% set full_label = ns_label + '<br/><br/>' + '[' + event.name + ']' %}
-                        
-                        {% if event.type == "periodic" -%}
-                            participant {{ event.unique_id }} as {{ full_label }}
-                        {% else -%}
-                            participant {{ event.unique_id }} as {{ full_label }}
-                        {% endif -%}
-                    {% endfor -%}
-                {% elif instance.entity_type == "module" -%}
-                    {% for child in instance.children -%}
-                        {{ build_logic_graph(child) -}}
-                    {% endfor -%}
-                {% endif -%}
-            {% endmacro -%}
-
-            {% macro event_connection(root_name, event_origin, connection_name, event_target) -%}
-                {% if (event_target.type == "on_input" or event_target.type == "to_output") and event_target.process_event == False -%}
-                    {% set connection_name = event_target.name -%}
-                    {% for trigger in event_target.triggers -%}
-                        {{ event_connection(root_name, event_origin, connection_name, trigger) -}}
-                    {% endfor -%}
-                {% else -%}
-                    {{ event_target.unique_id }}->>{{ event_origin.unique_id }}: {{event_target.namespace[-1]}} to {{root_name}}_{{connection_name}}
-                {% endif -%}
-            {% endmacro -%}
-
-            {% macro build_connection_graph(instance) -%}
-                {% if instance.entity_type == "node" -%}
-                    {% for event in instance.events -%}
-                        {% if event.process_event == True -%}
-                            {% for event_trigger in event.triggers -%}
-                                {{ event_connection(instance.name, event, event_trigger.name, event_trigger) -}}
-                            {% endfor -%}
-                        {% endif -%}
-                    {% endfor -%}
-                {% elif instance.entity_type == "module" -%}
-                    {% for child in instance.children -%}
-                        {{ build_connection_graph(child) -}}
-                    {% endfor -%}
-                {% endif -%}
-            {% endmacro -%}
-
-            %% Definitions
-            {% for child in children -%}
-            {{ build_logic_graph(child) }}
-            {% endfor -%}
-
-            %% Connections
-            {% for child in children -%}
-            {{ build_connection_graph(child) }}
-            {% endfor -%}
-        </div>
+        <div class="mermaid" id="mermaid-container"></div>
     </div>
 
     <script>
         let panZoomInstance = null;
+        const selector = document.getElementById('mode-selector');
+        const mermaidContainer = document.getElementById('mermaid-container');
+        const loading = document.getElementById('loading');
+
+        function showLoading(show, text) {
+            loading.style.display = show ? 'flex' : 'none';
+            if (text) document.getElementById('loading-text').innerText = text;
+        }
 
         function resetZoom() {
             if (panZoomInstance) {
@@ -186,22 +146,28 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', async function() {
-            mermaid.initialize({ 
-                startOnLoad: false,
-                theme: 'default',
-                securityLevel: 'loose',
-                sequence: {
-                    showSequenceNumbers: false,
-                    useMaxWidth: false,
-                    mirrorActors: true,
-                    bottomMarginAdj: 10,
-                    messageAlign: 'center'
-                }
-            });
+        async function renderSequenceDiagram(mermaidSyntax) {
+            showLoading(true, "Rendering Diagram...");
             
+            // Clear previous content
+            mermaidContainer.innerHTML = '';
+            
+            // Destroy previous pan-zoom instance if it exists
+            if (panZoomInstance) {
+                panZoomInstance.destroy();
+                panZoomInstance = null;
+            }
+
             try {
-                await mermaid.run();
+                // Create a unique ID for this diagram
+                const diagramId = 'sequence-diagram-' + Date.now();
+                mermaidContainer.id = diagramId;
+                mermaidContainer.innerHTML = mermaidSyntax;
+
+                // Render with Mermaid
+                await mermaid.run({
+                    nodes: [mermaidContainer]
+                });
                 
                 const svgElement = document.querySelector('.mermaid svg');
                 if (svgElement) {
@@ -277,9 +243,6 @@
                         dblClickZoomEnabled: false // Conflicts with some user interactions
                     });
                     
-                    // Bind wheel event for zooming on container
-                    const container = document.getElementById('canvas-container');
-                    
                     // Initial Fit
                     panZoomInstance.resize();
                     panZoomInstance.fit();
@@ -287,9 +250,61 @@
                 }
             } catch (e) {
                 console.error("Mermaid rendering failed:", e);
+                alert("Error rendering sequence diagram: " + e.message);
             } finally {
-                document.getElementById('loading').style.display = 'none';
+                showLoading(false);
             }
+        }
+
+        function loadMode(mode) {
+            showLoading(true, "Loading Data...");
+            
+            const initData = () => {
+                if (window.sequenceDiagramData && window.sequenceDiagramData[mode]) {
+                    const mermaidSyntax = window.sequenceDiagramData[mode];
+                    renderSequenceDiagram(mermaidSyntax);
+                } else {
+                    alert("Failed to load data for mode: " + mode);
+                    showLoading(false);
+                }
+            };
+
+            if (window.sequenceDiagramData && window.sequenceDiagramData[mode]) {
+                initData();
+                return;
+            }
+            
+            const script = document.createElement('script');
+            script.src = `data/${mode}_sequence_diagram.js`;
+            script.onload = initData;
+            script.onerror = function(e) {
+                showLoading(false);
+                alert("Error loading script for mode: " + mode);
+            };
+            document.body.appendChild(script);
+        }
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            mermaid.initialize({ 
+                startOnLoad: false,
+                theme: 'default',
+                securityLevel: 'loose',
+                sequence: {
+                    showSequenceNumbers: false,
+                    useMaxWidth: false,
+                    mirrorActors: true,
+                    bottomMarginAdj: 10,
+                    messageAlign: 'center'
+                }
+            });
+            
+            // Load initial mode
+            loadMode(selector.value);
+            
+            // Handle mode change
+            selector.addEventListener('change', function(e) {
+                loadMode(e.target.value);
+            });
         });
     </script>
 </body>

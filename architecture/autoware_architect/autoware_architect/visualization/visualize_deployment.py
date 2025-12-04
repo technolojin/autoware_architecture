@@ -38,6 +38,8 @@ def visualize_deployment(deploy_data: Dict[str, Dict], name: str, visualization_
     web_data_template_path = os.path.join(template_dir, "visualization", "node_diagram_data.js.jinja2")
     web_index_template_path = os.path.join(template_dir, "visualization", "node_diagram.html.jinja2")
     sequence_html_template_path = os.path.join(template_dir, "visualization", "sequence_diagram.html.jinja2")
+    sequence_mermaid_template_path = os.path.join(template_dir, "visualization", "sequence_diagram_mermaid.jinja2")
+    sequence_data_template_path = os.path.join(template_dir, "visualization", "sequence_diagram_data.js.jinja2")
 
     # Generate visualization for each mode
     for mode_key, data in deploy_data.items():
@@ -52,7 +54,17 @@ def visualize_deployment(deploy_data: Dict[str, Dict], name: str, visualization_
 
         # Generate JS data for web visualization
         web_data_dir = os.path.join(visualization_dir, "web", "data")
-        generate_by_template(data, web_data_template_path, web_data_dir, f"{mode_key}_node_diagram.js")
+        node_data_with_mode = {**data, "mode": mode_key}
+        generate_by_template(node_data_with_mode, web_data_template_path, web_data_dir, f"{mode_key}_node_diagram.js")
+
+        # Generate sequence diagram Mermaid syntax and data
+        renderer = TemplateRenderer()
+        mermaid_syntax = renderer.render_template("visualization/sequence_diagram_mermaid.jinja2", **data)
+        sequence_data = {
+            "mode": mode_key,
+            "mermaid_syntax": mermaid_syntax
+        }
+        generate_by_template(sequence_data, sequence_data_template_path, web_data_dir, f"{mode_key}_sequence_diagram.js")
 
         logger.info(f"Generated visualization for mode: {mode_key}")
 
@@ -70,11 +82,14 @@ def visualize_deployment(deploy_data: Dict[str, Dict], name: str, visualization_
         generate_by_template(index_data, web_index_template_path, web_dir, "node_diagram.html")
         logger.info("Generated web visualization node_diagram.html")
 
-        # Generate sequence_graph.html for each mode
-        for mode_key, data in deploy_data.items():
-            filename_base = f"{name}_{mode_key}" if mode_key != "default" else name
-            generate_by_template(data, sequence_html_template_path, web_dir, filename_base + "_sequence_graph.html")
-            logger.info(f"Generated web visualization sequence_graph.html for mode: {mode_key}")
+        # Generate sequence_diagram.html (single file with mode selector)
+        sequence_index_data = {
+            "name": name,
+            "modes": modes,
+            "default_mode": default_mode
+        }
+        generate_by_template(sequence_index_data, sequence_html_template_path, web_dir, "sequence_diagram.html")
+        logger.info("Generated web visualization sequence_diagram.html")
 
 
 def generate_by_template(data, template_path, output_dir, output_filename):
@@ -82,8 +97,14 @@ def generate_by_template(data, template_path, output_dir, output_filename):
     # Initialize template renderer
     renderer = TemplateRenderer()
 
-    # Get template name from path
-    template_name = os.path.basename(template_path)
+    # Get template name from path - handle subdirectories
+    # Find the relative path from template_dir
+    template_dir = os.path.join(os.path.dirname(__file__), "../template")
+    try:
+        template_name = os.path.relpath(template_path, template_dir)
+    except ValueError:
+        # If relative path fails, fall back to basename
+        template_name = os.path.basename(template_path)
 
     # Render template and save to file
     output_path = os.path.join(output_dir, output_filename)
