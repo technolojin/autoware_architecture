@@ -108,7 +108,7 @@ def _generate_deployment_overview_pages(install_root: Path, deployments):
         # Generate the overview page
         overview_path = install_root / dep['path'].parent / f"{dep['name']}_overview.html"
         try:
-            renderer.render_template_to_file("visualization/deployment_overview.html.jinja2", str(overview_path), **template_data)
+            renderer.render_template_to_file("visualization/page/deployment_overview.html.jinja2", str(overview_path), **template_data)
             logger.info(f"Generated deployment overview page: {overview_path}")
         except Exception as e:
             logger.error(f"Failed to generate deployment overview page for {dep['name']}: {e}")

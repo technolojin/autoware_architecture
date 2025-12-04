@@ -36,15 +36,15 @@ def visualize_deployment(deploy_data: Dict[str, Dict], name: str, visualization_
 
     # Web visualization templates
     web_data_template_path = os.path.join(template_dir, "visualization", "data", "node_diagram_data.js.jinja2")
-    web_index_template_path = os.path.join(template_dir, "visualization", "node_diagram.html.jinja2")
-    sequence_html_template_path = os.path.join(template_dir, "visualization", "sequence_diagram.html.jinja2")
+    web_index_template_path = os.path.join(template_dir, "visualization", "page", "node_diagram.html.jinja2")
+    sequence_html_template_path = os.path.join(template_dir, "visualization", "page", "sequence_diagram.html.jinja2")
     sequence_mermaid_template_path = os.path.join(template_dir, "visualization", "data", "sequence_diagram_mermaid.jinja2")
     sequence_data_template_path = os.path.join(template_dir, "visualization", "data", "sequence_diagram_data.js.jinja2")
 
     # Module templates for overview page
-    node_module_template_path = os.path.join(template_dir, "visualization", "node_diagram.js.jinja2")
-    sequence_module_template_path = os.path.join(template_dir, "visualization", "sequence_diagram.js.jinja2")
-    overview_template_path = os.path.join(template_dir, "visualization", "deployment_overview.html.jinja2")
+    node_module_template_path = os.path.join(template_dir, "visualization", "page", "node_diagram.js.jinja2")
+    sequence_module_template_path = os.path.join(template_dir, "visualization", "page", "sequence_diagram.js.jinja2")
+    overview_template_path = os.path.join(template_dir, "visualization", "page", "deployment_overview.html.jinja2")
 
     # Generate visualization for each mode
     for mode_key, data in deploy_data.items():
