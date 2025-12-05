@@ -1,0 +1,425 @@
+// Logic Diagram Module
+// This module provides functionality to render logic diagrams using Viz.js (Graphviz)
+
+class LogicDiagramModule {
+    constructor(container, options = {}) {
+        this.container = container;
+        this.options = {
+            mode: options.mode || 'default',
+            deployment: options.deployment || '',
+            ...options
+        };
+
+        this.panZoomInstance = null;
+        this.init();
+    }
+
+    async init() {
+        try {
+        // Load required libraries if not already loaded
+        if (!this.isGraphvizLoaded()) {
+            console.log('Loading graphviz-webcomponent...');
+            await this.loadScript('https://cdn.jsdelivr.net/npm/graphviz-webcomponent@0.2.0/dist/graphviz-webcomponent.min.js');
+            console.log('graphviz-webcomponent loaded, graphviz available:', this.isGraphvizLoaded());
+        }
+            if (typeof svgPanZoom === 'undefined') {
+                console.log('Loading svg-pan-zoom...');
+                await this.loadScript('https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js');
+                console.log('svg-pan-zoom loaded');
+            }
+
+            // Add interaction styles early
+            this.addInteractionStyles();
+
+            // Load and render the diagram
+            await this.loadAndRender();
+        } catch (error) {
+            console.error('Error in init:', error);
+            throw error;
+        }
+    }
+
+    isGraphvizLoaded() {
+        return typeof window !== 'undefined' && (
+            window.graphviz ||
+            (typeof customElements !== 'undefined' && customElements.get && customElements.get('graphviz-graph'))
+        );
+    }
+
+    addInteractionStyles() {
+        // Add CSS for interactions
+        const styleId = 'logic-diagram-interaction-styles';
+        if (!document.getElementById(styleId)) {
+            const style = document.createElement('style');
+            style.id = styleId;
+            style.textContent = `
+                .logic-diagram-container svg {
+                    cursor: grab;
+                }
+                .logic-diagram-container svg:active {
+                    cursor: grabbing;
+                }
+                .logic-diagram-node:hover {
+                    stroke: #007bff !important;
+                    stroke-width: 2px !important;
+                }
+                .logic-diagram-edge:hover {
+                    stroke: #007bff !important;
+                    stroke-width: 2px !important;
+                }
+                .logic-diagram-cluster:hover {
+                    stroke: #007bff !important;
+                    stroke-width: 2px !important;
+                }
+                .highlighted {
+                    stroke: #dc3545 !important;
+                    stroke-width: 3px !important;
+                    fill: #fff3cd !important;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+
+    async loadScript(src) {
+        return new Promise((resolve, reject) => {
+            // Check if script is already loaded
+            const existingScript = document.querySelector(`script[src="${src}"]`);
+            if (existingScript) {
+                resolve();
+                return;
+            }
+
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = () => resolve();
+            script.onerror = (error) => reject(error);
+            document.head.appendChild(script);
+        });
+    }
+
+    async loadDataScript(mode) {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = `data/${mode}_logic_diagram.js`;
+            script.onload = () => resolve();
+            script.onerror = (error) => reject(error);
+            document.head.appendChild(script);
+        });
+    }
+
+    async loadAndRender() {
+        try {
+            // Load data if not already loaded
+            if (!window.logicDiagramData || !window.logicDiagramData[this.options.mode]) {
+                await this.loadDataScript(this.options.mode);
+            }
+
+            if (!window.logicDiagramData || !window.logicDiagramData[this.options.mode]) {
+                throw new Error(`No logic diagram data available for mode: ${this.options.mode}`);
+            }
+
+            // Generate DOT syntax from data and render
+            const data = window.logicDiagramData[this.options.mode];
+            const dotSyntax = this.generateDotSyntax(data);
+            await this.renderLogicDiagram(dotSyntax);
+
+        } catch (error) {
+            console.error('Error loading logic diagram:', error);
+            this.showError(`Error loading logic diagram: ${error.message}`);
+        }
+    }
+
+    generateDotSyntax(root) {
+        let dotLines = [];
+
+        // Graph header
+        dotLines.push(`digraph logic_diagram {`);
+        dotLines.push(`\tlabel="System Diagram ${root.name}";`);
+        dotLines.push(`\tlabelloc=top;`);
+        dotLines.push(`\tfontsize=20;`);
+        dotLines.push(`\tfontname="Arial";`);
+        dotLines.push(`\trankdir=LR;`);
+        dotLines.push(`\tnode [shape=box, style=filled, fillcolor="#dddddd", fontname="Arial", fontsize=10];`);
+        dotLines.push(`\tedge [fontname="Arial", fontsize=8, color="#000066"];`);
+        dotLines.push(``);
+
+        // Build instance graphs recursively
+        this.buildInstanceGraph(root, dotLines);
+
+        dotLines.push(`}`);
+        return dotLines.join('\n');
+    }
+
+    buildInstanceGraph(instance, dotLines) {
+        if (instance.entity_type === "node") {
+            // Node cluster
+            dotLines.push(`\tsubgraph cluster_${instance.unique_id} {`);
+            dotLines.push(`\t\tlabel="${instance.name}";`);
+            if (instance.vis_guide) {
+                dotLines.push(`\t\tstyle="rounded,filled"; color="${instance.vis_guide.color}"; fillcolor="${instance.vis_guide.background_color}"; fontcolor="${instance.vis_guide.text_color}";`);
+            }
+            dotLines.push(`\t\tnode [style=filled, fillcolor=white];`);
+
+            // Input ports
+            if (instance.in_ports) {
+                instance.in_ports.forEach(port => {
+                    const eventType = port.event ? port.event.type : 'unknown';
+                    const eventFreq = port.event ? port.event.frequency : 'unknown';
+                    dotLines.push(`\t\t${port.unique_id} [label="input/${port.name}\\n#${eventType}\\n@${eventFreq}", shape=ellipse, fillcolor="#e0f7ff"];`);
+                });
+            }
+
+            // Output ports
+            if (instance.out_ports) {
+                instance.out_ports.forEach(port => {
+                    dotLines.push(`\t\t${port.unique_id} [label="output/${port.name}", shape=ellipse, fillcolor="#fff4e0"];`);
+                });
+            }
+
+            // Events
+            if (instance.events) {
+                instance.events.forEach(event => {
+                    const shape = event.type === "periodic" ? "diamond" : "box";
+                    const mediumColor = instance.vis_guide ? instance.vis_guide.medium_color : "#cccccc";
+                    dotLines.push(`\t\t${event.unique_id} [label="${event.name}\\n#${event.type}\\n@${event.frequency}", shape=${shape}, fillcolor="${mediumColor}"];`);
+                });
+            }
+
+            dotLines.push(`\t}`);
+
+            // Global topic clouds for input ports
+            if (instance.in_ports) {
+                instance.in_ports.forEach(port => {
+                    if (port.is_global) {
+                        const topicPath = Array.isArray(port.topic) ? port.topic.join('/') : port.topic || '';
+                        dotLines.push(`\t${port.unique_id}_cloud [label="/${topicPath}", shape=hexagon, style=solid, color=gray];`);
+                        dotLines.push(`\t${port.unique_id}_cloud -> ${port.unique_id} [color="#555577"];`);
+                    }
+                });
+            }
+
+            // Event triggers
+            if (instance.events) {
+                instance.events.forEach(event => {
+                    if (event.triggers) {
+                        event.triggers.forEach(trigger => {
+                            dotLines.push(`\t${trigger.unique_id} -> ${event.unique_id} [color="#555577"];`);
+                        });
+                    }
+                });
+            }
+
+            // Output port triggers
+            if (instance.out_ports) {
+                instance.out_ports.forEach(port => {
+                    if (port.event && port.event.triggers) {
+                        port.event.triggers.forEach(trigger => {
+                            dotLines.push(`\t${trigger.unique_id} -> ${port.event.unique_id} [color="#555577"];`);
+                        });
+                    }
+                });
+            }
+
+            // Input port triggers
+            if (instance.in_ports) {
+                instance.in_ports.forEach(port => {
+                    if (port.event && port.event.triggers) {
+                        port.event.triggers.forEach(trigger => {
+                            dotLines.push(`\t${trigger.unique_id} -> ${port.event.unique_id} [color="#555577"];`);
+                        });
+                    }
+                });
+            }
+
+        } else if (instance.entity_type === "module") {
+            // Recursively process children
+            if (instance.children) {
+                instance.children.forEach(child => {
+                    this.buildInstanceGraph(child, dotLines);
+                });
+            }
+        }
+    }
+
+    async renderLogicDiagram(dotSyntax) {
+        console.log('Rendering logic diagram with DOT syntax length:', dotSyntax.length);
+        console.log('Viz available:', typeof Viz);
+
+        if (!this.isGraphvizLoaded()) {
+            throw new Error('graphviz-webcomponent library not loaded');
+        }
+
+        try {
+            // Clear container
+            this.container.innerHTML = '';
+            this.container.className = 'logic-diagram-container';
+
+            // Render DOT using graphviz-webcomponent
+            console.log('Rendering DOT with graphviz-webcomponent...');
+
+            // Create graphviz element
+            const graphvizElement = document.createElement('graphviz-graph');
+            graphvizElement.setAttribute('graph', dotSyntax);
+
+            // Wait for rendering to complete
+            await new Promise((resolve, reject) => {
+                const checkRendered = () => {
+                    const svg = graphvizElement.querySelector('svg');
+                    if (svg) {
+                        resolve(svg);
+                    } else {
+                        setTimeout(checkRendered, 100);
+                    }
+                };
+                checkRendered();
+
+                // Timeout after 10 seconds
+                setTimeout(() => reject(new Error('Graphviz rendering timeout')), 10000);
+            });
+            console.log('Graphviz element created');
+
+            // Add interaction handlers
+            const svg = graphvizElement.querySelector('svg');
+            if (svg) {
+                this.addInteractionHandlers(svg);
+            }
+
+            // Initialize pan and zoom on the graphviz element
+            this.initPanZoom(graphvizElement);
+
+            this.container.appendChild(graphvizElement);
+
+        } catch (error) {
+            console.error('Error rendering logic diagram with Graphviz, falling back to text display:', error);
+
+            // Fallback: display DOT syntax as formatted text
+            this.container.innerHTML = '';
+            this.container.className = 'logic-diagram-container';
+
+            const pre = document.createElement('pre');
+            pre.style.cssText = `
+                background: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 4px;
+                padding: 15px;
+                margin: 0;
+                font-family: 'Courier New', monospace;
+                font-size: 12px;
+                line-height: 1.4;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+                max-height: 600px;
+                overflow-y: auto;
+            `;
+
+            pre.textContent = `// Logic Diagram DOT Syntax\n// Rendering failed: ${error.message}\n\n${dotSyntax}`;
+            this.container.appendChild(pre);
+        }
+    }
+
+    addInteractionHandlers(svgElement) {
+        // Add click handlers to nodes and edges
+        const nodes = svgElement.querySelectorAll('.node');
+        const edges = svgElement.querySelectorAll('.edge');
+        const clusters = svgElement.querySelectorAll('.cluster');
+
+        // Handle node clicks
+        nodes.forEach(node => {
+            node.classList.add('logic-diagram-node');
+            node.style.cursor = 'pointer';
+            node.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.handleElementClick(node, 'Node');
+            });
+        });
+
+        // Handle edge clicks
+        edges.forEach(edge => {
+            edge.classList.add('logic-diagram-edge');
+            edge.style.cursor = 'pointer';
+            edge.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.handleElementClick(edge, 'Edge');
+            });
+        });
+
+        // Handle cluster clicks
+        clusters.forEach(cluster => {
+            cluster.classList.add('logic-diagram-cluster');
+            cluster.style.cursor = 'pointer';
+            cluster.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.handleElementClick(cluster, 'Cluster');
+            });
+        });
+    }
+
+    handleElementClick(element, type) {
+        // Remove previous highlights
+        this.container.querySelectorAll('.highlighted').forEach(el => {
+            el.classList.remove('highlighted');
+        });
+
+        // Highlight clicked element
+        element.classList.add('highlighted');
+
+        // Extract element information
+        const title = element.querySelector('title');
+        const label = element.querySelector('text') || element;
+        const elementInfo = {
+            type: type,
+            label: label ? label.textContent : 'Unknown',
+            title: title ? title.textContent : ''
+        };
+
+        // Update info panel
+        this.updateInfoPanel(elementInfo, type);
+    }
+
+    initPanZoom(svg) {
+        if (this.panZoomInstance) {
+            this.panZoomInstance.destroy();
+        }
+
+        // Initialize svg-pan-zoom
+        this.panZoomInstance = svgPanZoom(svg, {
+            zoomEnabled: true,
+            controlIconsEnabled: true,
+            fit: true,
+            center: true,
+            minZoom: 0.1,
+            maxZoom: 5,
+            zoomScaleSensitivity: 0.2
+        });
+
+        // Fit to screen initially
+        setTimeout(() => {
+            this.panZoomInstance.fit();
+            this.panZoomInstance.center();
+        }, 100);
+    }
+
+    updateInfoPanel(data, type) {
+        // This will be handled by the parent overview page
+        if (this.options.onInfoUpdate) {
+            this.options.onInfoUpdate(data, type);
+        }
+    }
+
+    showError(message) {
+        this.container.innerHTML = `<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #dc3545;">${message}</div>`;
+    }
+
+    destroy() {
+        // Clean up pan zoom instance
+        if (this.panZoomInstance) {
+            this.panZoomInstance.destroy();
+            this.panZoomInstance = null;
+        }
+        this.container.innerHTML = '';
+    }
+}
+
+// Export for use in the overview page
+window.LogicDiagramModule = LogicDiagramModule;

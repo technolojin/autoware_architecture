@@ -441,7 +441,8 @@
 
                 // Create module instance
                 const ModuleClass = diagramType === 'node_diagram' ? window.NodeDiagramModule :
-                                  diagramType === 'sequence_diagram' ? window.SequenceDiagramModule : null;
+                                  diagramType === 'sequence_diagram' ? window.SequenceDiagramModule :
+                                  diagramType === 'logic_diagram' ? window.LogicDiagramModule : null;
 
                 if (!ModuleClass) {
                     throw new Error(`Module class not found for diagram type: ${diagramType}. Make sure ${moduleUrl} is properly generated.`);

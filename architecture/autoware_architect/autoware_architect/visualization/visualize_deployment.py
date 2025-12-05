@@ -74,6 +74,11 @@ def visualize_deployment(deploy_data: Dict[str, Dict], name: str, visualization_
         output_path = os.path.join(web_data_dir, f"{mode_key}_sequence_diagram.js")
         renderer.render_template_to_file("visualization/data/sequence_diagram_data.js.jinja2", output_path, **sequence_data)
 
+        # Generate logic diagram data
+        logic_data = {**data, "mode": mode_key}
+        output_path = os.path.join(web_data_dir, f"{mode_key}_logic_diagram.js")
+        renderer.render_template_to_file("visualization/data/logic_diagram_data.js.jinja2", output_path, **logic_data)
+
         logger.info(f"Generated visualization for mode: {mode_key}")
 
     # Generate web visualization files
@@ -95,12 +100,16 @@ def visualize_deployment(deploy_data: Dict[str, Dict], name: str, visualization_
         renderer.render_template_to_file("visualization/page/sequence_diagram.js.jinja2", output_path, **module_data)
         logger.info("Generated sequence diagram module: sequence_diagram.js")
 
+        output_path = os.path.join(web_dir, "logic_diagram.js")
+        renderer.render_template_to_file("visualization/page/logic_diagram.js.jinja2", output_path, **module_data)
+        logger.info("Generated logic diagram module: logic_diagram.js")
+
         # Generate overview HTML file
         overview_data = {
             "deployment_name": name,
             "package_name": name,  # Using name as package name for now
             "available_modes": modes,
-            "available_diagram_types": ["node_diagram", "sequence_diagram"],
+            "available_diagram_types": ["node_diagram", "sequence_diagram", "logic_diagram"],
             "default_mode": default_mode,
             "default_diagram_type": "node_diagram"
         }
