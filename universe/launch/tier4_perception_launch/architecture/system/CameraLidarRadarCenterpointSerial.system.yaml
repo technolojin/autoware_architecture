@@ -129,3 +129,5 @@ connections:
     to: planner.input.predicted_objects
   - from: traffic_light_recognition.output.traffic_signals
     to: planner.input.traffic_signals
+  - from: obstacle_segmentation.output.pointcloud
+    to: planner.input.obstacle_pointcloud
