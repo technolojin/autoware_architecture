@@ -1,17 +1,18 @@
-@startuml
+sequenceDiagram
 
-title System Diagram {{ name }}
-
-skinparam dpi 128
+%% Macros adapted from Jinja2 to Mermaid syntax
 
 {% macro build_logic_graph(instance) -%}
     {% if instance.entity_type == "node" -%}
         {# EVENTS -#}
         {% for event in instance.events -%}
+            {% set ns_label = instance.namespace | join('<br/>') %}
+            {% set full_label = ns_label + '<br/><br/>' + '[' + event.name + ']' %}
+            
             {% if event.type == "periodic" -%}
-                control "{{'\\n/'.join(instance.namespace)}}\n\n<<{{event.name}}>>" as {{ event.unique_id }}
+                participant {{ event.unique_id }} as {{ full_label }}
             {% else -%}
-                participant "{{'\\n/'.join(instance.namespace)}}\n\n<<{{event.name}}>>" as {{ event.unique_id }}
+                participant {{ event.unique_id }} as {{ full_label }}
             {% endif -%}
         {% endfor -%}
     {% elif instance.entity_type == "module" -%}
@@ -21,25 +22,19 @@ skinparam dpi 128
     {% endif -%}
 {% endmacro -%}
 
-
 {% macro event_connection(root_name, event_origin, connection_name, event_target) -%}
-    {# {% set connection_name = connection_name + "  " + event_target.name -%} -#}
-    {# check the type and run the connection build -#}
     {% if (event_target.type == "on_input" or event_target.type == "to_output") and event_target.process_event == False -%}
         {% set connection_name = event_target.name -%}
-        {# recursive return -#}
         {% for trigger in event_target.triggers -%}
             {{ event_connection(root_name, event_origin, connection_name, trigger) -}}
         {% endfor -%}
     {% else -%}
-        {# render connection -#}
-        {{ event_target.unique_id }} --> {{ event_origin.unique_id }} : {{event_target.namespace[-1]}} to {{root_name}}\n {{connection_name}}
+        {{ event_target.unique_id }}->>{{ event_origin.unique_id }}: {{event_target.namespace[-1]}} to {{root_name}}_{{connection_name}}
     {% endif -%}
 {% endmacro -%}
 
 {% macro build_connection_graph(instance) -%}
     {% if instance.entity_type == "node" -%}
-        {# EVENTS -#}
         {% for event in instance.events -%}
             {% if event.process_event == True -%}
                 {% for event_trigger in event.triggers -%}
@@ -54,20 +49,13 @@ skinparam dpi 128
     {% endif -%}
 {% endmacro -%}
 
-''''''''''''''
-''' events '''
-'''        '''
-''''''''''''''
+%% Definitions
 {% for child in children -%}
 {{ build_logic_graph(child) }}
 {% endfor -%}
 
-'''''''''''''''''''
-''' connections '''
-'''             '''
-'''''''''''''''''''
+%% Connections
 {% for child in children -%}
 {{ build_connection_graph(child) }}
 {% endfor -%}
 
-@enduml

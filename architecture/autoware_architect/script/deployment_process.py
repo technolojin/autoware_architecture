@@ -15,7 +15,7 @@
 import sys
 from autoware_architect.deployment import Deployment
 from autoware_architect.config import SystemConfig
-from autoware_architect.utils.visualization_index import update_index
+from autoware_architect.visualization.visualization_index import update_index
 
 # build the deployment
 # search and connect the connections between the nodes

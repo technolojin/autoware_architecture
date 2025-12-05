@@ -4,7 +4,7 @@ parameters:
     parameter_files:
       - model_param_path: $(find-pkg-share autoware_lidar_centerpoint)/config/centerpoint_sigma.param.yaml
       - common_param_path: $(find-pkg-share autoware_lidar_centerpoint)/config/centerpoint_common.param.yaml
-      - ml_package_param_path: $(var data_path)/lidar_centerpoint/centerpoin_sigma_ml_package.param.yaml
+      - ml_package_param_path: $(var data_path)/lidar_centerpoint/centerpoint_sigma_ml_package.param.yaml
       - class_remapper_param_path: $(var data_path)/lidar_centerpoint/detection_class_remapper.param.yaml
     parameters:
       - name: build_only

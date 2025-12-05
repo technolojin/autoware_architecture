@@ -16,10 +16,10 @@ DEFAULT_BASE_COLOR = "#888888"  # gray
 
 def hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
     """Convert hex color to RGB tuple.
-    
+
     Args:
         hex_color: Hex color string (e.g., "#cc6666")
-        
+
     Returns:
         Tuple of (r, g, b) values (0-255)
     """
@@ -28,10 +28,10 @@ def hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
 
 def rgb_to_hex(r: int, g: int, b: int) -> str:
     """Convert RGB values to hex color string.
-    
+
     Args:
         r, g, b: RGB values (0-255)
-        
+
     Returns:
         Hex color string (e.g., "#cc6666")
     """
@@ -39,16 +39,16 @@ def rgb_to_hex(r: int, g: int, b: int) -> str:
 
 def calculate_color_variant(base_color: str, variant: str) -> str:
     """Calculate a color variant from a base color.
-    
+
     Args:
         base_color: Base hex color string
         variant: Variant type - "matte", "medium", "bright", or "text"
-        
+
     Returns:
         Calculated hex color string
     """
     r, g, b = hex_to_rgb(base_color)
-    
+
     if variant == "matte":
         # Matte: use base color as-is
         return base_color
@@ -78,13 +78,13 @@ def calculate_color_variant(base_color: str, variant: str) -> str:
 
 def get_component_color(namespace: List[str], variant: str = "matte") -> str:
     """Get color for a component based on its top-level namespace.
-    
+
     All color variants are calculated dynamically from the base color map.
-    
+
     Args:
         namespace: List of namespace components
         variant: Color variant - "matte" (default), "medium", "bright", or "text"
-        
+
     Returns:
         Calculated hex color string
     """
@@ -95,7 +95,7 @@ def get_component_color(namespace: List[str], variant: str = "matte") -> str:
         # Get the top-level component (first in namespace)
         top_level = namespace[0].lower()
         base_color = BASE_COLOR_MAP.get(top_level, DEFAULT_BASE_COLOR)
-    
+
     # Calculate and return the requested variant
     return calculate_color_variant(base_color, variant)
 
@@ -110,7 +110,7 @@ POSITION_MAP = {
     "radar": [0, 3],
   },
   "localization": [1, 0],
-  "perception": 
+  "perception":
   {
     "obstacle_segmentation": [2, 1],
     "occupancy_grid_map": [3, 1],
@@ -124,29 +124,29 @@ POSITION_MAP = {
 
 def get_component_position(namespace: List[str]) -> Optional[List[int]]:
     """Get position [x, y] for a component based on its namespace.
-    
+
     Traverses the POSITION_MAP using the namespace components.
     Returns the most specific position found.
-    
+
     Args:
         namespace: List of namespace components
-        
+
     Returns:
         List [x, y] or None if no position found
     """
     if not namespace:
         return None
-    
+
     current_level = POSITION_MAP
     last_found_pos = None
-    
+
     for part in namespace:
         key = part.lower()
         if isinstance(current_level, dict) and key in current_level:
             val = current_level[key]
             if isinstance(val, (list, tuple)) and len(val) == 2:
                 last_found_pos = list(val)
-                # If we hit a coordinate, we stop traversing because 
+                # If we hit a coordinate, we stop traversing because
                 # in the current map structure, coordinates are leaf values.
                 return last_found_pos
             elif isinstance(val, dict):
@@ -155,5 +155,5 @@ def get_component_position(namespace: List[str]) -> Optional[List[int]]:
                 break
         else:
             break
-            
+
     return last_found_pos

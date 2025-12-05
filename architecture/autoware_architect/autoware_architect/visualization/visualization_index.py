@@ -12,16 +12,16 @@ def get_install_root(path: Path) -> Path:
     """
     path = path.resolve()
     parts = path.parts
-    
+
     # Look for 'install' in the path from right to left
     # This handles cases where the workspace itself might be in a directory named 'install'
     # But typically we want the one that structures the package layout.
     # Standard layout: .../install/<pkg>/share/<pkg>/...
     # or .../install/share/<pkg>/...
-    
+
     # We'll assume the 'install' directory we care about is the one closest to the workspace root
     # but strictly speaking, we just need *a* common root to place the index.
-    
+
     # Simple heuristic: search for 'install'
     if 'install' in parts:
         # Find the index of 'install'
@@ -29,14 +29,14 @@ def get_install_root(path: Path) -> Path:
         # usually the last one?
         # /home/user/workspace/install/pkg/... -> index is len-3
         # If /home/user/install/workspace/install/pkg -> we want the last one.
-        
+
         try:
             # finding the last occurrence of 'install'
             idx = len(parts) - 1 - parts[::-1].index('install')
             return Path(*parts[:idx+1])
         except ValueError:
             pass
-            
+
     return None
 
 def update_index(output_root_dir: str):
@@ -46,88 +46,98 @@ def update_index(output_root_dir: str):
     """
     output_path = Path(output_root_dir).resolve()
     install_root = get_install_root(output_path)
-    
+
     if not install_root or not install_root.exists():
         logger.warning(f"Could not determine install root from {output_root_dir}. Skipping index update.")
         return
 
     index_file = install_root / "architecture_visualization.html"
     lock_file = install_root / ".architecture_visualization_index.lock"
-    
+
     # Ensure we can write to lock file
     try:
         with open(lock_file, 'w') as lock:
             try:
                 # Acquire exclusive lock
                 fcntl.flock(lock, fcntl.LOCK_EX)
-                
+
                 # Now we have the lock, regenerate the index
                 _generate_index_file(install_root, index_file)
-                
+
             finally:
                 # Release lock
                 fcntl.flock(lock, fcntl.LOCK_UN)
     except Exception as e:
         logger.error(f"Failed to update visualization index: {e}")
 
+
 def _generate_index_file(install_root: Path, output_file: Path):
     deployments = []
-    
+
     # Walk through the install directory to find deployments
     # We scan specifically for our known structure to avoid false positives
-    for path in install_root.rglob("node_diagram.html"):
+    # Look for visualization directories and check what data files they contain
+    deployment_map = {}
+
+    for visualization_dir in install_root.rglob("visualization"):
         try:
             # Expected path structure:
-            # .../exports/<system_name>/visualization/web/node_diagram.html
-            
-            if len(path.parts) < 6:
+            # .../exports/<system_name>/visualization/
+
+            if len(visualization_dir.parts) < 5:
                 continue
 
-            if path.parts[-2] == 'web' and path.parts[-3] == 'visualization':
-                if path.parts[-5] == 'exports':
-                    deployment_dir_name = path.parts[-4]
-                    package_name = path.parts[-6] # .../share/<package>/exports/...
-                    
-                    # Calculate relative path for the link
-                    try:
-                        rel_path = path.relative_to(install_root)
-                    except ValueError:
-                        continue
-                        
-                    # Find associated sequence diagrams
-                    sequence_diagrams = []
-                    # Looking in .../visualization/ (parent of web)
-                    visualization_root = path.parents[1]
-                    if visualization_root.exists():
-                        # Look recursively for _sequence_graph.html files
-                        for seq_path in visualization_root.rglob("*_sequence_graph.html"):
-                             try:
-                                 seq_rel_path = seq_path.relative_to(install_root)
-                                 # Extract mode from filename if possible, or directory
-                                 # Structure: visualization/<mode>/<name>_sequence_graph.html
-                                 # Filename: <name>_<mode>_sequence_graph.html or <name>_sequence_graph.html
-                                 mode_name = seq_path.parent.name
-                                 sequence_diagrams.append({
-                                     'name': mode_name,
-                                     'path': seq_rel_path
-                                 })
-                             except ValueError:
-                                 continue
-                    
-                    sequence_diagrams.sort(key=lambda x: x['name'])
+            if visualization_dir.parts[-3] == 'exports':
+                deployment_dir_name = visualization_dir.parts[-2]
+                package_name = visualization_dir.parts[-4]  # .../share/<pkg>/exports/...
 
-                    deployments.append({
-                        'name': deployment_dir_name,
-                        'package': package_name,
-                        'path': rel_path,
-                        'sequence_diagrams': sequence_diagrams
-                    })
-        except IndexError:
+                web_dir = visualization_dir / "web"
+                data_dir = web_dir / "data"
+
+                if not web_dir.exists() or not data_dir.exists():
+                    continue
+
+                # Skip if we've already processed this deployment
+                deployment_key = f"{package_name}:{deployment_dir_name}"
+                if deployment_key in deployment_map:
+                    continue
+
+                # Find all available diagram types based on data files
+                diagram_types = set()
+
+                # Discover diagram types dynamically by looking for data files
+                # Pattern: <mode>_<diagram_type>.js
+                for data_file in data_dir.glob("*.js"):
+                    if data_file.name.endswith('.js'):
+                        # Extract diagram type from filename (remove mode prefix and .js extension)
+                        parts = data_file.stem.split('_')
+                        if len(parts) >= 2:
+                            diagram_type = '_'.join(parts[1:])  # Everything after the first underscore
+                            diagram_types.add(diagram_type)
+
+                # If no diagram types found, skip this deployment
+                if not diagram_types:
+                    continue
+
+                # Create a reference path - use the web directory as base
+                # The actual path will be constructed in the HTML generation based on availability
+                rel_path = web_dir.relative_to(install_root)
+
+                deployment_map[deployment_key] = {
+                    'name': deployment_dir_name,
+                    'package': package_name,
+                    'path': rel_path,
+                    'diagram_types': sorted(list(diagram_types))
+                }
+        except (IndexError, ValueError):
             continue
-            
+
+    # Convert map to list
+    deployments.extend(deployment_map.values())
+
     # Sort by package then system name
     deployments.sort(key=lambda x: (x['package'], x['name']))
-    
+
     # Generate HTML
     html_content = """<!DOCTYPE html>
 <html>
@@ -135,9 +145,9 @@ def _generate_index_file(install_root: Path, output_file: Path):
     <meta charset="UTF-8">
     <title>Autoware Architecture Deployments</title>
     <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            margin: 0; 
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
             padding: 20px;
             background-color: #f4f4f4;
             color: #333;
@@ -150,8 +160,8 @@ def _generate_index_file(install_root: Path, output_file: Path):
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        h1 { 
-            color: #2c3e50; 
+        h1 {
+            color: #2c3e50;
             border-bottom: 2px solid #eee;
             padding-bottom: 10px;
         }
@@ -159,32 +169,59 @@ def _generate_index_file(install_root: Path, output_file: Path):
             color: #666;
             margin-bottom: 30px;
         }
-        .deployment-list { 
-            list-style-type: none; 
-            padding: 0; 
+        .deployment-list {
+            list-style-type: none;
+            padding: 0;
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 20px;
         }
-        .deployment-item { 
-            background: #fff; 
-            border: 1px solid #e0e0e0; 
-            border-radius: 6px; 
+        .deployment-item {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
             transition: transform 0.2s, box-shadow 0.2s;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
-        .deployment-item:hover { 
+        .deployment-item:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0,0,0,0.05);
             border-color: #b0b0b0;
         }
-        .deployment-link { 
-            text-decoration: none; 
-            color: inherit; 
-            display: block;
-            padding: 20px;
-            flex-grow: 1;
+        .deployment-header {
+            padding: 20px 20px 15px 20px;
+        }
+        .diagram-buttons {
+            display: flex;
+            gap: 10px;
+            padding: 0 20px 20px 20px;
+            border-top: 1px solid #f0f0f0;
+            background: #fafafa;
+        }
+        .diagram-button {
+            text-decoration: none;
+            color: #0066cc;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-size: 0.9em;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .diagram-button:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+            color: #0056b3;
+        }
+        .diagram-icon {
+            display: flex;
+            align-items: center;
         }
         .deployment-name {
             font-weight: bold;
@@ -192,10 +229,14 @@ def _generate_index_file(install_root: Path, output_file: Path):
             color: #0066cc;
             margin-bottom: 10px;
             word-break: break-word;
+            text-decoration: none;
         }
-        .deployment-meta { 
-            color: #666; 
-            font-size: 0.9em; 
+        .deployment-name:hover {
+            color: #0056b3;
+        }
+        .deployment-meta {
+            color: #666;
+            font-size: 0.9em;
             margin-bottom: 10px;
         }
         .deployment-package {
@@ -205,26 +246,6 @@ def _generate_index_file(install_root: Path, output_file: Path):
             border-radius: 4px;
             font-family: monospace;
         }
-        .sequence-links {
-            padding: 0 20px 20px 20px;
-            border-top: 1px solid #eee;
-            font-size: 0.9em;
-        }
-        .sequence-title {
-            margin: 10px 0 5px 0;
-            font-weight: 600;
-            color: #555;
-        }
-        .sequence-link-item {
-            margin-bottom: 4px;
-        }
-        .sequence-link-item a {
-            color: #0066cc;
-            text-decoration: none;
-        }
-        .sequence-link-item a:hover {
-            text-decoration: underline;
-        }
     </style>
 </head>
 <body>
@@ -233,31 +254,35 @@ def _generate_index_file(install_root: Path, output_file: Path):
         <p class="description">Index of available system architecture visualizations found in the <code>install/</code> directory.</p>
         <ul class="deployment-list">
 """
-    
+
     for dep in deployments:
+        web_path = dep['path']  # This is now the web directory path
+        deployment_overview_path = web_path / f"{dep['name']}_overview.html"
+
         html_content += f"""
             <li class="deployment-item">
-                <a class="deployment-link" href="{dep['path']}">
-                    <div class="deployment-name">{dep['name']}</div>
+                <div class="deployment-header">"""
+        main_link = f"{deployment_overview_path}?diagram={dep['diagram_types'][0]}"
+        html_content += f"""
+                    <a href="{main_link}" class="deployment-name">{dep['name']}</a>
                     <div class="deployment-meta">Package: <span class="deployment-package">{dep['package']}</span></div>
-                    <div class="deployment-meta" style="font-size: 0.8em; color: #888;">Node Diagram (Main)</div>
-                </a>"""
-        
-        if dep['sequence_diagrams']:
-            html_content += """
-                <div class="sequence-links">
-                    <div class="sequence-title">Sequence Diagrams:</div>"""
-            for seq in dep['sequence_diagrams']:
-                html_content += f"""
-                    <div class="sequence-link-item">
-                        <a href="{seq['path']}">{seq['name']}</a>
-                    </div>"""
-            html_content += """
-                </div>"""
-                
+                </div>
+                <div class="diagram-buttons">"""
+
+        # Show diagram type buttons
+        for diagram_type in dep['diagram_types']:
+            diagram_label = diagram_type.replace('_', ' ').title()
+            diagram_link = f"{deployment_overview_path}?diagram={diagram_type}"
+
+            html_content += f"""
+                    <a class="diagram-button" href="{diagram_link}" data-type="{diagram_type}">
+                        <span class="diagram-icon">{diagram_label}</span>
+                    </a>"""
+
         html_content += """
+                </div>
             </li>"""
-        
+
     html_content += """
         </ul>
     </div>

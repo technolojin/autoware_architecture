@@ -43,6 +43,7 @@ macro(autoware_architect_configure)
 
   # Start (overwrite) manifest
   file(WRITE ${manifest_file} "domain: ${_ARCH_DOMAIN_FINAL}\n")
+  file(APPEND ${manifest_file} "package_path: ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}\n")
   file(APPEND ${manifest_file} "system_config_files:\n")
 
   foreach(YAML_FILE ${YAML_FILES})
@@ -52,8 +53,10 @@ macro(autoware_architect_configure)
       set(file_type "node")
     elseif(YAML_FILE MATCHES ".*\\.module\\.yaml$")
       set(file_type "module")
-    elseif(YAML_FILE MATCHES ".*architecture\\.yaml$")
-      set(file_type "architecture")
+    elseif(YAML_FILE MATCHES ".*system\\.yaml$")
+      set(file_type "system")
+    elseif(YAML_FILE MATCHES ".*parameter_set\\.yaml$")
+      set(file_type "parameter_set")
     endif()
 
     # Append entry to manifest
