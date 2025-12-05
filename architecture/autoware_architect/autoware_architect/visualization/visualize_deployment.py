@@ -16,7 +16,7 @@
 import os
 import logging
 from typing import Dict
-from ..template_utils import TemplateRenderer
+from ..utils.template_utils import TemplateRenderer
 
 logger = logging.getLogger(__name__)
 
@@ -64,23 +64,6 @@ def visualize_deployment(deploy_data: Dict[str, Dict], name: str, visualization_
         web_dir = os.path.join(visualization_dir, "web")
         modes = list(deploy_data.keys())
         default_mode = "default" if "default" in modes else modes[0]
-
-        # # Generate node_diagram.html
-        # index_data = {
-        #     "modes": modes,
-        #     "default_mode": default_mode
-        # }
-        # generate_by_template(index_data, "visualization/page/node_diagram.html.jinja2", web_dir, "node_diagram.html")
-        # logger.info("Generated web visualization node_diagram.html")
-
-        # # Generate sequence_diagram.html (single file with mode selector)
-        # sequence_index_data = {
-        #     "name": name,
-        #     "modes": modes,
-        #     "default_mode": default_mode
-        # }
-        # generate_by_template(sequence_index_data, "visualization/page/sequence_diagram.html.jinja2", web_dir, "sequence_diagram.html")
-        # logger.info("Generated web visualization sequence_diagram.html")
 
         # Generate module JS files for overview page
         module_data = {

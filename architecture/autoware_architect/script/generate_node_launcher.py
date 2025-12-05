@@ -20,7 +20,7 @@ import yaml
 import logging
 
 from autoware_architect.utils import pascal_to_snake
-from autoware_architect.template_utils import TemplateRenderer
+from autoware_architect.utils.template_utils import TemplateRenderer
 
 
 def create_node_launcher_xml(node_yaml) -> str:

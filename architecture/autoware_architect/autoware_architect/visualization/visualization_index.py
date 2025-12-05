@@ -70,63 +70,6 @@ def update_index(output_root_dir: str):
     except Exception as e:
         logger.error(f"Failed to update visualization index: {e}")
 
-def _generate_deployment_overview_pages(install_root: Path, deployments):
-    """Generate deployment overview pages that combine different diagram types."""
-    from ..template_utils import TemplateRenderer
-
-    renderer = TemplateRenderer()
-    overview_availability = {}
-
-    for dep in deployments:
-        overview_available = False
-
-        # Find available modes for this deployment
-        visualization_root = install_root / dep['path'].parent.parent  # Go up from web/node_diagram.html
-        available_modes = set()
-
-        # Look for data files to determine available modes
-        data_dir = visualization_root / "web" / "data"
-        if data_dir.exists():
-            for js_file in data_dir.glob("*_node_diagram.js"):
-                mode = js_file.stem.replace("_node_diagram", "")
-                available_modes.add(mode)
-            for js_file in data_dir.glob("*_sequence_diagram.js"):
-                mode = js_file.stem.replace("_sequence_diagram", "")
-                available_modes.add(mode)
-
-        available_modes = sorted(list(available_modes))
-        default_mode = "default" if "default" in available_modes else (available_modes[0] if available_modes else "default")
-        default_diagram_type = dep['diagram_types'][0] if dep['diagram_types'] else "node_diagram"
-
-        # Only generate overview page if we have multiple diagram types or modes
-        should_generate_overview = len(dep['diagram_types']) > 1 or len(available_modes) > 1
-
-        if should_generate_overview:
-            # Prepare template data
-            template_data = {
-                "deployment_name": dep['name'],
-                "package_name": dep['package'],
-                "available_diagram_types": dep['diagram_types'],
-                "available_modes": available_modes,
-                "default_diagram_type": default_diagram_type,
-                "default_mode": default_mode
-            }
-
-            # Generate the overview page
-            overview_path = install_root / dep['path'].parent / f"{dep['name']}_overview.html"
-            try:
-                renderer.render_template_to_file("visualization/page/deployment_overview.html.jinja2", str(overview_path), **template_data)
-                logger.info(f"Generated deployment overview page: {overview_path}")
-                overview_available = True
-            except Exception as e:
-                logger.error(f"Failed to generate deployment overview page for {dep['name']}: {e}")
-                overview_available = False
-        else:
-            logger.debug(f"Skipping overview page generation for {dep['name']} - single diagram type and mode")
-
-        overview_availability[dep['name']] = overview_available
-
-    return overview_availability
 
 def _generate_index_file(install_root: Path, output_file: Path):
     deployments = []
@@ -194,13 +137,6 @@ def _generate_index_file(install_root: Path, output_file: Path):
 
     # Sort by package then system name
     deployments.sort(key=lambda x: (x['package'], x['name']))
-
-    # Generate deployment overview pages and get availability info
-    overview_availability = _generate_deployment_overview_pages(install_root, deployments)
-
-    # Update deployments with overview availability info
-    for dep in deployments:
-        dep['overview_available'] = overview_availability.get(dep['name'], False)
 
     # Generate HTML
     html_content = """<!DOCTYPE html>
@@ -326,15 +262,7 @@ def _generate_index_file(install_root: Path, output_file: Path):
         html_content += f"""
             <li class="deployment-item">
                 <div class="deployment-header">"""
-
-        # Use overview page link if available, otherwise show diagram types directly
-        if dep['overview_available']:
-            main_link = f"{deployment_overview_path}?diagram={dep['diagram_types'][0]}"
-        else:
-            # Use the first available diagram type as main link
-            main_diagram_type = dep['diagram_types'][0]
-            main_link = f"{web_path}/{main_diagram_type}.html"
-
+        main_link = f"{deployment_overview_path}?diagram={dep['diagram_types'][0]}"
         html_content += f"""
                     <a href="{main_link}" class="deployment-name">{dep['name']}</a>
                     <div class="deployment-meta">Package: <span class="deployment-package">{dep['package']}</span></div>
@@ -344,13 +272,7 @@ def _generate_index_file(install_root: Path, output_file: Path):
         # Show diagram type buttons
         for diagram_type in dep['diagram_types']:
             diagram_label = diagram_type.replace('_', ' ').title()
-
-            if dep['overview_available']:
-                # Use overview page with diagram parameter
-                diagram_link = f"{deployment_overview_path}?diagram={diagram_type}"
-            else:
-                # Use direct links to individual diagram pages (if they exist)
-                diagram_link = f"{web_path}/{diagram_type}.html"
+            diagram_link = f"{deployment_overview_path}?diagram={diagram_type}"
 
             html_content += f"""
                     <a class="diagram-button" href="{diagram_link}" data-type="{diagram_type}">

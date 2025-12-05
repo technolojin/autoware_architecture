@@ -27,7 +27,7 @@ from .builder.parameter_resolver import ParameterResolver
 from .parsers.data_validator import entity_name_decode
 from .parsers.yaml_parser import yaml_parser
 from .exceptions import ValidationError
-from .template_utils import TemplateRenderer
+from .utils.template_utils import TemplateRenderer
 from .visualization.visualize_deployment import visualize_deployment
 
 logger = logging.getLogger(__name__)
