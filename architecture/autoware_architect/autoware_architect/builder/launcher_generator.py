@@ -16,7 +16,7 @@ import os
 import logging
 from typing import List, Dict, Any
 from .instances import Instance
-from ..template_utils import TemplateRenderer
+from ..utils.template_utils import TemplateRenderer
 
 logger = logging.getLogger(__name__)
 
