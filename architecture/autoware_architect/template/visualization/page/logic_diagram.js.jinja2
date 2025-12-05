@@ -16,12 +16,16 @@ class LogicDiagramModule {
 
     async init() {
         try {
-        // Load required libraries if not already loaded
-        if (!this.isGraphvizLoaded()) {
-            console.log('Loading graphviz-webcomponent...');
-            await this.loadScript('https://cdn.jsdelivr.net/npm/graphviz-webcomponent@0.2.0/dist/graphviz-webcomponent.min.js');
-            console.log('graphviz-webcomponent loaded, graphviz available:', this.isGraphvizLoaded());
-        }
+            // Load required libraries if not already loaded
+            if (!this.isGraphvizLoaded()) {
+                console.log('Loading viz.js...');
+                await this.loadScript('https://cdn.jsdelivr.net/npm/viz.js@2.1.2/full.render.js');
+                console.log('viz.js loaded, graphviz available:', this.isGraphvizLoaded());
+            }
+
+            // Wait for graphviz to be fully ready
+            await this.waitForGraphvizReady();
+
             if (typeof svgPanZoom === 'undefined') {
                 console.log('Loading svg-pan-zoom...');
                 await this.loadScript('https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js');
@@ -40,10 +44,20 @@ class LogicDiagramModule {
     }
 
     isGraphvizLoaded() {
-        return typeof window !== 'undefined' && (
-            window.graphviz ||
-            (typeof customElements !== 'undefined' && customElements.get && customElements.get('graphviz-graph'))
-        );
+        return typeof window !== 'undefined' && window.Viz && typeof window.Viz.render === 'function';
+    }
+
+    async waitForGraphvizReady() {
+        return new Promise((resolve) => {
+            const checkReady = () => {
+                if (this.isGraphvizLoaded()) {
+                    resolve();
+                } else {
+                    setTimeout(checkReady, 50);
+                }
+            };
+            checkReady();
+        });
     }
 
     addInteractionStyles() {
@@ -93,7 +107,11 @@ class LogicDiagramModule {
             const script = document.createElement('script');
             script.src = src;
             script.onload = () => resolve();
-            script.onerror = (error) => reject(error);
+            script.onerror = (event) => {
+                const error = new Error(`Failed to load script: ${src}`);
+                error.event = event;
+                reject(error);
+            };
             document.head.appendChild(script);
         });
     }
@@ -244,10 +262,10 @@ class LogicDiagramModule {
 
     async renderLogicDiagram(dotSyntax) {
         console.log('Rendering logic diagram with DOT syntax length:', dotSyntax.length);
-        console.log('Viz available:', typeof Viz);
+        console.log('Graphviz available:', this.isGraphvizLoaded());
 
         if (!this.isGraphvizLoaded()) {
-            throw new Error('graphviz-webcomponent library not loaded');
+            throw new Error('viz.js library not loaded');
         }
 
         try {
@@ -255,43 +273,30 @@ class LogicDiagramModule {
             this.container.innerHTML = '';
             this.container.className = 'logic-diagram-container';
 
-            // Render DOT using graphviz-webcomponent
-            console.log('Rendering DOT with graphviz-webcomponent...');
+            // Render DOT using viz.js
+            console.log('Rendering DOT with viz.js...');
 
-            // Create graphviz element
-            const graphvizElement = document.createElement('graphviz-graph');
-            graphvizElement.setAttribute('graph', dotSyntax);
+            // Render SVG using Viz.render
+            const svgString = window.Viz.render(dotSyntax, { format: 'svg', engine: 'dot' });
+            console.log('SVG generated, length:', svgString.length);
 
-            // Wait for rendering to complete
-            await new Promise((resolve, reject) => {
-                const checkRendered = () => {
-                    const svg = graphvizElement.querySelector('svg');
-                    if (svg) {
-                        resolve(svg);
-                    } else {
-                        setTimeout(checkRendered, 100);
-                    }
-                };
-                checkRendered();
+            // Create a container for the SVG
+            const svgContainer = document.createElement('div');
+            svgContainer.innerHTML = svgString;
 
-                // Timeout after 10 seconds
-                setTimeout(() => reject(new Error('Graphviz rendering timeout')), 10000);
-            });
-            console.log('Graphviz element created');
-
-            // Add interaction handlers
-            const svg = graphvizElement.querySelector('svg');
+            // Get the SVG element
+            const svg = svgContainer.querySelector('svg');
             if (svg) {
+                // Add interaction handlers
                 this.addInteractionHandlers(svg);
+                // Initialize pan and zoom on the SVG element
+                this.initPanZoom(svg);
             }
 
-            // Initialize pan and zoom on the graphviz element
-            this.initPanZoom(graphvizElement);
-
-            this.container.appendChild(graphvizElement);
+            this.container.appendChild(svgContainer);
 
         } catch (error) {
-            console.error('Error rendering logic diagram with Graphviz, falling back to text display:', error);
+            console.error('Error rendering logic diagram with viz.js, falling back to text display:', error);
 
             // Fallback: display DOT syntax as formatted text
             this.container.innerHTML = '';
