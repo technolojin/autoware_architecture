@@ -110,3 +110,5 @@ connections:
     to: planner.input.lanelet_map
   - from: object_recognition.output.objects
     to: planner.input.predicted_objects
+  - from: obstacle_segmentation.output.pointcloud
+    to: planner.input.obstacle_pointcloud
