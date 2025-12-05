@@ -431,8 +431,36 @@
                 currentDiagramModule = null;
             }
 
-            // Clear container
+            // Clear container and remove any diagram-specific styles/classes
             diagramContainer.innerHTML = '';
+            diagramContainer.className = ''; // Clear any classes applied to the container
+
+            // Remove any diagram-specific styles from document head
+            const styleIdsToRemove = [
+                'logic-diagram-interaction-styles',
+                'sequence-diagram-interaction-styles',
+                'node-diagram-interaction-styles'
+            ];
+            styleIdsToRemove.forEach(styleId => {
+                const styleElement = document.getElementById(styleId);
+                if (styleElement) {
+                    styleElement.remove();
+                }
+            });
+
+            // Clear any global highlight classes that might persist
+            document.querySelectorAll('.highlighted').forEach(el => {
+                el.classList.remove('highlighted');
+            });
+            document.querySelectorAll('.port-highlighted').forEach(el => {
+                el.classList.remove('port-highlighted');
+            });
+            document.querySelectorAll('.line-highlight').forEach(el => {
+                el.classList.remove('line-highlight');
+            });
+            document.querySelectorAll('.line-hover').forEach(el => {
+                el.classList.remove('line-hover');
+            });
 
             try {
                 // Load the appropriate module script if not already loaded
