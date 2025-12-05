@@ -73,6 +73,7 @@ class LogicDiagramModule {
                 .logic-diagram-container {
                     width: 100%;
                     height: 100%;
+                    min-height: 400px;
                     position: relative;
                     overflow: hidden;
                 }
@@ -447,28 +448,72 @@ class LogicDiagramModule {
             this.panZoomInstance = svgPanZoom(svg, {
                 zoomEnabled: true,
                 controlIconsEnabled: true,
-                fit: true,
-                center: true,
-                minZoom: 0.1,
-                maxZoom: 5,
+                fit: false, // We'll handle fitting manually
+                center: false, // We'll handle centering manually
+                minZoom: 0.01,
+                maxZoom: 10,
                 zoomScaleSensitivity: 0.2
             });
 
-            // Fit to screen initially with error handling
-            setTimeout(() => {
-                try {
-                    if (this.panZoomInstance) {
-                        this.panZoomInstance.fit();
-                        this.panZoomInstance.center();
-                    }
-                } catch (fitError) {
-                    console.warn('Failed to fit/center SVG:', fitError);
-                }
-            }, 100);
+            // Wait for SVG to be fully rendered, then fit to view
+            this.fitDiagramToView(svg);
         } catch (initError) {
             console.warn('Failed to initialize svg-pan-zoom:', initError);
             this.panZoomInstance = null;
         }
+    }
+
+    fitDiagramToView(svg) {
+        // Use multiple attempts with increasing delays to ensure SVG is fully rendered
+        const fitAttempts = [100, 250, 500];
+
+        fitAttempts.forEach((delay, index) => {
+            setTimeout(() => {
+                if (!this.panZoomInstance) return;
+
+                try {
+                    // Get container dimensions
+                    const containerRect = this.container.getBoundingClientRect();
+
+                    // Try to get SVG viewBox for accurate dimensions
+                    const viewBox = svg.getAttribute('viewBox');
+                    let svgWidth, svgHeight;
+
+                    if (viewBox) {
+                        const parts = viewBox.split(' ');
+                        svgWidth = parseFloat(parts[2]);
+                        svgHeight = parseFloat(parts[3]);
+                    } else {
+                        // Fallback to bounding rect if no viewBox
+                        const svgRect = svg.getBoundingClientRect();
+                        svgWidth = svgRect.width;
+                        svgHeight = svgRect.height;
+                    }
+
+                    if (svgWidth && svgHeight && svgWidth > 0 && svgHeight > 0) {
+                        // Calculate scale to fit entire diagram with some padding
+                        const scaleX = (containerRect.width * 0.9) / svgWidth;
+                        const scaleY = (containerRect.height * 0.9) / svgHeight;
+                        const scale = Math.min(scaleX, scaleY, 1); // Don't zoom in beyond 100%
+
+                        // Center the diagram
+                        const centerX = svgWidth / 2;
+                        const centerY = svgHeight / 2;
+
+                        // Apply the transform
+                        this.panZoomInstance.zoom(scale);
+                        this.panZoomInstance.pan({
+                            x: containerRect.width / 2 - centerX * scale,
+                            y: containerRect.height / 2 - centerY * scale
+                        });
+
+                        console.log(`Diagram fitted to view (attempt ${index + 1}): scale=${scale.toFixed(3)}, svgSize=${svgWidth}x${svgHeight}`);
+                    }
+                } catch (fitError) {
+                    console.warn(`Failed to fit diagram (attempt ${index + 1}):`, fitError);
+                }
+            }, delay);
+        });
     }
 
     updateInfoPanel(data, type) {
