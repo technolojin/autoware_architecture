@@ -19,6 +19,10 @@ class LogicDiagramModule {
             // Load required libraries if not already loaded
             if (!this.isGraphvizLoaded()) {
                 console.log('Loading viz.js...');
+                // Initialize Viz object for viz.js to attach to
+                if (!window.Viz) {
+                    window.Viz = {};
+                }
                 await this.loadScript('https://cdn.jsdelivr.net/npm/viz.js@2.1.2/full.render.js');
                 console.log('viz.js loaded, graphviz available:', this.isGraphvizLoaded());
             }
@@ -180,36 +184,43 @@ class LogicDiagramModule {
             dotLines.push(`\t\tnode [style=filled, fillcolor=white];`);
 
             // Input ports
-            if (instance.in_ports) {
+            if (instance.in_ports && Array.isArray(instance.in_ports)) {
                 instance.in_ports.forEach(port => {
-                    const eventType = port.event ? port.event.type : 'unknown';
-                    const eventFreq = port.event ? port.event.frequency : 'unknown';
-                    dotLines.push(`\t\t${port.unique_id} [label="input/${port.name}\\n#${eventType}\\n@${eventFreq}", shape=ellipse, fillcolor="#e0f7ff"];`);
+                    if (port && port.unique_id && port.name) {
+                        const eventType = port.event ? port.event.type : 'unknown';
+                        const eventFreq = port.event && port.event.frequency !== null ? port.event.frequency : 'unknown';
+                        dotLines.push(`\t\t${port.unique_id} [label="input/${port.name}\\n#${eventType}\\n@${eventFreq}", shape=ellipse, fillcolor="#e0f7ff"];`);
+                    }
                 });
             }
 
             // Output ports
-            if (instance.out_ports) {
+            if (instance.out_ports && Array.isArray(instance.out_ports)) {
                 instance.out_ports.forEach(port => {
-                    dotLines.push(`\t\t${port.unique_id} [label="output/${port.name}", shape=ellipse, fillcolor="#fff4e0"];`);
+                    if (port && port.unique_id && port.name) {
+                        dotLines.push(`\t\t${port.unique_id} [label="output/${port.name}", shape=ellipse, fillcolor="#fff4e0"];`);
+                    }
                 });
             }
 
             // Events
-            if (instance.events) {
+            if (instance.events && Array.isArray(instance.events)) {
                 instance.events.forEach(event => {
-                    const shape = event.type === "periodic" ? "diamond" : "box";
-                    const mediumColor = instance.vis_guide ? instance.vis_guide.medium_color : "#cccccc";
-                    dotLines.push(`\t\t${event.unique_id} [label="${event.name}\\n#${event.type}\\n@${event.frequency}", shape=${shape}, fillcolor="${mediumColor}"];`);
+                    if (event && event.unique_id && event.name && event.type && event.frequency !== undefined) {
+                        const freq = event.frequency !== null ? event.frequency : 'unknown';
+                        const shape = event.type === "periodic" ? "diamond" : "box";
+                        const mediumColor = instance.vis_guide ? instance.vis_guide.medium_color : "#cccccc";
+                        dotLines.push(`\t\t${event.unique_id} [label="${event.name}\\n#${event.type}\\n@${freq}", shape=${shape}, fillcolor="${mediumColor}"];`);
+                    }
                 });
             }
 
             dotLines.push(`\t}`);
 
             // Global topic clouds for input ports
-            if (instance.in_ports) {
+            if (instance.in_ports && Array.isArray(instance.in_ports)) {
                 instance.in_ports.forEach(port => {
-                    if (port.is_global) {
+                    if (port && port.unique_id && port.is_global) {
                         const topicPath = Array.isArray(port.topic) ? port.topic.join('/') : port.topic || '';
                         dotLines.push(`\t${port.unique_id}_cloud [label="/${topicPath}", shape=hexagon, style=solid, color=gray];`);
                         dotLines.push(`\t${port.unique_id}_cloud -> ${port.unique_id} [color="#555577"];`);
@@ -218,43 +229,51 @@ class LogicDiagramModule {
             }
 
             // Event triggers
-            if (instance.events) {
+            if (instance.events && Array.isArray(instance.events)) {
                 instance.events.forEach(event => {
-                    if (event.triggers) {
-                        event.triggers.forEach(trigger => {
-                            dotLines.push(`\t${trigger.unique_id} -> ${event.unique_id} [color="#555577"];`);
+                    if (event && event.unique_id && event.trigger_ids && Array.isArray(event.trigger_ids)) {
+                        event.trigger_ids.forEach(triggerId => {
+                            if (triggerId) {
+                                dotLines.push(`\t${triggerId} -> ${event.unique_id} [color="#555577"];`);
+                            }
                         });
                     }
                 });
             }
 
             // Output port triggers
-            if (instance.out_ports) {
+            if (instance.out_ports && Array.isArray(instance.out_ports)) {
                 instance.out_ports.forEach(port => {
-                    if (port.event && port.event.triggers) {
-                        port.event.triggers.forEach(trigger => {
-                            dotLines.push(`\t${trigger.unique_id} -> ${port.event.unique_id} [color="#555577"];`);
+                    if (port && port.event && port.event.unique_id && port.event.trigger_ids && Array.isArray(port.event.trigger_ids)) {
+                        port.event.trigger_ids.forEach(triggerId => {
+                            if (triggerId) {
+                                dotLines.push(`\t${triggerId} -> ${port.event.unique_id} [color="#555577"];`);
+                            }
                         });
                     }
                 });
             }
 
             // Input port triggers
-            if (instance.in_ports) {
+            if (instance.in_ports && Array.isArray(instance.in_ports)) {
                 instance.in_ports.forEach(port => {
-                    if (port.event && port.event.triggers) {
-                        port.event.triggers.forEach(trigger => {
-                            dotLines.push(`\t${trigger.unique_id} -> ${port.event.unique_id} [color="#555577"];`);
+                    if (port && port.event && port.event.unique_id && port.event.trigger_ids && Array.isArray(port.event.trigger_ids)) {
+                        port.event.trigger_ids.forEach(triggerId => {
+                            if (triggerId) {
+                                dotLines.push(`\t${triggerId} -> ${port.event.unique_id} [color="#555577"];`);
+                            }
                         });
                     }
                 });
             }
 
-        } else if (instance.entity_type === "module") {
-            // Recursively process children
-            if (instance.children) {
+        } else if (instance.entity_type === "module" || instance.entity_type === "system") {
+            // Recursively process children for modules and systems
+            if (instance.children && Array.isArray(instance.children)) {
                 instance.children.forEach(child => {
-                    this.buildInstanceGraph(child, dotLines);
+                    if (child) {
+                        this.buildInstanceGraph(child, dotLines);
+                    }
                 });
             }
         }
