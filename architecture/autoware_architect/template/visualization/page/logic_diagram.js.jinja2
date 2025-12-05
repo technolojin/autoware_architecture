@@ -19,10 +19,9 @@ class LogicDiagramModule {
             // Load required libraries if not already loaded
             if (!this.isGraphvizLoaded()) {
                 console.log('Loading viz.js...');
-                // Initialize Viz object for viz.js to attach to
-                if (!window.Viz) {
-                    window.Viz = {};
-                }
+                // Load the main viz.js library first
+                await this.loadScript('https://cdn.jsdelivr.net/npm/viz.js@2.1.2/viz.js');
+                // Then load the full render module
                 await this.loadScript('https://cdn.jsdelivr.net/npm/viz.js@2.1.2/full.render.js');
                 console.log('viz.js loaded, graphviz available:', this.isGraphvizLoaded());
             }
@@ -48,7 +47,7 @@ class LogicDiagramModule {
     }
 
     isGraphvizLoaded() {
-        return typeof window !== 'undefined' && window.Viz && typeof window.Viz.render === 'function';
+        return typeof window !== 'undefined' && typeof window.Viz === 'function' && typeof window.Viz.Module !== 'undefined' && typeof window.Viz.render === 'function';
     }
 
     async waitForGraphvizReady() {
@@ -71,8 +70,16 @@ class LogicDiagramModule {
             const style = document.createElement('style');
             style.id = styleId;
             style.textContent = `
+                .logic-diagram-container {
+                    width: 100%;
+                    height: 100%;
+                    position: relative;
+                    overflow: hidden;
+                }
                 .logic-diagram-container svg {
                     cursor: grab;
+                    min-width: 100px;
+                    min-height: 100px;
                 }
                 .logic-diagram-container svg:active {
                     cursor: grabbing;
@@ -295,9 +302,15 @@ class LogicDiagramModule {
             // Render DOT using viz.js
             console.log('Rendering DOT with viz.js...');
 
-            // Render SVG using Viz.render
-            const svgString = window.Viz.render(dotSyntax, { format: 'svg', engine: 'dot' });
+            // Render SVG using viz.js
+            const viz = new window.Viz();
+            const svgString = await viz.renderString(dotSyntax, { format: 'svg', engine: 'dot' });
             console.log('SVG generated, length:', svgString.length);
+
+            // Validate SVG string
+            if (!svgString || svgString.trim().length === 0) {
+                throw new Error('Generated SVG is empty');
+            }
 
             // Create a container for the SVG
             const svgContainer = document.createElement('div');
@@ -306,13 +319,29 @@ class LogicDiagramModule {
             // Get the SVG element
             const svg = svgContainer.querySelector('svg');
             if (svg) {
+                // Ensure SVG has proper dimensions
+                if (!svg.getAttribute('width') || !svg.getAttribute('height')) {
+                    svg.setAttribute('width', '100%');
+                    svg.setAttribute('height', '100%');
+                }
+
+                // Add the container to DOM first
+                this.container.appendChild(svgContainer);
+
                 // Add interaction handlers
                 this.addInteractionHandlers(svg);
-                // Initialize pan and zoom on the SVG element
-                this.initPanZoom(svg);
-            }
 
-            this.container.appendChild(svgContainer);
+                // Initialize pan and zoom on the SVG element after it's in the DOM
+                setTimeout(() => {
+                    try {
+                        this.initPanZoom(svg);
+                    } catch (panZoomError) {
+                        console.warn('Failed to initialize pan-zoom, continuing without it:', panZoomError);
+                    }
+                }, 50);
+            } else {
+                this.container.appendChild(svgContainer);
+            }
 
         } catch (error) {
             console.error('Error rendering logic diagram with viz.js, falling back to text display:', error);
@@ -406,22 +435,40 @@ class LogicDiagramModule {
             this.panZoomInstance.destroy();
         }
 
-        // Initialize svg-pan-zoom
-        this.panZoomInstance = svgPanZoom(svg, {
-            zoomEnabled: true,
-            controlIconsEnabled: true,
-            fit: true,
-            center: true,
-            minZoom: 0.1,
-            maxZoom: 5,
-            zoomScaleSensitivity: 0.2
-        });
+        // Validate SVG before initializing pan-zoom
+        const bbox = svg.getBoundingClientRect();
+        if (bbox.width === 0 || bbox.height === 0) {
+            console.warn('SVG has zero dimensions, skipping pan-zoom initialization');
+            return;
+        }
 
-        // Fit to screen initially
-        setTimeout(() => {
-            this.panZoomInstance.fit();
-            this.panZoomInstance.center();
-        }, 100);
+        try {
+            // Initialize svg-pan-zoom
+            this.panZoomInstance = svgPanZoom(svg, {
+                zoomEnabled: true,
+                controlIconsEnabled: true,
+                fit: true,
+                center: true,
+                minZoom: 0.1,
+                maxZoom: 5,
+                zoomScaleSensitivity: 0.2
+            });
+
+            // Fit to screen initially with error handling
+            setTimeout(() => {
+                try {
+                    if (this.panZoomInstance) {
+                        this.panZoomInstance.fit();
+                        this.panZoomInstance.center();
+                    }
+                } catch (fitError) {
+                    console.warn('Failed to fit/center SVG:', fitError);
+                }
+            }, 100);
+        } catch (initError) {
+            console.warn('Failed to initialize svg-pan-zoom:', initError);
+            this.panZoomInstance = null;
+        }
     }
 
     updateInfoPanel(data, type) {
